@@ -1,5 +1,4 @@
 use alloy_primitives::Address;
-use cast::Cast;
 use clap::Parser;
 use eyre::OptionExt;
 use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
@@ -13,12 +12,14 @@ use crate::{
         consts::{TESTNET_ADDRESSES, TESTNET_VAULTS},
         DirsCliArgs,
     },
+    symbiotic::calls::{
+        get_operator_network_opt_in_status, get_operator_registry_status,
+        get_operator_vault_opt_in_status,
+    },
     utils::load_from_json_file,
 };
 
-use super::{
-    is_operator, is_opted_in, ImportedAddresses, IMPORTED_ADDRESSES_DIR, IMPORTED_ADDRESSES_FILE,
-};
+use super::{ImportedAddresses, IMPORTED_ADDRESSES_DIR, IMPORTED_ADDRESSES_FILE};
 
 const VAULT_OPT_IN_ENTITY: &str = "vault_opt_in_service";
 const NETWORK_OPT_IN_ENTITY: &str = "network_opt_in_service";
@@ -79,7 +80,6 @@ impl GetCommand {
 
         let config = self.eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-        let eth_client = Cast::new(provider);
 
         let mut table = Table::new();
 
@@ -92,14 +92,14 @@ impl GetCommand {
             "is_hyve_operator"
         ]);
 
-        let is_operator = is_operator(operator.0, &eth_client).await?;
+        let is_operator = get_operator_registry_status(operator.0, &provider).await?;
         let mut registered_vaults = vec![];
         for (token, vault_address) in TESTNET_VAULTS.entries() {
-            let is_opted_in = is_opted_in(
+            let is_opted_in = get_operator_vault_opt_in_status(
                 operator.0.clone(),
                 Address::from_str(vault_address)?,
                 Address::from_str(TESTNET_ADDRESSES[VAULT_OPT_IN_ENTITY])?,
-                &eth_client,
+                &provider,
             )
             .await?;
 
@@ -112,11 +112,11 @@ impl GetCommand {
             registered_vaults.push("None".to_string());
         }
 
-        let is_hyve_operator = is_opted_in(
+        let is_hyve_operator = get_operator_network_opt_in_status(
             operator.0.clone(),
             Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?,
             Address::from_str(TESTNET_ADDRESSES[NETWORK_OPT_IN_ENTITY])?,
-            &eth_client,
+            &provider,
         )
         .await?;
 

@@ -1,5 +1,4 @@
 use alloy_primitives::Address;
-use cast::Cast;
 use clap::Parser;
 use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
 use hyve_cli_runner::CliContext;
@@ -7,9 +6,10 @@ use prettytable::{row, Table};
 
 use std::str::FromStr;
 
-use crate::common::consts::TESTNET_VAULTS;
-
-use super::{get_active_stake, get_total_stake};
+use crate::{
+    common::consts::TESTNET_VAULTS,
+    symbiotic::calls::{get_vault_active_stake, get_vault_total_stake},
+};
 
 #[derive(Debug, Parser)]
 #[clap(about = "Get information for all vaults in Symbiotic.")]
@@ -24,7 +24,6 @@ impl ListCommand {
 
         let config = self.eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-        let eth_client = Cast::new(provider);
 
         // table headers
         table.add_row(row![
@@ -37,10 +36,10 @@ impl ListCommand {
 
         for (token, vault_address) in TESTNET_VAULTS.entries() {
             let active_stake =
-                get_active_stake(Address::from_str(&vault_address)?, &eth_client).await?;
+                get_vault_active_stake(Address::from_str(&vault_address)?, &provider).await?;
 
             let total_stake =
-                get_total_stake(Address::from_str(&vault_address)?, &eth_client).await?;
+                get_vault_total_stake(Address::from_str(&vault_address)?, &provider).await?;
 
             table.add_row(row![
                 "None",

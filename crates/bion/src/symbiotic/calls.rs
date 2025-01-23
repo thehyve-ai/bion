@@ -1,14 +1,35 @@
 //! A collection of function that call important information from the Symbiotic contracts.
 
 use alloy_network::TransactionBuilder;
-use alloy_primitives::Address;
+use alloy_primitives::{Address, U256};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
 use alloy_sol_types::SolCall;
 use cast::Cast;
+use eyre::Result;
 use foundry_common::provider::RetryProvider;
 
-use super::contracts::IOptInService::{isOptedInCall, isOptedInReturn};
+use super::contracts::{
+    IOperatorRegistry::{isEntityCall, isEntityReturn},
+    IOptInService::{isOptedInCall, isOptedInReturn},
+    IVault::{totalStakeCall, totalStakeReturn},
+};
+
+pub async fn get_operator_registry_status<A: TryInto<Address>>(
+    address: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let address: Address = address.try_into()?;
+
+    let call = isEntityCall { account: address };
+
+    let isEntityReturn { _0: is_entity } = call_and_decode(call, address, provider).await?;
+
+    Ok(is_entity)
+}
 
 /// Gets the opt-in status of an operator for a specific network from the opt-in service contract
 ///
@@ -32,8 +53,8 @@ pub async fn get_operator_network_opt_in_status<A: TryInto<Address>>(
     address: A,
     network: A,
     opt_in_service: A,
-    provider: RetryProvider,
-) -> Result<bool, eyre::Error>
+    provider: &RetryProvider,
+) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
@@ -53,8 +74,8 @@ pub async fn get_operator_vault_opt_in_status<A: TryInto<Address>>(
     address: A,
     vault: A,
     vault_opt_in_service: A,
-    provider: RetryProvider,
-) -> Result<bool, eyre::Error>
+    provider: &RetryProvider,
+) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
@@ -70,12 +91,48 @@ where
     Ok(is_opted_in)
 }
 
+pub async fn get_vault_active_stake<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault: Address = vault.try_into()?;
+    let vault_contract: Address = vault.try_into()?;
+
+    let call = totalStakeCall {};
+
+    let totalStakeReturn { _0: active_stake } =
+        call_and_decode(call, vault_contract, provider).await?;
+
+    Ok(active_stake)
+}
+
+pub async fn get_vault_total_stake<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault: Address = vault.try_into()?;
+    let vault_contract: Address = vault.try_into()?;
+
+    let call = totalStakeCall {};
+
+    let totalStakeReturn { _0: total_stake } =
+        call_and_decode(call, vault_contract, provider).await?;
+
+    Ok(total_stake)
+}
+
 /// Private function to make a contract call and decode the response
 async fn call_and_decode<C: SolCall>(
     call: C,
     to: Address,
-    provider: RetryProvider,
-) -> Result<C::Return, eyre::Error> {
+    provider: &RetryProvider,
+) -> Result<C::Return> {
     let call_data: Vec<u8> = call.abi_encode();
 
     let mut req = TransactionRequest::default().to(to);
