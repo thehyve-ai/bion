@@ -1,0 +1,72 @@
+[package]
+name = "bion"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[bin]]
+name = "bion"
+path = "bin/main.rs"
+
+[dependencies]
+# hyve
+account-utils.workspace = true
+hyve-cli-runner.workspace = true
+hyve-primitives.workspace = true
+hyve-version.workspace = true
+
+# ethereum
+alloy-chains.workspace = true
+# workspace version of alloy-consensus is broken for cast
+alloy-consensus = { version = "0.9.2", features = ["serde", "kzg"] }
+alloy-dyn-abi.workspace = true
+alloy-eips = { workspace = true, features = ["serde"] }
+alloy-json-abi.workspace = true
+alloy-network.workspace = true
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-rlp.workspace = true
+alloy-rpc-types.workspace = true
+alloy-serde.workspace = true
+alloy-signer = { workspace = true, features = ["eip712"] }
+alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
+alloy-sol-types.workspace = true
+alloy-transport.workspace = true
+
+cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
+foundry-cli = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-cli" }
+foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }
+foundry-config = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-config" }
+foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-wallets" }
+
+# misc
+async-trait.workspace = true
+clap = { workspace = true, features = ["derive", "string"] }
+dirs.workspace = true
+dialoguer = "0.11.0"
+crossterm = "0.28.1"
+colored = "2.0"
+ethereum-types.workspace = true
+eth2_keystore.workspace = true
+eth2_wallet.workspace = true
+hex.workspace = true
+itertools.workspace = true
+eyre.workspace = true
+futures-util.workspace = true
+humantime.workspace = true
+libp2p.workspace = true
+lighthouse-bls.workspace = true
+phf = { version = "0.11.2", features = ["macros"] }
+prettytable.workspace = true
+rpassword.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+strum.workspace = true
+thiserror.workspace = true
+tokio = { workspace = true, features = ["full"] }
+tracing.workspace = true

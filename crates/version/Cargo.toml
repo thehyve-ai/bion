@@ -1,0 +1,17 @@
+[package]
+name = "hyve-version"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+git-version = "0.3.4"
+target_info = "0.1.0"
+lazy_static.workspace = true
+
+[dev-dependencies]
+regex = { workspace = true }

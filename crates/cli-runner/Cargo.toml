@@ -1,0 +1,14 @@
+[package]
+name = "hyve-cli-runner"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# reth
+reth-tasks.workspace = true
+
+# async
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "signal"] }
+
+# misc
+tracing.workspace = true

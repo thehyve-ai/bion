@@ -1,0 +1,25 @@
+[package]
+name = "account-utils"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+
+[dependencies]
+eth2_keystore = { workspace = true }
+
+lighthouse-bls = { workspace = true }
+rand = { workspace = true }
+regex.workspace = true
+serde = { workspace = true }
+serde_yaml = { workspace = true }
+tiny-bip39 = "2.0.0"
+zeroize = { workspace = true }
+
+hyve-primitives = { path = "../primitives" }
+
+# tokio
+tokio.workspace = true
