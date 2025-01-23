@@ -1,3 +1,57 @@
+use alloy_primitives::Address;
+use clap::Parser;
+use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+
+use std::path::PathBuf;
+
+use crate::common::DirsCliArgs;
+
+#[derive(Debug, Parser)]
+#[clap(about = "Onboard an Operator in the HyveDA and Symbiotic.")]
+pub struct OnboardOperatorCommand {
+    #[arg(value_name = "OPERATOR_ADDRESS")]
+    operator_address: Address,
+
+    #[arg(
+        long,
+        value_name = "MNEMONIC",
+        help = "The mnemonic to use for the operator. The mnemonic must be 24 words long and all words should be space seperated.",
+        conflicts_with = "bls_mnemonic_file"
+    )]
+    bls_mnemonic: Option<String>,
+
+    #[arg(
+        long,
+        value_name = "MNEMONIC_FILE",
+        help = "The file containing the mnemonic to use for the operator.",
+        conflicts_with = "bls_mnemonic"
+    )]
+    bls_mnemonic_file: Option<PathBuf>,
+
+    #[arg(
+        long,
+        help = "Whether or not to be prompted to specify a keystore password. Will otherwise be randomly generated."
+    )]
+    prompt_keystore_password: bool,
+
+    #[arg(
+        long,
+        required = false,
+        value_name = "ADDRESS",
+        help = "The address of the vault to opt-in."
+    )]
+    vault_address: Option<Address>,
+
+    #[clap(flatten)]
+    dirs: DirsCliArgs,
+
+    #[clap(flatten)]
+    tx: TransactionOpts,
+
+    #[clap(flatten)]
+    eth: EthereumOpts,
+}
+
 // use account_utils::OperatorDefinitions;
 // use alloy_chains::Chain;
 // use alloy_network::EthereumWallet;

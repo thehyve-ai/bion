@@ -31,8 +31,8 @@ pub struct Keys {
 }
 
 #[derive(Debug, Parser)]
-#[clap(about = "Register a BLS key in the HyveDA middleware.")]
-pub struct RegisterKeyCommand {
+#[clap(about = "Register an Operator with a BLS key in the HyveDA middleware.")]
+pub struct RegisterOperatorCommand {
     #[clap(flatten)]
     dirs: DirsCliArgs,
 
@@ -59,7 +59,7 @@ pub struct RegisterKeyCommand {
     voting_pubkey: String,
 }
 
-impl RegisterKeyCommand {
+impl RegisterOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
             dirs,

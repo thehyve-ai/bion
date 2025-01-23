@@ -1,6 +1,8 @@
 use bion::cmd::{
+    hyve::HyveCommands,
     network::NetworkCommands,
     operator::{bls::BLSCommands, OperatorCommands},
+    symbiotic::SymbioticCommands,
     vault::VaultCommands,
 };
 use clap::{
@@ -139,14 +141,11 @@ impl Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
-    #[command(name = "operator", subcommand)]
-    OperatorCommands(OperatorCommands),
+    #[command(name = "hyve", subcommand)]
+    Hyve(HyveCommands),
 
-    #[command(name = "vault", subcommand)]
-    VaultCommands(VaultCommands),
-
-    #[command(name = "network", subcommand)]
-    NetworkCommands(NetworkCommands),
+    #[command(name = "symbiotic", subcommand)]
+    Symbiotic(SymbioticCommands),
 }
 
 fn get_color_style() -> Styles {

@@ -1,3 +1,6 @@
-pub mod network;
-pub mod operator;
-pub mod vault;
+use clap::{command, Subcommand};
+use hyve::HyveCommands;
+use symbiotic::SymbioticCommands;
+
+pub mod hyve;
+pub mod symbiotic;

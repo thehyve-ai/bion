@@ -10,8 +10,8 @@ use crate::{cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES};
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
 
 #[derive(Debug, Parser)]
-#[clap(about = "Pauses an operator in the HyveDA middleware.")]
-pub struct PauseKeyCommand {
+#[clap(about = "Pauses an Operator in the HyveDA middleware.")]
+pub struct PauseOperatorCommand {
     #[clap(flatten)]
     tx: TransactionOpts,
 
@@ -27,7 +27,7 @@ pub struct PauseKeyCommand {
     confirmations: u64,
 }
 
-impl PauseKeyCommand {
+impl PauseOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
             tx,
