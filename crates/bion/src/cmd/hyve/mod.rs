@@ -6,7 +6,7 @@ use register_operator::RegisterOperatorCommand;
 use unpause_operator::UnpauseOperatorCommand;
 use unregister_operator::UnregisterOperatorCommand;
 
-mod bls;
+pub mod bls;
 mod onboard_operator;
 mod pause_operator;
 mod register_operator;

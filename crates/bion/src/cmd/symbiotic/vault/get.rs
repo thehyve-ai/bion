@@ -14,9 +14,6 @@ use crate::{
 #[derive(Debug, Parser)]
 #[clap(about = "Get information for a single vault in Symbiotic.")]
 pub struct GetCommand {
-    #[clap(flatten)]
-    eth: EthereumOpts,
-
     #[arg(
         long,
         required = true,
@@ -24,6 +21,9 @@ pub struct GetCommand {
         help = "The address of the vault."
     )]
     address: Address,
+
+    #[clap(flatten)]
+    eth: EthereumOpts,
 }
 
 impl GetCommand {

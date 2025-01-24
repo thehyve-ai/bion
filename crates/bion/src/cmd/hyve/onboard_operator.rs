@@ -1,6 +1,7 @@
 use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+use hyve_cli_runner::CliContext;
 
 use std::path::PathBuf;
 
@@ -9,8 +10,13 @@ use crate::common::DirsCliArgs;
 #[derive(Debug, Parser)]
 #[clap(about = "Onboard an Operator in the HyveDA and Symbiotic.")]
 pub struct OnboardOperatorCommand {
-    #[arg(value_name = "OPERATOR_ADDRESS")]
-    operator_address: Address,
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "Address of the signer."
+    )]
+    address: Address,
 
     #[arg(
         long,
@@ -50,6 +56,12 @@ pub struct OnboardOperatorCommand {
 
     #[clap(flatten)]
     eth: EthereumOpts,
+}
+
+impl OnboardOperatorCommand {
+    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+        Ok(())
+    }
 }
 
 // use account_utils::OperatorDefinitions;

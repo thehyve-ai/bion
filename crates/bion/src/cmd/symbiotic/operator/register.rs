@@ -5,13 +5,24 @@ use hyve_cli_runner::CliContext;
 
 use std::str::FromStr;
 
-use crate::{cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES};
+use crate::{
+    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
+    utils::validate_address_with_signer,
+};
 
 const OP_REGISTRY_ENTITY: &str = "op_registry";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Register the signer as an operator in Symbiotic.")]
 pub struct RegisterCommand {
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "Address of the signer."
+    )]
+    address: Address,
+
     #[clap(flatten)]
     tx: TransactionOpts,
 
@@ -34,7 +45,10 @@ impl RegisterCommand {
             eth,
             timeout,
             confirmations,
+            address,
         } = self;
+
+        validate_address_with_signer(address, &eth).await?;
 
         let op_registry_address = Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
 

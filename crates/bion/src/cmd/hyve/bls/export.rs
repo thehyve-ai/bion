@@ -1,4 +1,3 @@
-use async_trait::async_trait;
 use clap::Parser;
 use hyve_cli_runner::CliContext;
 

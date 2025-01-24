@@ -20,6 +20,7 @@ use std::str::FromStr;
 use crate::{
     cast::cmd::send::SendTxArgs,
     common::{consts::TESTNET_ADDRESSES, DirsCliArgs},
+    utils::validate_address_with_signer,
 };
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
@@ -33,6 +34,22 @@ pub struct Keys {
 #[derive(Debug, Parser)]
 #[clap(about = "Register an Operator with a BLS key in the HyveDA middleware.")]
 pub struct RegisterOperatorCommand {
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "Address of the signer."
+    )]
+    address: Address,
+
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "The pubkey of the BLS keystore."
+    )]
+    voting_pubkey: String,
+
     #[clap(flatten)]
     dirs: DirsCliArgs,
 
@@ -49,26 +66,21 @@ pub struct RegisterOperatorCommand {
     /// The number of confirmations until the receipt is fetched.
     #[arg(long, default_value = "1")]
     confirmations: u64,
-
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The pubkey of the BLS keystore."
-    )]
-    voting_pubkey: String,
 }
 
 impl RegisterOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
+            voting_pubkey,
             dirs,
             tx,
             eth,
             timeout,
             confirmations,
-            voting_pubkey,
         } = self;
+
+        validate_address_with_signer(address, &eth).await?;
 
         let operators_dir = dirs.operators_dir();
         let mut pubkey = voting_pubkey;

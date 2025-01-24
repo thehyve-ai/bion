@@ -14,10 +14,13 @@ use std::{
 use alloy_chains::Chain;
 use alloy_dyn_abi::JsonAbiExt;
 use alloy_json_abi::Function;
-use alloy_network::AnyNetwork;
+use alloy_network::{AnyNetwork, TxSigner};
+use alloy_primitives::Address;
 use alloy_provider::Provider;
 use alloy_transport::Transport;
 use eyre::ContextCompat;
+use foundry_cli::opts::EthereumOpts;
+use foundry_wallets::WalletSigner;
 use futures_util::future::join_all;
 
 use hyve_primitives::alloy_primitives::{hex, U256};
@@ -25,6 +28,20 @@ use serde::{de::DeserializeOwned, Serialize};
 use tracing::trace;
 
 use crate::common::{DirsCliArgs, NetworkCliArgs};
+
+/// Temporary usage
+pub async fn validate_address_with_signer(
+    address: Address,
+    eth: &EthereumOpts,
+) -> eyre::Result<()> {
+    let signer = eth.wallet.signer().await?;
+    let from = signer.address();
+
+    match address.to_string().to_lowercase() == from.to_string().to_lowercase() {
+        true => Ok(()),
+        false => Err(eyre::eyre!("Address does not match signer!")),
+    }
+}
 
 /// Clears a specified number of previous lines in the terminal output
 ///

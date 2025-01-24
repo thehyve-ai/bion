@@ -5,13 +5,24 @@ use hyve_cli_runner::CliContext;
 
 use std::str::FromStr;
 
-use crate::{cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES};
+use crate::{
+    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
+    utils::validate_address_with_signer,
+};
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Unpauses an Operator in the HyveDA middleware.")]
 pub struct UnpauseOperatorCommand {
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "Address of the signer."
+    )]
+    address: Address,
+
     #[clap(flatten)]
     tx: TransactionOpts,
 
@@ -30,11 +41,14 @@ pub struct UnpauseOperatorCommand {
 impl UnpauseOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
             tx,
             eth,
             timeout,
             confirmations,
         } = self;
+
+        validate_address_with_signer(address, &eth).await?;
 
         let hyve_middleware_address = Address::from_str(TESTNET_ADDRESSES[HYVE_MIDDLEWARE_ENTITY])?;
 

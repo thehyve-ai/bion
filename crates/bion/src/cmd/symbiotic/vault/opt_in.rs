@@ -5,18 +5,23 @@ use hyve_cli_runner::CliContext;
 
 use std::str::FromStr;
 
-use crate::{cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES};
+use crate::{
+    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
+    utils::validate_address_with_signer,
+};
 
 const OPT_IN_ENTITY: &str = "vault_opt_in_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Opt in a vault part of Symbiotic.")]
 pub struct OptInCommand {
-    #[clap(flatten)]
-    tx: TransactionOpts,
-
-    #[clap(flatten)]
-    eth: EthereumOpts,
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "Address of the signer."
+    )]
+    address: Address,
 
     #[arg(
         long,
@@ -24,7 +29,13 @@ pub struct OptInCommand {
         value_name = "ADDRESS",
         help = "The address of the vault to opt-in."
     )]
-    address: Address,
+    vault_address: Address,
+
+    #[clap(flatten)]
+    tx: TransactionOpts,
+
+    #[clap(flatten)]
+    eth: EthereumOpts,
 
     /// Timeout for sending the transaction.
     #[arg(long, env = "ETH_TIMEOUT")]
@@ -38,12 +49,15 @@ pub struct OptInCommand {
 impl OptInCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
+            vault_address,
             tx,
             eth,
             timeout,
             confirmations,
-            address,
         } = self;
+
+        validate_address_with_signer(address, &eth).await?;
 
         let opt_in_address = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
 
@@ -52,7 +66,7 @@ impl OptInCommand {
         let arg = SendTxArgs {
             to: Some(to),
             sig: Some("optIn(address where)".to_string()),
-            args: vec![address.to_string()],
+            args: vec![vault_address.to_string()],
             cast_async: true,
             confirmations,
             command: None,

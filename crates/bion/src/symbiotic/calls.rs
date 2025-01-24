@@ -17,16 +17,18 @@ use super::contracts::{
 
 pub async fn get_operator_registry_status<A: TryInto<Address>>(
     address: A,
+    op_registry: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let address: Address = address.try_into()?;
+    let op_registry: Address = op_registry.try_into()?;
 
     let call = isEntityCall { account: address };
 
-    let isEntityReturn { _0: is_entity } = call_and_decode(call, address, provider).await?;
+    let isEntityReturn { _0: is_entity } = call_and_decode(call, op_registry, provider).await?;
 
     Ok(is_entity)
 }
