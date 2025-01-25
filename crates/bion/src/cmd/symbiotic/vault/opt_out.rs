@@ -1,13 +1,16 @@
 use alloy_primitives::Address;
 use clap::Parser;
-use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+use foundry_cli::{
+    opts::{EthereumOpts, TransactionOpts},
+    utils::{self, LoadConfig},
+};
 use hyve_cli_runner::CliContext;
 
 use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    utils::validate_address_with_signer,
+    symbiotic::calls::get_operator_vault_opt_in_status, utils::validate_address_with_signer,
 };
 
 const OPT_IN_ENTITY: &str = "vault_opt_in_service";
@@ -59,9 +62,24 @@ impl OptOutCommand {
 
         validate_address_with_signer(address, &eth).await?;
 
-        let opt_in_address = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
+        let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
 
-        let to = foundry_common::ens::NameOrAddress::Address(opt_in_address);
+        // Currently the config and provider are created twice when running the Cast command.
+        // This is not ideal and should be refactored.
+        let config = eth.load_config()?;
+        let provider = utils::get_provider(&config)?;
+
+        let is_opted_in =
+            get_operator_vault_opt_in_status(address, vault_address, opt_in_service, &provider)
+                .await?;
+
+        if !is_opted_in {
+            return Err(eyre::eyre!(
+                "Cannot opt-out of vault because the address is not yet opted-in."
+            ));
+        }
+
+        let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
