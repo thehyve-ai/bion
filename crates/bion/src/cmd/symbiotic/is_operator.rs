@@ -14,7 +14,8 @@ use crate::{common::consts::TESTNET_ADDRESSES, symbiotic::calls::get_operator_re
 const OP_REGISTRY_ENTITY: &str = "op_registry";
 
 #[derive(Debug, Parser)]
-pub struct RegisterStatusCommand {
+#[clap(about = "Check if the address is a Symbiotic Operator.")]
+pub struct IsOperatorCommand {
     #[arg(
         long,
         required = true,
@@ -27,7 +28,7 @@ pub struct RegisterStatusCommand {
     eth: EthereumOpts,
 }
 
-impl RegisterStatusCommand {
+impl IsOperatorCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self { address, eth } = self;
 

@@ -1,5 +1,7 @@
 // TODO: move this to a chain spec
 pub mod addresses {
+    pub mod mainnet {}
+
     pub mod sepolia {
         /// Pure vaults' creator (also allows their migrations)
         pub const VAULT_FACTORY: &str = "0x407A039D94948484D356eFB765b3c74382A050B4";

@@ -10,14 +10,15 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::get_operator_registry_status, utils::validate_address_with_signer,
+    symbiotic::calls::get_operator_network_opt_in_status, utils::validate_address_with_signer,
 };
 
-const OP_REGISTRY_ENTITY: &str = "op_registry";
+const HYVE_NETWORK_ENTITY: &str = "hyve_network";
+const OPT_IN_ENTITY: &str = "network_opt_in_service";
 
 #[derive(Debug, Parser)]
-#[clap(about = "Register the signer as an operator in Symbiotic.")]
-pub struct RegisterCommand {
+#[clap(about = "Opt in a Symbiotic network.")]
+pub struct NetworkOptInCommand {
     #[arg(
         long,
         required = true,
@@ -41,37 +42,40 @@ pub struct RegisterCommand {
     confirmations: u64,
 }
 
-impl RegisterCommand {
+impl NetworkOptInCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
             tx,
             eth,
             timeout,
             confirmations,
-            address,
         } = self;
 
         validate_address_with_signer(address, &eth).await?;
 
-        let op_registry = Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
+        let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
+        let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let is_registered = get_operator_registry_status(address, op_registry, &provider).await?;
+        let is_opted_in =
+            get_operator_network_opt_in_status(address, hyve_network, opt_in_service, &provider)
+                .await?;
 
-        if is_registered {
-            return Err(eyre::eyre!("Address is already registered"));
+        if is_opted_in {
+            return Err(eyre::eyre!("Address is already opted in."));
         }
 
-        let to = foundry_common::ens::NameOrAddress::Address(op_registry);
+        let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("registerOperator()".to_string()),
-            args: vec![],
+            sig: Some("optIn(address where)".to_string()),
+            args: vec![hyve_network.to_string()],
             cast_async: true,
             confirmations,
             command: None,

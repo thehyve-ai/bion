@@ -1,34 +1,43 @@
 //! A collection of function that call important information from the Symbiotic contracts.
 
-use alloy_network::TransactionBuilder;
-use alloy_primitives::{Address, U256};
+use std::{marker::PhantomData, str::FromStr};
+
+use alloy_network::{AnyNetwork, TransactionBuilder};
+use alloy_primitives::{Address, Bytes, U256};
+use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
 use alloy_sol_types::SolCall;
+use alloy_transport::Transport;
 use cast::Cast;
 use eyre::Result;
 use foundry_common::provider::RetryProvider;
 
+use crate::symbiotic::contracts::vault_factory::{self, VaultFactory};
+
 use super::contracts::{
-    IOperatorRegistry::{isEntityCall, isEntityReturn},
+    // vault_factory::VaultFactory,
+    INetworkRegistry,
+    IOperatorRegistry,
     IOptInService::{isOptedInCall, isOptedInReturn},
     IVault::{totalStakeCall, totalStakeReturn},
 };
 
 pub async fn get_operator_registry_status<A: TryInto<Address>>(
     address: A,
-    op_registry: A,
+    operator_registry: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let address: Address = address.try_into()?;
-    let op_registry: Address = op_registry.try_into()?;
+    let operator_registry: Address = operator_registry.try_into()?;
 
-    let call = isEntityCall { account: address };
+    let call = IOperatorRegistry::isEntityCall { account: address };
 
-    let isEntityReturn { _0: is_entity } = call_and_decode(call, op_registry, provider).await?;
+    let IOperatorRegistry::isEntityReturn { _0: is_entity } =
+        call_and_decode(call, operator_registry, provider).await?;
 
     Ok(is_entity)
 }
@@ -129,6 +138,44 @@ where
     Ok(total_stake)
 }
 
+pub async fn is_network<A: TryInto<Address>>(
+    network: A,
+    network_registry: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let network_registry = network_registry.try_into()?;
+
+    let call = INetworkRegistry::isEntityCall { account: network };
+
+    let INetworkRegistry::isEntityReturn { _0: is_entity } =
+        call_and_decode(call, network_registry, provider).await?;
+
+    Ok(is_entity)
+}
+
+pub async fn is_vault<A: TryInto<Address>>(
+    vault: A,
+    vault_factory: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+    let vault_factory = vault_factory.try_into()?;
+
+    let call = VaultFactory::isEntityCall::new((vault,));
+
+    let VaultFactory::isEntityReturn { _0: is_entity } =
+        call_and_decode(call, vault_factory, provider).await?;
+
+    Ok(is_entity)
+}
+
 /// Private function to make a contract call and decode the response
 async fn call_and_decode<C: SolCall>(
     call: C,
@@ -144,6 +191,7 @@ async fn call_and_decode<C: SolCall>(
 
     let cast = Cast::new(provider);
     let data = cast.call(&req, None, None).await?;
+    let data = Bytes::from_str(data.as_str())?;
     let data = C::abi_decode_returns(data.as_ref(), true)?;
 
     Ok(data)

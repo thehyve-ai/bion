@@ -3,6 +3,7 @@ pub mod network_registry;
 pub mod operator_registry;
 pub mod opt_in_service;
 pub mod vault;
+pub mod vault_factory;
 
 pub use self::hyve_network_middleware::HyveNetworkMiddleware;
 pub use self::network_registry::INetworkRegistry;

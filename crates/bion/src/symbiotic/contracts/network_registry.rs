@@ -1,7 +1,6 @@
 use alloy_sol_types::sol;
 
 sol! {
-
     #[derive(Debug, PartialEq, Eq)]
     interface INetworkRegistry {
         error NetworkAlreadyRegistered();

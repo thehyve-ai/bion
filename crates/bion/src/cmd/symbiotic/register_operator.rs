@@ -10,14 +10,14 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::get_operator_vault_opt_in_status, utils::validate_address_with_signer,
+    symbiotic::calls::get_operator_registry_status, utils::validate_address_with_signer,
 };
 
-const OPT_IN_ENTITY: &str = "vault_opt_in_service";
+const OP_REGISTRY_ENTITY: &str = "op_registry";
 
 #[derive(Debug, Parser)]
-#[clap(about = "Opt out of a vault part of Symbiotic.")]
-pub struct OptOutCommand {
+#[clap(about = "Register the signer as an operator in Symbiotic.")]
+pub struct RegisterOperatorCommand {
     #[arg(
         long,
         required = true,
@@ -25,14 +25,6 @@ pub struct OptOutCommand {
         help = "Address of the signer."
     )]
     address: Address,
-
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The address of the vault to opt-in."
-    )]
-    vault_address: Address,
 
     #[clap(flatten)]
     tx: TransactionOpts,
@@ -49,42 +41,37 @@ pub struct OptOutCommand {
     confirmations: u64,
 }
 
-impl OptOutCommand {
+impl RegisterOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
-            address,
-            vault_address,
             tx,
             eth,
             timeout,
             confirmations,
+            address,
         } = self;
 
         validate_address_with_signer(address, &eth).await?;
 
-        let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
+        let op_registry = Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let is_opted_in =
-            get_operator_vault_opt_in_status(address, vault_address, opt_in_service, &provider)
-                .await?;
+        let is_registered = get_operator_registry_status(address, op_registry, &provider).await?;
 
-        if !is_opted_in {
-            return Err(eyre::eyre!(
-                "Cannot opt-out of vault because the address is not yet opted-in."
-            ));
+        if is_registered {
+            return Err(eyre::eyre!("Address is already registered"));
         }
 
-        let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
+        let to = foundry_common::ens::NameOrAddress::Address(op_registry);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("optOut(address where)".to_string()),
-            args: vec![vault_address.to_string()],
+            sig: Some("registerOperator()".to_string()),
+            args: vec![],
             cast_async: true,
             confirmations,
             command: None,

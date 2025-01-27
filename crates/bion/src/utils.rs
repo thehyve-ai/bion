@@ -19,7 +19,7 @@ use alloy_primitives::Address;
 use alloy_provider::Provider;
 use alloy_transport::Transport;
 use eyre::ContextCompat;
-use foundry_cli::opts::EthereumOpts;
+use foundry_cli::opts::{EthereumOpts, EtherscanOpts, RpcOpts};
 use foundry_wallets::WalletSigner;
 use futures_util::future::join_all;
 
@@ -29,7 +29,16 @@ use tracing::trace;
 
 use crate::common::{DirsCliArgs, NetworkCliArgs};
 
-/// Temporary usage
+pub async fn validate_cli_args(address: Option<Address>, eth: &EthereumOpts) -> eyre::Result<()> {
+    if let Some(address) = address {
+        validate_address_with_signer(address, eth).await?;
+    }
+    validate_chain_id(&eth.etherscan)?;
+    validate_rpc_url(&eth.rpc)?;
+
+    Ok(())
+}
+
 pub async fn validate_address_with_signer(
     address: Address,
     eth: &EthereumOpts,
@@ -41,6 +50,24 @@ pub async fn validate_address_with_signer(
         true => Ok(()),
         false => Err(eyre::eyre!("Address does not match signer!")),
     }
+}
+
+pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
+    match rpc.url.is_some() {
+        true => Ok(()),
+        false => Err(eyre::eyre!("RPC URL is required!")),
+    }
+}
+
+pub fn validate_chain_id(eth: &EtherscanOpts) -> eyre::Result<()> {
+    if let Some(chain_id) = eth.chain {
+        match chain_id.id() {
+            1 | 11155111 => return Ok(()),
+            _ => return Err(eyre::eyre!("Invalid chain ID!")),
+        }
+    }
+
+    Ok(())
 }
 
 /// Clears a specified number of previous lines in the terminal output

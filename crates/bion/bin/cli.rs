@@ -1,9 +1,6 @@
 use bion::cmd::{
     hyve::{bls::BLSCommands, HyveCommands},
-    symbiotic::{
-        network::NetworkCommands, operator::OperatorCommands, vault::VaultCommands,
-        SymbioticCommands,
-    },
+    symbiotic::SymbioticCommands,
 };
 use clap::{
     builder::{styling::AnsiColor, Styles},
@@ -64,74 +61,68 @@ impl Cli {
     pub fn run(self) -> eyre::Result<()> {
         let runner = CliRunner::default();
         match self.command {
-            Commands::Hyve(hyve_subcommand) => match hyve_subcommand {
-                HyveCommands::BLS(bls_subcommand) => match bls_subcommand {
-                    BLSCommands::List(list_command) => {
-                        runner.run_command_until_exit(|ctx| list_command.execute(ctx))
+            Commands::Hyve(hyve) => match hyve {
+                HyveCommands::BLS(bls) => match bls {
+                    BLSCommands::List(list) => {
+                        runner.run_command_until_exit(|ctx| list.execute(ctx))
                     }
-                    BLSCommands::Export(export_command) => {
-                        runner.run_command_until_exit(|ctx| export_command.execute(ctx))
+                    BLSCommands::Export(export) => {
+                        runner.run_command_until_exit(|ctx| export.execute(ctx))
                     }
-                    BLSCommands::Create(create_command) => {
-                        runner.run_command_until_exit(|ctx| create_command.execute(ctx))
+                    BLSCommands::Create(create) => {
+                        runner.run_command_until_exit(|ctx| create.execute(ctx))
                     }
-                    BLSCommands::Delete(delete_command) => {
-                        runner.run_command_until_exit(|ctx| delete_command.execute(ctx))
+                    BLSCommands::Delete(delete) => {
+                        runner.run_command_until_exit(|ctx| delete.execute(ctx))
                     }
                 },
-                HyveCommands::OnboardOperator(onboard_operator_command) => {
-                    runner.run_command_until_exit(|ctx| onboard_operator_command.execute(ctx))
+                HyveCommands::OnboardOperator(onboard_operator) => {
+                    runner.run_command_until_exit(|ctx| onboard_operator.execute(ctx))
                 }
-                HyveCommands::PauseOperator(pause_operator_command) => {
-                    runner.run_command_until_exit(|ctx| pause_operator_command.execute(ctx))
+                HyveCommands::PauseOperator(pause_operator) => {
+                    runner.run_command_until_exit(|ctx| pause_operator.execute(ctx))
                 }
-                HyveCommands::RegisterOperator(register_operator_command) => {
-                    runner.run_command_until_exit(|ctx| register_operator_command.execute(ctx))
+                HyveCommands::RegisterOperator(register_operator) => {
+                    runner.run_command_until_exit(|ctx| register_operator.execute(ctx))
                 }
-                HyveCommands::UnpauseOperator(unpause_operator_command) => {
-                    runner.run_command_until_exit(|ctx| unpause_operator_command.execute(ctx))
+                HyveCommands::UnpauseOperator(unpause_operator) => {
+                    runner.run_command_until_exit(|ctx| unpause_operator.execute(ctx))
                 }
-                HyveCommands::UnregisterOperator(unregister_operator_command) => {
-                    runner.run_command_until_exit(|ctx| unregister_operator_command.execute(ctx))
+                HyveCommands::UnregisterOperator(unregister_operator) => {
+                    runner.run_command_until_exit(|ctx| unregister_operator.execute(ctx))
                 }
             },
-            Commands::Symbiotic(symbiotic_subcommand) => match symbiotic_subcommand {
-                SymbioticCommands::Network(network_subcommand) => match network_subcommand {
-                    NetworkCommands::OptIn(opt_in_command) => {
-                        runner.run_command_until_exit(|ctx| opt_in_command.execute(ctx))
-                    }
-                    NetworkCommands::OptInStatus(opt_in_status_command) => {
-                        runner.run_command_until_exit(|ctx| opt_in_status_command.execute(ctx))
-                    }
-                    NetworkCommands::OptOut(opt_out_command) => {
-                        runner.run_command_until_exit(|ctx| opt_out_command.execute(ctx))
-                    }
-                },
-                SymbioticCommands::Operator(operator_subcommand) => match operator_subcommand {
-                    OperatorCommands::Register(register_command) => {
-                        runner.run_command_until_exit(|ctx| register_command.execute(ctx))
-                    }
-                    OperatorCommands::RegisterStatus(register_status_command) => {
-                        runner.run_command_until_exit(|ctx| register_status_command.execute(ctx))
-                    }
-                },
-                SymbioticCommands::Vault(vault_subcommand) => match vault_subcommand {
-                    VaultCommands::Get(get_command) => {
-                        runner.run_command_until_exit(|ctx| get_command.execute(ctx))
-                    }
-                    VaultCommands::List(list_command) => {
-                        runner.run_command_until_exit(|ctx| list_command.execute(ctx))
-                    }
-                    VaultCommands::OptIn(opt_in_command) => {
-                        runner.run_command_until_exit(|ctx| opt_in_command.execute(ctx))
-                    }
-                    VaultCommands::OptInStatus(opt_in_status_command) => {
-                        runner.run_command_until_exit(|ctx| opt_in_status_command.execute(ctx))
-                    }
-                    VaultCommands::OptOut(opt_out_command) => {
-                        runner.run_command_until_exit(|ctx| opt_out_command.execute(ctx))
-                    }
-                },
+            Commands::Symbiotic(symbiotic) => match symbiotic {
+                SymbioticCommands::GetVault(get_vault) => {
+                    runner.run_command_until_exit(|ctx| get_vault.execute(ctx))
+                }
+                SymbioticCommands::IsOperator(is_operator) => {
+                    runner.run_command_until_exit(|ctx| is_operator.execute(ctx))
+                }
+                SymbioticCommands::ListVaults(list_vaults) => {
+                    runner.run_command_until_exit(|ctx| list_vaults.execute(ctx))
+                }
+                SymbioticCommands::NetworkOptIn(network_opt_in) => {
+                    runner.run_command_until_exit(|ctx| network_opt_in.execute(ctx))
+                }
+                SymbioticCommands::NetworkOptInStatus(network_opt_in_status) => {
+                    runner.run_command_until_exit(|ctx| network_opt_in_status.execute(ctx))
+                }
+                SymbioticCommands::NetworkOptOut(network_opt_out) => {
+                    runner.run_command_until_exit(|ctx| network_opt_out.execute(ctx))
+                }
+                SymbioticCommands::RegisterOperator(register_operator) => {
+                    runner.run_command_until_exit(|ctx| register_operator.execute(ctx))
+                }
+                SymbioticCommands::VaultOptIn(vault_opt_in) => {
+                    runner.run_command_until_exit(|ctx| vault_opt_in.execute(ctx))
+                }
+                SymbioticCommands::VaultOptInStatus(vault_opt_in_status) => {
+                    runner.run_command_until_exit(|ctx| vault_opt_in_status.execute(ctx))
+                }
+                SymbioticCommands::VaultOptOut(vault_opt_out) => {
+                    runner.run_command_until_exit(|ctx| vault_opt_out.execute(ctx))
+                }
             },
         }
     }

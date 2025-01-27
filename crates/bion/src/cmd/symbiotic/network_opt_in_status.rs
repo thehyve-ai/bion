@@ -18,7 +18,7 @@ const NETWORK_OPT_IN_ENTITY: &str = "network_opt_in_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Check the opt-in status of the Operator in the network.")]
-pub struct OptInStatusCommand {
+pub struct NetworkOptInStatusCommand {
     #[arg(
         long,
         required = true,
@@ -31,7 +31,7 @@ pub struct OptInStatusCommand {
     eth: EthereumOpts,
 }
 
-impl OptInStatusCommand {
+impl NetworkOptInStatusCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self { address, eth } = self;
 

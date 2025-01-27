@@ -9,15 +9,14 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use crate::{
-    common::consts::TESTNET_ADDRESSES, symbiotic::calls::get_operator_vault_opt_in_status,
+use crate::symbiotic::{
+    calls::{get_operator_vault_opt_in_status, is_vault},
+    consts::addresses,
 };
-
-const VAULT_OPT_IN_ENTITY: &str = "vault_opt_in_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Get opt-in status of Operator in a vault in the Symbiotic.")]
-pub struct OptInStatusCommand {
+pub struct VaultOptInStatusCommand {
     #[arg(
         long,
         required = true,
@@ -38,7 +37,7 @@ pub struct OptInStatusCommand {
     eth: EthereumOpts,
 }
 
-impl OptInStatusCommand {
+impl VaultOptInStatusCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
             address,
@@ -51,11 +50,17 @@ impl OptInStatusCommand {
             "🔄 Checking if the provided address is opted in.".bright_cyan()
         );
 
+        let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
+        let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
+
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let vault_opt_in_service =
-            alloy_primitives::Address::from_str(TESTNET_ADDRESSES[VAULT_OPT_IN_ENTITY])?;
+        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
+        println!("Is vault: {}", is_vault);
+        if !is_vault {
+            return Err(eyre::eyre!("Address is not a vault."));
+        }
 
         let is_opted_in = get_operator_vault_opt_in_status(
             address,

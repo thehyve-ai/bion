@@ -9,20 +9,33 @@ use std::str::FromStr;
 use crate::{
     common::consts::TESTNET_VAULTS,
     symbiotic::calls::{get_vault_active_stake, get_vault_total_stake},
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
-#[clap(about = "Get information for all vaults in Symbiotic.")]
-pub struct ListCommand {
+#[clap(about = "Get information for Symbiotic vault.")]
+pub struct GetVaultCommand {
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "The address of the vault."
+    )]
+    address: Address,
+
     #[clap(flatten)]
     eth: EthereumOpts,
 }
 
-impl ListCommand {
+impl GetVaultCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+        let Self { address, eth } = self;
+
+        validate_cli_args(None, &eth).await?;
+
         let mut table = Table::new();
 
-        let config = self.eth.load_config()?;
+        let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
         // table headers

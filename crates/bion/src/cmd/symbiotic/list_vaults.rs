@@ -12,21 +12,13 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
-#[clap(about = "Get information for a single vault in Symbiotic.")]
-pub struct GetCommand {
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The address of the vault."
-    )]
-    address: Address,
-
+#[clap(about = "Get information for all Symbiotic vaults.")]
+pub struct ListVaultsCommand {
     #[clap(flatten)]
     eth: EthereumOpts,
 }
 
-impl GetCommand {
+impl ListVaultsCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let mut table = Table::new();
 

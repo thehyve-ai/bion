@@ -10,14 +10,15 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::get_operator_vault_opt_in_status, utils::validate_address_with_signer,
+    symbiotic::calls::get_operator_network_opt_in_status, utils::validate_address_with_signer,
 };
 
-const OPT_IN_ENTITY: &str = "vault_opt_in_service";
+const HYVE_NETWORK_ENTITY: &str = "hyve_network";
+const OPT_IN_ENTITY: &str = "network_opt_in_service";
 
 #[derive(Debug, Parser)]
-#[clap(about = "Opt in a vault part of Symbiotic.")]
-pub struct OptInCommand {
+#[clap(about = "Opt out of a Symbiotic network.")]
+pub struct NetworkOptOutCommand {
     #[arg(
         long,
         required = true,
@@ -25,14 +26,6 @@ pub struct OptInCommand {
         help = "Address of the signer."
     )]
     address: Address,
-
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The address of the vault to opt-in."
-    )]
-    vault_address: Address,
 
     #[clap(flatten)]
     tx: TransactionOpts,
@@ -49,11 +42,10 @@ pub struct OptInCommand {
     confirmations: u64,
 }
 
-impl OptInCommand {
+impl NetworkOptOutCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
             address,
-            vault_address,
             tx,
             eth,
             timeout,
@@ -62,6 +54,7 @@ impl OptInCommand {
 
         validate_address_with_signer(address, &eth).await?;
 
+        let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
         let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
 
         // Currently the config and provider are created twice when running the Cast command.
@@ -70,19 +63,21 @@ impl OptInCommand {
         let provider = utils::get_provider(&config)?;
 
         let is_opted_in =
-            get_operator_vault_opt_in_status(address, vault_address, opt_in_service, &provider)
+            get_operator_network_opt_in_status(address, hyve_network, opt_in_service, &provider)
                 .await?;
 
-        if is_opted_in {
-            return Err(eyre::eyre!("Address is already opted in."));
+        if !is_opted_in {
+            return Err(eyre::eyre!(
+                "Cannot opt-out of network because the address is not opted-in."
+            ));
         }
 
         let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("optIn(address where)".to_string()),
-            args: vec![vault_address.to_string()],
+            sig: Some("optOut(address where)".to_string()),
+            args: vec![hyve_network.to_string()],
             cast_async: true,
             confirmations,
             command: None,
