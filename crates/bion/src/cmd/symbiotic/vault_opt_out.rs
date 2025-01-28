@@ -14,7 +14,7 @@ use crate::{
         calls::{is_opted_in_vault, is_vault},
         consts::addresses,
     },
-    utils::validate_cli_args,
+    utils::{try_get_chain, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -64,6 +64,7 @@ impl VaultOptOutCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
+        let chain = try_get_chain(&eth.etherscan)?;
         let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
         let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
 

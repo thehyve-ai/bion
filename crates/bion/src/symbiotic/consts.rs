@@ -1,6 +1,14 @@
+use std::str::FromStr;
+
+use addresses::{holesky, mainnet, sepolia};
+use alloy_chains::Chain;
+use alloy_primitives::Address;
+
 // TODO: move this to a chain spec
 pub mod addresses {
     pub mod mainnet {
+        pub const CHAIN_ID: u64 = 1;
+
         /// Pure vaults' creator (also allows their migrations)
         pub const VAULT_FACTORY: &str = "0xAEb6bdd95c502390db8f52c8909F703E9Af6a346";
 
@@ -36,6 +44,8 @@ pub mod addresses {
     }
 
     pub mod holesky {
+        pub const CHAIN_ID: u64 = 17000;
+
         /// Pure vaults' creator (also allows their migrations)
         pub const VAULT_FACTORY: &str = "0x407A039D94948484D356eFB765b3c74382A050B4";
 
@@ -71,6 +81,8 @@ pub mod addresses {
     }
 
     pub mod sepolia {
+        pub const CHAIN_ID: u64 = 11155111;
+
         /// Pure vaults' creator (also allows their migrations)
         pub const VAULT_FACTORY: &str = "0x407A039D94948484D356eFB765b3c74382A050B4";
 
@@ -103,5 +115,98 @@ pub mod addresses {
 
         /// Ready-to-work vaults' creator
         pub const VAULT_CONFIGURATOR: &str = "0xD2191FE92987171691d552C219b8caEf186eb9cA";
+    }
+}
+
+pub fn get_vault_factory(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::VAULT_FACTORY)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::VAULT_FACTORY)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::VAULT_FACTORY)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_delegator_factory(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::DELEGATOR_FACTORY)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::DELEGATOR_FACTORY)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::DELEGATOR_FACTORY)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_slasher_factory(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::SLASHER_FACTORY)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::SLASHER_FACTORY)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::SLASHER_FACTORY)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_network_registry(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::NETWORK_REGISTRY)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::NETWORK_REGISTRY)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::NETWORK_REGISTRY)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_network_middleware_service(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(
+            addresses::mainnet::NETWORK_MIDDLEWARE_SERVICE,
+        )?),
+        holesky::CHAIN_ID => Ok(Address::from_str(
+            addresses::holesky::NETWORK_MIDDLEWARE_SERVICE,
+        )?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(
+            addresses::sepolia::NETWORK_MIDDLEWARE_SERVICE,
+        )?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_operator_registry(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::OPERATOR_REGISTRY)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::OPERATOR_REGISTRY)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::OPERATOR_REGISTRY)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_vault_opt_in_service(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::VAULT_OPT_IN_SERVICE)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::VAULT_OPT_IN_SERVICE)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_network_opt_in_service(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(
+            addresses::mainnet::NETWORK_OPT_IN_SERVICE,
+        )?),
+        holesky::CHAIN_ID => Ok(Address::from_str(
+            addresses::holesky::NETWORK_OPT_IN_SERVICE,
+        )?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(
+            addresses::sepolia::NETWORK_OPT_IN_SERVICE,
+        )?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
+    }
+}
+
+pub fn get_vault_configurator(chain: Chain) -> eyre::Result<Address> {
+    match chain.id() {
+        mainnet::CHAIN_ID => Ok(Address::from_str(addresses::mainnet::VAULT_CONFIGURATOR)?),
+        holesky::CHAIN_ID => Ok(Address::from_str(addresses::holesky::VAULT_CONFIGURATOR)?),
+        sepolia::CHAIN_ID => Ok(Address::from_str(addresses::sepolia::VAULT_CONFIGURATOR)?),
+        _ => Err(eyre::eyre!("Chain ID not supported")),
     }
 }

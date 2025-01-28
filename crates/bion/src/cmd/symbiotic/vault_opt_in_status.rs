@@ -1,5 +1,4 @@
-use std::str::FromStr;
-
+use alloy_chains::Chain;
 use alloy_primitives::Address;
 use clap::Parser;
 use colored::Colorize;
@@ -12,9 +11,9 @@ use hyve_cli_runner::CliContext;
 use crate::{
     symbiotic::{
         calls::{is_opted_in_vault, is_vault},
-        consts::addresses,
+        consts::{get_vault_factory, get_vault_opt_in_service},
     },
-    utils::validate_cli_args,
+    utils::{try_get_chain, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -55,8 +54,9 @@ impl VaultOptInStatusCommand {
             "🔄 Checking if the provided address is opted in.".bright_cyan()
         );
 
-        let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
-        let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
+        let chain = try_get_chain(&eth.etherscan)?;
+        let vault_opt_in_service = get_vault_opt_in_service(chain)?;
+        let vault_factory = get_vault_factory(chain)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

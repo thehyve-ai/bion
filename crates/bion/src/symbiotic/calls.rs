@@ -1,13 +1,10 @@
 //! A collection of function that call important information from the Symbiotic contracts.
 
-use alloy_network::{AnyNetwork, TransactionBuilder};
+use alloy_network::TransactionBuilder;
 use alloy_primitives::{Address, Bytes, U256};
-use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
-use alloy_signer::k256::elliptic_curve::consts::U25;
 use alloy_sol_types::SolCall;
-use alloy_transport::Transport;
 use cast::Cast;
 use eyre::Result;
 use foundry_common::provider::RetryProvider;
@@ -17,12 +14,42 @@ use std::str::FromStr;
 use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
 use super::contracts::{
-    // vault_factory::VaultFactory,
-    INetworkRegistry,
-    IOperatorRegistry,
+    erc20, INetworkRegistry, IOperatorRegistry,
     IOptInService::{isOptedInCall, isOptedInReturn},
-    IVault::{totalStakeCall, totalStakeReturn},
+    IVault::{self, totalStakeCall, totalStakeReturn},
 };
+
+pub async fn get_token_decimals<A: TryInto<Address>>(
+    token: A,
+    provider: &RetryProvider,
+) -> Result<u8>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let token = token.try_into()?;
+
+    let call = erc20::decimalsCall::new(());
+
+    let erc20::decimalsReturn { _0: decimals } = call_and_decode(call, token, provider).await?;
+
+    Ok(decimals)
+}
+
+pub async fn get_token_symbol<A: TryInto<Address>>(
+    token: A,
+    provider: &RetryProvider,
+) -> Result<String>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let token = token.try_into()?;
+
+    let call = erc20::symbolCall::new(());
+
+    let erc20::symbolReturn { _0: symbol } = call_and_decode(call, token, provider).await?;
+
+    Ok(symbol)
+}
 
 pub async fn get_vault_active_stake<A: TryInto<Address>>(
     vault: A,
@@ -40,6 +67,23 @@ where
         call_and_decode(call, vault_contract, provider).await?;
 
     Ok(active_stake)
+}
+
+pub async fn get_vault_collateral<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::collateralCall::new(());
+
+    let IVault::collateralReturn { _0: collateral } =
+        call_and_decode(call, vault, provider).await?;
+
+    Ok(collateral)
 }
 
 pub async fn get_vault_entity<A: TryInto<Address>>(

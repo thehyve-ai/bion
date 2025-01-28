@@ -27,13 +27,15 @@ use hyve_primitives::alloy_primitives::{hex, U256};
 use serde::{de::DeserializeOwned, Serialize};
 use tracing::trace;
 
-use crate::common::{DirsCliArgs, NetworkCliArgs};
+use crate::{
+    common::{DirsCliArgs, NetworkCliArgs},
+    symbiotic::consts::addresses::{holesky, mainnet, sepolia},
+};
 
 pub async fn validate_cli_args(address: Option<Address>, eth: &EthereumOpts) -> eyre::Result<()> {
     if let Some(address) = address {
         validate_address_with_signer(address, eth).await?;
     }
-    validate_chain_id(&eth.etherscan)?;
     validate_rpc_url(&eth.rpc)?;
 
     Ok(())
@@ -59,15 +61,17 @@ pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
     }
 }
 
-pub fn validate_chain_id(eth: &EtherscanOpts) -> eyre::Result<()> {
+pub fn try_get_chain(eth: &EtherscanOpts) -> eyre::Result<Chain> {
     if let Some(chain_id) = eth.chain {
         match chain_id.id() {
-            1 | 17000 | 11155111 => return Ok(()),
+            mainnet::CHAIN_ID => return Ok(Chain::mainnet()),
+            holesky::CHAIN_ID => return Ok(Chain::holesky()),
+            sepolia::CHAIN_ID => return Ok(Chain::sepolia()),
             _ => return Err(eyre::eyre!("Invalid ChainID!")),
         }
     }
 
-    Err(eyre::eyre!("ChainID is required!"))
+    Ok(Chain::mainnet())
 }
 
 /// Clears a specified number of previous lines in the terminal output

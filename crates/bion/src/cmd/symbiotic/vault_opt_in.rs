@@ -1,3 +1,4 @@
+use alloy_chains::Chain;
 use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
@@ -6,13 +7,11 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use std::str::FromStr;
-
 use crate::{
     cast::cmd::send::SendTxArgs,
     symbiotic::{
         calls::{is_opted_in_vault, is_vault},
-        consts::addresses,
+        consts::{get_vault_factory, get_vault_opt_in_service},
     },
     utils::validate_cli_args,
 };
@@ -64,8 +63,9 @@ impl VaultOptInCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
-        let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
+        let chain = eth.etherscan.chain.unwrap_or_else(|| Chain::mainnet());
+        let vault_opt_in_service = get_vault_opt_in_service(chain)?;
+        let vault_factory = get_vault_factory(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.

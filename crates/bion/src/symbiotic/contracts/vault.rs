@@ -254,6 +254,12 @@ sol! {
         function claimBatch(address recipient, uint256[] calldata epochs) external returns (uint256 amount);
 
         /**
+         * @notice Retrieve the collateral of the vault.
+         * @return the address of the collateral
+         */
+        function collateral() external view returns (address);
+
+        /**
          * @notice Slash callback for burning collateral.
          * @param amount amount to slash
          * @param captureTimestamp time point when the stake was captured
