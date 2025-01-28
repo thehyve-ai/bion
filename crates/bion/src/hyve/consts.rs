@@ -8,9 +8,9 @@ pub mod addresses {
     pub mod mainnet {
         pub const CHAIN_ID: u64 = 1;
 
-        pub const HYVE_NETWORK: &str = "0x";
+        pub const HYVE_NETWORK: &str = "0xE3a148b25Cca54ECCBD3A4aB01e235D154f03eFa";
 
-        pub const HYVE_MIDDLEWARE_SERVICE: &str = "0x";
+        pub const HYVE_MIDDLEWARE_SERVICE: &str = "0xBf3e64f0f83d5ce7f9BfFA0eE7Ec524e9999D572";
     }
 
     pub mod holesky {
