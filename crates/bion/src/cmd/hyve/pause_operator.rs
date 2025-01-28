@@ -3,15 +3,11 @@ use clap::Parser;
 use foundry_cli::opts::{EthereumOpts, TransactionOpts};
 use hyve_cli_runner::CliContext;
 
-use std::str::FromStr;
-
 use crate::{
     cast::cmd::send::SendTxArgs,
-    common::consts::TESTNET_ADDRESSES,
-    utils::{validate_address_with_signer, validate_cli_args},
+    hyve::consts::get_hyve_middleware_service,
+    utils::{try_get_chain, validate_cli_args},
 };
-
-const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Pauses an Operator in the HyveDA middleware.")]
@@ -20,7 +16,7 @@ pub struct PauseOperatorCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -51,9 +47,10 @@ impl PauseOperatorCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let hyve_middleware_address = Address::from_str(TESTNET_ADDRESSES[HYVE_MIDDLEWARE_ENTITY])?;
+        let chain = try_get_chain(&eth.etherscan)?;
+        let middleware_service = get_hyve_middleware_service(chain)?;
 
-        let to = foundry_common::ens::NameOrAddress::Address(hyve_middleware_address);
+        let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
 
         let arg = SendTxArgs {
             to: Some(to),

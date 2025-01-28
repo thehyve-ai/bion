@@ -6,13 +6,11 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use std::str::FromStr;
-
 use crate::{
     cast::cmd::send::SendTxArgs,
     symbiotic::{
         calls::{is_opted_in_vault, is_vault},
-        consts::addresses,
+        consts::{get_vault_factory, get_vault_opt_in_service},
     },
     utils::{try_get_chain, validate_cli_args},
 };
@@ -65,8 +63,8 @@ impl VaultOptOutCommand {
         validate_cli_args(Some(address), &eth).await?;
 
         let chain = try_get_chain(&eth.etherscan)?;
-        let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
-        let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
+        let opt_in_service = get_vault_opt_in_service(chain)?;
+        let vault_factory = get_vault_factory(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
@@ -79,15 +77,15 @@ impl VaultOptOutCommand {
         }
 
         let is_opted_in =
-            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
+            is_opted_in_vault(address, vault_address, opt_in_service, &provider).await?;
 
         if !is_opted_in {
             return Err(eyre::eyre!(
-                "Cannot opt-out of vault because the address is not yet opted-in."
+                "Cannot opt-out of vault because the operator is not yet opted-in."
             ));
         }
 
-        let to = foundry_common::ens::NameOrAddress::Address(vault_opt_in_service);
+        let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),

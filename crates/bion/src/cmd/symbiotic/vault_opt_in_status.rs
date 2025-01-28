@@ -1,4 +1,3 @@
-use alloy_chains::Chain;
 use alloy_primitives::Address;
 use clap::Parser;
 use colored::Colorize;
@@ -23,7 +22,7 @@ pub struct VaultOptInStatusCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -51,11 +50,11 @@ impl VaultOptInStatusCommand {
 
         println!(
             "{}",
-            "🔄 Checking if the provided address is opted in.".bright_cyan()
+            "🔄 Checking if the operator is opted in.".bright_cyan()
         );
 
         let chain = try_get_chain(&eth.etherscan)?;
-        let vault_opt_in_service = get_vault_opt_in_service(chain)?;
+        let opt_in_service = get_vault_opt_in_service(chain)?;
         let vault_factory = get_vault_factory(chain)?;
 
         let config = eth.load_config()?;
@@ -67,12 +66,12 @@ impl VaultOptInStatusCommand {
         }
 
         let is_opted_in =
-            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
+            is_opted_in_vault(address, vault_address, opt_in_service, &provider).await?;
 
         let message = if is_opted_in {
-            "✅ The address is opted in.".bright_green()
+            "✅ The operator is opted in.".bright_green()
         } else {
-            "❌ The address is not opted in.".bright_green()
+            "❌ The operator is not opted in.".bright_green()
         };
         println!("{}", message);
 

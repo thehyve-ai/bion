@@ -217,7 +217,7 @@ where
 pub async fn is_opted_in_vault<A: TryInto<Address>>(
     address: A,
     vault: A,
-    vault_opt_in_service: A,
+    opt_in_service: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
@@ -225,7 +225,7 @@ where
 {
     let address: Address = address.try_into()?;
     let vault: Address = vault.try_into()?;
-    let opt_in_service: Address = vault_opt_in_service.try_into()?;
+    let opt_in_service: Address = opt_in_service.try_into()?;
 
     let call = isOptedInCall::new((address, vault));
 

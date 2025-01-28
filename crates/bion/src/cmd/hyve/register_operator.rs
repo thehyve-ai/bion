@@ -20,7 +20,8 @@ use std::str::FromStr;
 use crate::{
     cast::cmd::send::SendTxArgs,
     common::{consts::TESTNET_ADDRESSES, DirsCliArgs},
-    utils::{validate_address_with_signer, validate_cli_args},
+    hyve::consts::get_hyve_middleware_service,
+    utils::{try_get_chain, validate_address_with_signer, validate_cli_args},
 };
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
@@ -38,7 +39,7 @@ pub struct RegisterOperatorCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -81,6 +82,8 @@ impl RegisterOperatorCommand {
         } = self;
 
         validate_cli_args(Some(address), &eth).await?;
+
+        let chain = try_get_chain(&eth.etherscan)?;
 
         let operators_dir = dirs.operators_dir();
         let mut pubkey = voting_pubkey;
@@ -153,8 +156,8 @@ impl RegisterOperatorCommand {
 
         let voting_pubkey = format!("0x00{}", &pubkey[2..]);
 
-        let hyve_middleware_address = Address::from_str(TESTNET_ADDRESSES[HYVE_MIDDLEWARE_ENTITY])?;
-        let to = foundry_common::ens::NameOrAddress::Address(hyve_middleware_address);
+        let middleware_service = get_hyve_middleware_service(chain)?;
+        let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
 
         let arg = SendTxArgs {
             to: Some(to),

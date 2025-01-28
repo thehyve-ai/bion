@@ -9,12 +9,13 @@ use hyve_cli_runner::CliContext;
 use std::str::FromStr;
 
 use crate::{
-    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::is_opted_in_network, utils::validate_cli_args,
+    cast::cmd::send::SendTxArgs,
+    common::consts::TESTNET_ADDRESSES,
+    symbiotic::{calls::is_opted_in_network, consts::get_network_opt_in_service},
+    utils::{try_get_chain, validate_cli_args},
 };
 
 const HYVE_NETWORK_ENTITY: &str = "hyve_network";
-const OPT_IN_ENTITY: &str = "network_opt_in_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Opt out of a Symbiotic network.")]
@@ -23,7 +24,7 @@ pub struct NetworkOptOutCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -54,8 +55,9 @@ impl NetworkOptOutCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
+        let chain = try_get_chain(&eth.etherscan)?;
         let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
-        let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
+        let opt_in_service = get_network_opt_in_service(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
@@ -67,7 +69,7 @@ impl NetworkOptOutCommand {
 
         if !is_opted_in {
             return Err(eyre::eyre!(
-                "Cannot opt-out of network because the address is not opted-in."
+                "Cannot opt-out of network because the operator is not opted-in."
             ));
         }
 

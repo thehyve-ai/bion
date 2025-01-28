@@ -1,5 +1,3 @@
-use std::str::FromStr;
-
 use alloy_primitives::Address;
 use clap::Parser;
 use colored::Colorize;
@@ -10,10 +8,9 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
-    common::consts::TESTNET_ADDRESSES, symbiotic::calls::is_operator, utils::validate_cli_args,
+    symbiotic::{calls::is_operator, consts::get_operator_registry},
+    utils::{try_get_chain, validate_cli_args},
 };
-
-const OP_REGISTRY_ENTITY: &str = "op_registry";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Check if the address is a Symbiotic Operator.")]
@@ -34,25 +31,25 @@ impl IsOperatorCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self { address, eth } = self;
 
-        validate_cli_args(None, &eth).await?;
-
         println!(
             "{}",
-            "🔄 Checking if the provided address is registered.".bright_cyan()
+            "🔄 Checking if the provided operator is registered.".bright_cyan()
         );
+
+        validate_cli_args(None, &eth).await?;
+
+        let chain = try_get_chain(&eth.etherscan)?;
+        let op_registry = get_operator_registry(chain)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let op_registry =
-            alloy_primitives::Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
-
         let is_opted_in = is_operator(address, op_registry, &provider).await?;
 
         let message = if is_opted_in {
-            "✅ The address is registered.".bright_green()
+            "✅ The operator is registered.".bright_green()
         } else {
-            "❌ The address is not registered.".bright_green()
+            "❌ The operator is not registered.".bright_green()
         };
         println!("{}", message);
 

@@ -6,14 +6,11 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use std::str::FromStr;
-
 use crate::{
-    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES, symbiotic::calls::is_operator,
-    utils::validate_cli_args,
+    cast::cmd::send::SendTxArgs,
+    symbiotic::{calls::is_operator, consts::get_operator_registry},
+    utils::{try_get_chain, validate_cli_args},
 };
-
-const OP_REGISTRY_ENTITY: &str = "op_registry";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Register the signer as an operator in Symbiotic.")]
@@ -53,20 +50,20 @@ impl RegisterOperatorCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let op_registry = Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
+        let chain = try_get_chain(&eth.etherscan)?;
+        let operator_registry = get_operator_registry(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let is_registered = is_operator(address, op_registry, &provider).await?;
-
+        let is_registered = is_operator(address, operator_registry, &provider).await?;
         if is_registered {
-            return Err(eyre::eyre!("Address is already registered"));
+            return Err(eyre::eyre!("Operator is already registered"));
         }
 
-        let to = foundry_common::ens::NameOrAddress::Address(op_registry);
+        let to = foundry_common::ens::NameOrAddress::Address(operator_registry);
 
         let arg = SendTxArgs {
             to: Some(to),

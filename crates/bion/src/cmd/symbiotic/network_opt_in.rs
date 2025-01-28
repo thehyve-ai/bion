@@ -9,12 +9,13 @@ use hyve_cli_runner::CliContext;
 use std::str::FromStr;
 
 use crate::{
-    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::is_opted_in_network, utils::validate_cli_args,
+    cast::cmd::send::SendTxArgs,
+    common::consts::TESTNET_ADDRESSES,
+    symbiotic::{calls::is_opted_in_network, consts::get_network_opt_in_service},
+    utils::{try_get_chain, validate_cli_args},
 };
 
 const HYVE_NETWORK_ENTITY: &str = "hyve_network";
-const OPT_IN_ENTITY: &str = "network_opt_in_service";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Opt in a Symbiotic network.")]
@@ -23,7 +24,7 @@ pub struct NetworkOptInCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -54,8 +55,9 @@ impl NetworkOptInCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
+        let chain = try_get_chain(&eth.etherscan)?;
         let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
-        let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
+        let opt_in_service = get_network_opt_in_service(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
@@ -66,7 +68,7 @@ impl NetworkOptInCommand {
             is_opted_in_network(address, hyve_network, opt_in_service, &provider).await?;
 
         if is_opted_in {
-            return Err(eyre::eyre!("Address is already opted in."));
+            return Err(eyre::eyre!("Operator is already opted in."));
         }
 
         let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);

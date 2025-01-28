@@ -1,4 +1,3 @@
-use alloy_chains::Chain;
 use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
@@ -13,7 +12,7 @@ use crate::{
         calls::{is_opted_in_vault, is_vault},
         consts::{get_vault_factory, get_vault_opt_in_service},
     },
-    utils::validate_cli_args,
+    utils::{try_get_chain, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -63,8 +62,8 @@ impl VaultOptInCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let chain = eth.etherscan.chain.unwrap_or_else(|| Chain::mainnet());
-        let vault_opt_in_service = get_vault_opt_in_service(chain)?;
+        let chain = try_get_chain(&eth.etherscan)?;
+        let opt_in_service = get_vault_opt_in_service(chain)?;
         let vault_factory = get_vault_factory(chain)?;
 
         // Currently the config and provider are created twice when running the Cast command.
@@ -78,13 +77,13 @@ impl VaultOptInCommand {
         }
 
         let is_opted_in =
-            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
+            is_opted_in_vault(address, vault_address, opt_in_service, &provider).await?;
 
         if is_opted_in {
-            return Err(eyre::eyre!("Address is already opted in."));
+            return Err(eyre::eyre!("Operator is already opted in."));
         }
 
-        let to = foundry_common::ens::NameOrAddress::Address(vault_opt_in_service);
+        let to = foundry_common::ens::NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
