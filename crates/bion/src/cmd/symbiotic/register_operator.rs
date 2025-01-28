@@ -9,8 +9,8 @@ use hyve_cli_runner::CliContext;
 use std::str::FromStr;
 
 use crate::{
-    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::get_operator_registry_status, utils::validate_address_with_signer,
+    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES, symbiotic::calls::is_operator,
+    utils::validate_cli_args,
 };
 
 const OP_REGISTRY_ENTITY: &str = "op_registry";
@@ -51,7 +51,7 @@ impl RegisterOperatorCommand {
             address,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let op_registry = Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
 
@@ -60,7 +60,7 @@ impl RegisterOperatorCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let is_registered = get_operator_registry_status(address, op_registry, &provider).await?;
+        let is_registered = is_operator(address, op_registry, &provider).await?;
 
         if is_registered {
             return Err(eyre::eyre!("Address is already registered"));

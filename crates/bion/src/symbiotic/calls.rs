@@ -1,19 +1,20 @@
 //! A collection of function that call important information from the Symbiotic contracts.
 
-use std::{marker::PhantomData, str::FromStr};
-
 use alloy_network::{AnyNetwork, TransactionBuilder};
 use alloy_primitives::{Address, Bytes, U256};
 use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
+use alloy_signer::k256::elliptic_curve::consts::U25;
 use alloy_sol_types::SolCall;
 use alloy_transport::Transport;
 use cast::Cast;
 use eyre::Result;
 use foundry_common::provider::RetryProvider;
 
-use crate::symbiotic::contracts::vault_factory::{self, VaultFactory};
+use std::str::FromStr;
+
+use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
 use super::contracts::{
     // vault_factory::VaultFactory,
@@ -23,7 +24,95 @@ use super::contracts::{
     IVault::{totalStakeCall, totalStakeReturn},
 };
 
-pub async fn get_operator_registry_status<A: TryInto<Address>>(
+pub async fn get_vault_active_stake<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault: Address = vault.try_into()?;
+    let vault_contract: Address = vault.try_into()?;
+
+    let call = totalStakeCall {};
+
+    let totalStakeReturn { _0: active_stake } =
+        call_and_decode(call, vault_contract, provider).await?;
+
+    Ok(active_stake)
+}
+
+pub async fn get_vault_entity<A: TryInto<Address>>(
+    vault_factory: A,
+    index: U256,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let factory = vault_factory.try_into()?;
+
+    let call = VaultFactory::entityCall::new((index,));
+
+    let VaultFactory::entityReturn { _0: entity } =
+        call_and_decode(call, factory, provider).await?;
+
+    Ok(entity)
+}
+
+pub async fn get_vault_total_entities<A: TryInto<Address>>(
+    vault_factory: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let factory = vault_factory.try_into()?;
+
+    let call = VaultFactory::totalEntitiesCall::new(());
+
+    let VaultFactory::totalEntitiesReturn { _0: total_entities } =
+        call_and_decode(call, factory, provider).await?;
+
+    Ok(total_entities)
+}
+
+pub async fn get_vault_total_stake<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault: Address = vault.try_into()?;
+    let vault_contract: Address = vault.try_into()?;
+
+    let call = totalStakeCall {};
+
+    let totalStakeReturn { _0: total_stake } =
+        call_and_decode(call, vault_contract, provider).await?;
+
+    Ok(total_stake)
+}
+
+/// Checks if an operator is registered in Symbiotic
+///
+/// # Arguments
+///
+/// * `address` - The operator's address to check
+/// * `operator_registry` - The address of the operator registry contract
+/// * `provider` - The provider used to make the contract call
+///
+/// # Returns
+///
+/// * `Result<bool, eyre::Error>` - Returns true if operator is registered in Symbiotic, false otherwise
+///
+/// # Errors
+///
+/// Returns an error if:
+/// * Any of the addresses fail to convert
+/// * The contract call fails
+pub async fn is_operator<A: TryInto<Address>>(
     address: A,
     operator_registry: A,
     provider: &RetryProvider,
@@ -60,7 +149,7 @@ where
 /// Returns an error if:
 /// * Any of the addresses fail to convert
 /// * The contract call fails
-pub async fn get_operator_network_opt_in_status<A: TryInto<Address>>(
+pub async fn is_opted_in_network<A: TryInto<Address>>(
     address: A,
     network: A,
     opt_in_service: A,
@@ -81,7 +170,7 @@ where
     Ok(is_opted_in)
 }
 
-pub async fn get_operator_vault_opt_in_status<A: TryInto<Address>>(
+pub async fn is_opted_in_vault<A: TryInto<Address>>(
     address: A,
     vault: A,
     vault_opt_in_service: A,
@@ -100,42 +189,6 @@ where
         call_and_decode(call, opt_in_service, provider).await?;
 
     Ok(is_opted_in)
-}
-
-pub async fn get_vault_active_stake<A: TryInto<Address>>(
-    vault: A,
-    provider: &RetryProvider,
-) -> Result<U256>
-where
-    A::Error: std::error::Error + Send + Sync + 'static,
-{
-    let vault: Address = vault.try_into()?;
-    let vault_contract: Address = vault.try_into()?;
-
-    let call = totalStakeCall {};
-
-    let totalStakeReturn { _0: active_stake } =
-        call_and_decode(call, vault_contract, provider).await?;
-
-    Ok(active_stake)
-}
-
-pub async fn get_vault_total_stake<A: TryInto<Address>>(
-    vault: A,
-    provider: &RetryProvider,
-) -> Result<U256>
-where
-    A::Error: std::error::Error + Send + Sync + 'static,
-{
-    let vault: Address = vault.try_into()?;
-    let vault_contract: Address = vault.try_into()?;
-
-    let call = totalStakeCall {};
-
-    let totalStakeReturn { _0: total_stake } =
-        call_and_decode(call, vault_contract, provider).await?;
-
-    Ok(total_stake)
 }
 
 pub async fn is_network<A: TryInto<Address>>(

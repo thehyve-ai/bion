@@ -63,6 +63,7 @@ libp2p.workspace = true
 lighthouse-bls.workspace = true
 phf = { version = "0.11.2", features = ["macros"] }
 prettytable.workspace = true
+reqwest.workspace = true
 rpassword.workspace = true
 serde.workspace = true
 serde_json.workspace = true

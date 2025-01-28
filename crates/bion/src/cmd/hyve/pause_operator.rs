@@ -6,8 +6,9 @@ use hyve_cli_runner::CliContext;
 use std::str::FromStr;
 
 use crate::{
-    cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    utils::validate_address_with_signer,
+    cast::cmd::send::SendTxArgs,
+    common::consts::TESTNET_ADDRESSES,
+    utils::{validate_address_with_signer, validate_cli_args},
 };
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
@@ -48,7 +49,7 @@ impl PauseOperatorCommand {
             confirmations,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let hyve_middleware_address = Address::from_str(TESTNET_ADDRESSES[HYVE_MIDDLEWARE_ENTITY])?;
 

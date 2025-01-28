@@ -10,8 +10,11 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    symbiotic::{calls::get_operator_vault_opt_in_status, consts::addresses},
-    utils::validate_address_with_signer,
+    symbiotic::{
+        calls::{is_opted_in_vault, is_vault},
+        consts::addresses,
+    },
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -59,22 +62,23 @@ impl VaultOptOutCommand {
             confirmations,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
+        let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
 
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let is_opted_in = get_operator_vault_opt_in_status(
-            address,
-            vault_address,
-            vault_opt_in_service,
-            &provider,
-        )
-        .await?;
+        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
+        if !is_vault {
+            return Err(eyre::eyre!("Address is not a vault."));
+        }
+
+        let is_opted_in =
+            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
 
         if !is_opted_in {
             return Err(eyre::eyre!(

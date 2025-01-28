@@ -9,7 +9,9 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use crate::{common::consts::TESTNET_ADDRESSES, symbiotic::calls::get_operator_registry_status};
+use crate::{
+    common::consts::TESTNET_ADDRESSES, symbiotic::calls::is_operator, utils::validate_cli_args,
+};
 
 const OP_REGISTRY_ENTITY: &str = "op_registry";
 
@@ -32,6 +34,8 @@ impl IsOperatorCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self { address, eth } = self;
 
+        validate_cli_args(None, &eth).await?;
+
         println!(
             "{}",
             "🔄 Checking if the provided address is registered.".bright_cyan()
@@ -43,7 +47,7 @@ impl IsOperatorCommand {
         let op_registry =
             alloy_primitives::Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?;
 
-        let is_opted_in = get_operator_registry_status(address, op_registry, &provider).await?;
+        let is_opted_in = is_operator(address, op_registry, &provider).await?;
 
         let message = if is_opted_in {
             "✅ The address is registered.".bright_green()

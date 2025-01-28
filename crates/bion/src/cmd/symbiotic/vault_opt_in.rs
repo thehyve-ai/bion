@@ -11,10 +11,10 @@ use std::str::FromStr;
 use crate::{
     cast::cmd::send::SendTxArgs,
     symbiotic::{
-        calls::{get_operator_vault_opt_in_status, is_vault},
+        calls::{is_opted_in_vault, is_vault},
         consts::addresses,
     },
-    utils::validate_address_with_signer,
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -62,7 +62,7 @@ impl VaultOptInCommand {
             confirmations,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let vault_opt_in_service = Address::from_str(addresses::sepolia::VAULT_OPT_IN_SERVICE)?;
         let vault_factory = Address::from_str(addresses::sepolia::VAULT_FACTORY)?;
@@ -77,13 +77,8 @@ impl VaultOptInCommand {
             return Err(eyre::eyre!("Address is not a vault."));
         }
 
-        let is_opted_in = get_operator_vault_opt_in_status(
-            address,
-            vault_address,
-            vault_opt_in_service,
-            &provider,
-        )
-        .await?;
+        let is_opted_in =
+            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
 
         if is_opted_in {
             return Err(eyre::eyre!("Address is already opted in."));

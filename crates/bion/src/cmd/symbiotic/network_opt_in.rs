@@ -10,7 +10,7 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs, common::consts::TESTNET_ADDRESSES,
-    symbiotic::calls::get_operator_network_opt_in_status, utils::validate_address_with_signer,
+    symbiotic::calls::is_opted_in_network, utils::validate_cli_args,
 };
 
 const HYVE_NETWORK_ENTITY: &str = "hyve_network";
@@ -52,7 +52,7 @@ impl NetworkOptInCommand {
             confirmations,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
         let opt_in_service = Address::from_str(TESTNET_ADDRESSES[OPT_IN_ENTITY])?;
@@ -63,8 +63,7 @@ impl NetworkOptInCommand {
         let provider = utils::get_provider(&config)?;
 
         let is_opted_in =
-            get_operator_network_opt_in_status(address, hyve_network, opt_in_service, &provider)
-                .await?;
+            is_opted_in_network(address, hyve_network, opt_in_service, &provider).await?;
 
         if is_opted_in {
             return Err(eyre::eyre!("Address is already opted in."));

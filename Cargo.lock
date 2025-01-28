@@ -1609,6 +1609,7 @@ dependencies = [
  "libp2p",
  "phf",
  "prettytable",
+ "reqwest",
  "rpassword 5.0.1",
  "serde",
  "serde_json",

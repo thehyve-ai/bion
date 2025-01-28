@@ -9,9 +9,12 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use crate::symbiotic::{
-    calls::{get_operator_vault_opt_in_status, is_vault},
-    consts::addresses,
+use crate::{
+    symbiotic::{
+        calls::{is_opted_in_vault, is_vault},
+        consts::addresses,
+    },
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -45,6 +48,8 @@ impl VaultOptInStatusCommand {
             eth,
         } = self;
 
+        validate_cli_args(None, &eth).await?;
+
         println!(
             "{}",
             "🔄 Checking if the provided address is opted in.".bright_cyan()
@@ -57,18 +62,12 @@ impl VaultOptInStatusCommand {
         let provider = utils::get_provider(&config)?;
 
         let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
-        println!("Is vault: {}", is_vault);
         if !is_vault {
             return Err(eyre::eyre!("Address is not a vault."));
         }
 
-        let is_opted_in = get_operator_vault_opt_in_status(
-            address,
-            vault_address,
-            vault_opt_in_service,
-            &provider,
-        )
-        .await?;
+        let is_opted_in =
+            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
 
         let message = if is_opted_in {
             "✅ The address is opted in.".bright_green()

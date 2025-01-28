@@ -10,7 +10,8 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
-    common::consts::TESTNET_ADDRESSES, symbiotic::calls::get_operator_network_opt_in_status,
+    common::consts::TESTNET_ADDRESSES, symbiotic::calls::is_opted_in_network,
+    utils::validate_cli_args,
 };
 
 const HYVE_NETWORK_ENTITY: &str = "hyve_network";
@@ -35,6 +36,8 @@ impl NetworkOptInStatusCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self { address, eth } = self;
 
+        validate_cli_args(None, &eth).await?;
+
         println!(
             "{}",
             "🔄 Checking if the provided address is opted in.".bright_cyan()
@@ -47,13 +50,8 @@ impl NetworkOptInStatusCommand {
         let network_opt_in_service =
             alloy_primitives::Address::from_str(TESTNET_ADDRESSES[NETWORK_OPT_IN_ENTITY])?;
 
-        let is_opted_in = get_operator_network_opt_in_status(
-            address,
-            hyve_network,
-            network_opt_in_service,
-            &provider,
-        )
-        .await?;
+        let is_opted_in =
+            is_opted_in_network(address, hyve_network, network_opt_in_service, &provider).await?;
 
         let message = if is_opted_in {
             "✅ The address is opted in.".bright_green()

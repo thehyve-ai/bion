@@ -62,12 +62,12 @@ pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
 pub fn validate_chain_id(eth: &EtherscanOpts) -> eyre::Result<()> {
     if let Some(chain_id) = eth.chain {
         match chain_id.id() {
-            1 | 11155111 => return Ok(()),
-            _ => return Err(eyre::eyre!("Invalid chain ID!")),
+            1 | 17000 | 11155111 => return Ok(()),
+            _ => return Err(eyre::eyre!("Invalid ChainID!")),
         }
     }
 
-    Ok(())
+    Err(eyre::eyre!("ChainID is required!"))
 }
 
 /// Clears a specified number of previous lines in the terminal output

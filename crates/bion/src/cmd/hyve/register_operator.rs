@@ -20,7 +20,7 @@ use std::str::FromStr;
 use crate::{
     cast::cmd::send::SendTxArgs,
     common::{consts::TESTNET_ADDRESSES, DirsCliArgs},
-    utils::validate_address_with_signer,
+    utils::{validate_address_with_signer, validate_cli_args},
 };
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
@@ -80,7 +80,7 @@ impl RegisterOperatorCommand {
             confirmations,
         } = self;
 
-        validate_address_with_signer(address, &eth).await?;
+        validate_cli_args(Some(address), &eth).await?;
 
         let operators_dir = dirs.operators_dir();
         let mut pubkey = voting_pubkey;
