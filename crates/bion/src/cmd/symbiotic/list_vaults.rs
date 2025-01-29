@@ -7,21 +7,20 @@ use foundry_common::provider::RetryProvider;
 use hyve_cli_runner::CliContext;
 use itertools::Itertools;
 use multicall::{Multicall, MulticallVersion};
-use prettytable::{cell, format::TableFormat, row, Cell, Table};
+use prettytable::{row, Table};
 use serde::Deserialize;
 
-use std::{collections::BTreeMap, str::FromStr, time::Instant};
+use std::{str::FromStr, time::Instant};
 
 use crate::{
     symbiotic::{
         calls::{
-            get_token_decimals, get_token_decimals_multicall, get_token_symbol,
-            get_token_symbol_multicall, get_vault_active_stake, get_vault_active_stake_multicall,
-            get_vault_collateral, get_vault_collateral_multicall, get_vault_delegator_multicall,
-            get_vault_entity, get_vault_entity_multicall, get_vault_total_entities,
-            get_vault_total_stake, get_vault_total_stake_multicall,
+            get_token_decimals_multicall, get_token_symbol_multicall,
+            get_vault_active_stake_multicall, get_vault_collateral_multicall,
+            get_vault_delegator_multicall, get_vault_entity_multicall, get_vault_total_entities,
+            get_vault_total_stake_multicall,
         },
-        consts::{addresses, get_vault_factory},
+        consts::get_vault_factory,
     },
     utils::validate_cli_args,
 };
