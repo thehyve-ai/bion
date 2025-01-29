@@ -14,7 +14,7 @@ pub struct OnboardOperatorCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the signer."
+        help = "Address of the operator."
     )]
     address: Address,
 
@@ -60,6 +60,11 @@ pub struct OnboardOperatorCommand {
 
 impl OnboardOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+        // Check if provided Vault address is a valid Symbiotic Vault
+        // Check if operator is registered in Symbiotic
+        // Check if operator is opted in Hyve Network
+        // Check if operator is opted in Vault
+        //
         Ok(())
     }
 }
