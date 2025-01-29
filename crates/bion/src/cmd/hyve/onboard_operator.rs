@@ -1,11 +1,28 @@
 use alloy_primitives::Address;
 use clap::Parser;
-use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+use colored::Colorize;
+use foundry_cli::{
+    opts::{EthereumOpts, TransactionOpts},
+    utils::{self, LoadConfig},
+};
 use hyve_cli_runner::CliContext;
 
 use std::path::PathBuf;
 
-use crate::common::DirsCliArgs;
+use crate::{
+    cmd::{symbiotic::vault_opt_in, utils::get_chain_id},
+    common::DirsCliArgs,
+    hyve::consts::get_hyve_network,
+    symbiotic::{
+        calls::{is_operator, is_opted_in_network, is_opted_in_vault, is_vault},
+        consts::{
+            get_network_opt_in_service, get_operator_registry, get_vault_factory,
+            get_vault_opt_in_service,
+        },
+        contracts::vault_factory,
+    },
+    utils::{clear_previous_lines, validate_cli_args},
+};
 
 #[derive(Debug, Parser)]
 #[clap(about = "Onboard an Operator in the HyveDA and Symbiotic.")]
@@ -42,11 +59,11 @@ pub struct OnboardOperatorCommand {
 
     #[arg(
         long,
-        required = false,
+        required = true,
         value_name = "ADDRESS",
         help = "The address of the vault to opt-in."
     )]
-    vault_address: Option<Address>,
+    vault_address: Address,
 
     #[clap(flatten)]
     dirs: DirsCliArgs,
@@ -60,11 +77,76 @@ pub struct OnboardOperatorCommand {
 
 impl OnboardOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        // Check if provided Vault address is a valid Symbiotic Vault
-        // Check if operator is registered in Symbiotic
-        // Check if operator is opted in Hyve Network
-        // Check if operator is opted in Vault
-        //
+        let Self {
+            address,
+            bls_mnemonic,
+            bls_mnemonic_file,
+            prompt_keystore_password,
+            vault_address,
+            dirs,
+            tx,
+            eth,
+        } = self;
+
+        validate_cli_args(Some(address), &eth).await?;
+
+        let config = eth.load_config()?;
+        let provider = utils::get_provider(&config)?;
+
+        let chain_id = get_chain_id(&provider).await?;
+        let hyve_network = get_hyve_network(chain_id)?;
+        let network_opt_in_service = get_network_opt_in_service(chain_id)?;
+        let operator_registry = get_operator_registry(chain_id)?;
+        let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
+
+        println!(
+            "{}",
+            "🚀 Starting Operator onboarding...".bold().bright_cyan()
+        );
+
+        // println!("{}", "Verifying Vault address...");
+        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
+        if !is_vault {
+            clear_previous_lines(1);
+            println!("{}", "Vault address is not a valid Symbiotic vault.".red());
+            return Ok(());
+        }
+
+        // clear_previous_lines(1);
+
+        // println!("{}", "Verifying Operator is registered in Symbiotic...");
+        let is_operator = is_operator(address, operator_registry, &provider).await?;
+        if !is_operator {
+            clear_previous_lines(1);
+            println!("{}", "Operator is not registered in Symbiotic.".red());
+            return Ok(());
+        }
+
+        // clear_previous_lines(1);
+
+        // println!("{}", "Verifying Operator opt-in status in Hyve Network...");
+        let is_opted_in_network =
+            is_opted_in_network(address, hyve_network, network_opt_in_service, &provider).await?;
+        if !is_opted_in_network {
+            clear_previous_lines(1);
+            println!("{}", "Operator is not opted in Hyve Network.".red());
+            return Ok(());
+        }
+
+        // clear_previous_lines(1);
+
+        // println!("{}", "Verifying Operator opt-in status in Vault...");
+        let is_opted_in_vault =
+            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
+        if !is_opted_in_vault {
+            clear_previous_lines(1);
+            println!("{}", "Operator is not opted in Vault.".red());
+            return Ok(());
+        }
+
+        // clear_previous_lines(1);
+
         Ok(())
     }
 }

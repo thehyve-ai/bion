@@ -6,16 +6,13 @@ use foundry_cli::{
 };
 use hyve_cli_runner::CliContext;
 
-use std::str::FromStr;
-
 use crate::{
     cast::cmd::send::SendTxArgs,
-    common::consts::TESTNET_ADDRESSES,
+    cmd::utils::get_chain_id,
+    hyve::consts::get_hyve_network,
     symbiotic::{calls::is_opted_in_network, consts::get_network_opt_in_service},
-    utils::{try_get_chain, validate_cli_args},
+    utils::validate_cli_args,
 };
-
-const HYVE_NETWORK_ENTITY: &str = "hyve_network";
 
 #[derive(Debug, Parser)]
 #[clap(about = "Opt out of a Symbiotic network.")]
@@ -55,17 +52,12 @@ impl NetworkOptOutCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        // Todo @KristianRadkov: Currently the config and provider are created twice when running the Cast command.
-        // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let chain_id = {
-            let cast = cast::Cast::new(&provider);
-            cast.chain_id().await?
-        };
+        let chain_id = get_chain_id(&provider).await?;
+        let hyve_network = get_hyve_network(chain_id)?;
         let opt_in_service = get_network_opt_in_service(chain_id)?;
-        let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
 
         let is_opted_in =
             is_opted_in_network(address, hyve_network, opt_in_service, &provider).await?;

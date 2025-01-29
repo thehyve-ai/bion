@@ -14,7 +14,7 @@ pub mod addresses {
     }
 
     pub mod holesky {
-        pub const CHAIN_ID: u64 = 1;
+        pub const CHAIN_ID: u64 = 17000;
 
         pub const HYVE_NETWORK: &str = "0x";
 
@@ -22,7 +22,7 @@ pub mod addresses {
     }
 
     pub mod sepolia {
-        pub const CHAIN_ID: u64 = 1;
+        pub const CHAIN_ID: u64 = 11155111;
 
         pub const HYVE_NETWORK: &str = "0x4709d01007788ecfef90a015144f4e278d498736";
 
@@ -30,8 +30,8 @@ pub mod addresses {
     }
 }
 
-pub fn get_hyve_network(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_hyve_network(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::HYVE_NETWORK)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::HYVE_NETWORK)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::HYVE_NETWORK)?),
@@ -39,8 +39,8 @@ pub fn get_hyve_network(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_hyve_middleware_service(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_hyve_middleware_service(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::HYVE_MIDDLEWARE_SERVICE)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::HYVE_MIDDLEWARE_SERVICE)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::HYVE_MIDDLEWARE_SERVICE)?),

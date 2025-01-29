@@ -6,7 +6,10 @@ use alloy_primitives::{
 use alloy_rlp::RlpEncodable;
 use clap::Parser;
 use ethereum_types::H256;
-use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+use foundry_cli::{
+    opts::{EthereumOpts, TransactionOpts},
+    utils::{self, LoadConfig},
+};
 use foundry_wallets::WalletSigner;
 use hyve_cli_runner::CliContext;
 use libp2p::{
@@ -15,13 +18,13 @@ use libp2p::{
 };
 use tracing::trace;
 
-use std::str::FromStr;
-
 use crate::{
     cast::cmd::send::SendTxArgs,
-    common::{consts::TESTNET_ADDRESSES, DirsCliArgs},
+    cmd::utils::get_chain_id,
+    common::DirsCliArgs,
     hyve::consts::get_hyve_middleware_service,
-    utils::{try_get_chain, validate_address_with_signer, validate_cli_args},
+    symbiotic::{calls::is_vault, consts::get_vault_factory},
+    utils::validate_cli_args,
 };
 
 const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
@@ -42,6 +45,14 @@ pub struct RegisterOperatorCommand {
         help = "Address of the operator."
     )]
     address: Address,
+
+    #[arg(
+        long,
+        required = true,
+        value_name = "ADDRESS",
+        help = "The address of the vault to opt-in."
+    )]
+    vault_address: Address,
 
     #[arg(
         long,
@@ -73,6 +84,7 @@ impl RegisterOperatorCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
             address,
+            vault_address,
             voting_pubkey,
             dirs,
             tx,
@@ -83,7 +95,17 @@ impl RegisterOperatorCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
+        let config = eth.load_config()?;
+        let provider = utils::get_provider(&config)?;
+
+        let chain_id = get_chain_id(&provider).await?;
+        let middleware_service = get_hyve_middleware_service(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
+
+        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
+        if !is_vault {
+            return Err(eyre::eyre!("Address is not a vault."));
+        }
 
         let operators_dir = dirs.operators_dir();
         let mut pubkey = voting_pubkey;
@@ -156,7 +178,6 @@ impl RegisterOperatorCommand {
 
         let voting_pubkey = format!("0x00{}", &pubkey[2..]);
 
-        let middleware_service = get_hyve_middleware_service(chain)?;
         let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
 
         let arg = SendTxArgs {

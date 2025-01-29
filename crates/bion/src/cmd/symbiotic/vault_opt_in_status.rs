@@ -8,11 +8,12 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
+    cmd::utils::get_chain_id,
     symbiotic::{
         calls::{is_opted_in_vault, is_vault},
         consts::{get_vault_factory, get_vault_opt_in_service},
     },
-    utils::{try_get_chain, validate_cli_args},
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -50,11 +51,8 @@ impl VaultOptInStatusCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-        let chain_id = {
-            let cast = cast::Cast::new(&provider);
-            cast.chain_id().await?
-        };
 
+        let chain_id = get_chain_id(&provider).await?;
         let opt_in_service = get_vault_opt_in_service(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
 
@@ -74,7 +72,7 @@ impl VaultOptInStatusCommand {
         let message = if is_opted_in {
             "✅ The operator is opted in.".bright_green()
         } else {
-            "❌ The operator is not opted in.".bright_green()
+            "❌ The operator is not opted in.".red()
         };
         println!("{}", message);
 

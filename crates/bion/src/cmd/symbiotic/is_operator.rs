@@ -8,8 +8,9 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
+    cmd::utils::get_chain_id,
     symbiotic::{calls::is_operator, consts::get_operator_registry},
-    utils::{try_get_chain, validate_cli_args},
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -41,10 +42,7 @@ impl IsOperatorCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let chain_id = {
-            let cast = cast::Cast::new(&provider);
-            cast.chain_id().await?
-        };
+        let chain_id = get_chain_id(&provider).await?;
         let op_registry = get_operator_registry(chain_id)?;
 
         let is_opted_in = is_operator(address, op_registry, &provider).await?;

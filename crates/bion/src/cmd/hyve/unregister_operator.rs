@@ -1,12 +1,14 @@
 use alloy_primitives::Address;
 use clap::Parser;
-use foundry_cli::opts::{EthereumOpts, TransactionOpts};
+use foundry_cli::{
+    opts::{EthereumOpts, TransactionOpts},
+    utils::{self, LoadConfig},
+};
 use hyve_cli_runner::CliContext;
 
 use crate::{
-    cast::cmd::send::SendTxArgs,
-    hyve::consts::get_hyve_middleware_service,
-    utils::{try_get_chain, validate_cli_args},
+    cast::cmd::send::SendTxArgs, cmd::utils::get_chain_id,
+    hyve::consts::get_hyve_middleware_service, utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -47,8 +49,11 @@ impl UnregisterOperatorCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
-        let middleware_service = get_hyve_middleware_service(chain)?;
+        let config = eth.load_config()?;
+        let provider = utils::get_provider(&config)?;
+
+        let chain_id = get_chain_id(&provider).await?;
+        let middleware_service = get_hyve_middleware_service(chain_id)?;
 
         let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
 

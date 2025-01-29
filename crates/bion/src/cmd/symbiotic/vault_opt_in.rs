@@ -8,11 +8,12 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
+    cmd::utils::get_chain_id,
     symbiotic::{
         calls::{is_opted_in_vault, is_vault},
         consts::{get_vault_factory, get_vault_opt_in_service},
     },
-    utils::{try_get_chain, validate_cli_args},
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -62,15 +63,10 @@ impl VaultOptInCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        // Currently the config and provider are created twice when running the Cast command.
-        // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
-        let chain_id = {
-            let cast = cast::Cast::new(&provider);
-            cast.chain_id().await?
-        };
+        let chain_id = get_chain_id(&provider).await?;
         let opt_in_service = get_vault_opt_in_service(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
 
