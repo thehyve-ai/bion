@@ -220,8 +220,6 @@ sol! {
             uint256 amount
         ) external returns (uint256 depositedAmount, uint256 mintedShares);
 
-
-        function delegator() external view returns (address);
         /**
          * @notice Withdraw collateral from the vault (it will be claimable after the next epoch).
          * @param claimer account that needs to claim the withdrawal
@@ -257,10 +255,64 @@ sol! {
         function claimBatch(address recipient, uint256[] calldata epochs) external returns (uint256 amount);
 
         /**
-         * @notice Retrieve the collateral of the vault.
-         * @return the address of the collateral
+         * @notice Get a burner to issue debt to (e.g., 0xdEaD or some unwrapper contract).
+         * @return address of the burner
+         */
+        function burner() external view returns (address);
+
+        /**
+         * @notice Get a vault collateral.
+         * @return address of the collateral
          */
         function collateral() external view returns (address);
+
+        /**
+         * @notice Get a current vault epoch.
+         * @return current epoch
+         */
+        function currentEpoch() external view returns (uint256);
+
+        /**
+         * @notice Get a start of the current vault epoch.
+         * @return start of the current epoch
+         */
+        function currentEpochStart() external view returns (uint48);
+
+        /**
+         * @notice Get a delegator (it delegates the vault's stake to networks and operators).
+         * @return address of the delegator
+         */
+        function delegator() external view returns (address);
+
+        /**
+         * @notice Get a deposit limit (maximum amount of the active stake that can be in the vault simultaneously).
+         * @return deposit limit
+         */
+        function depositLimit() external view returns (uint256);
+
+        /**
+         * @notice Get if the deposit whitelist is enabled.
+         * @return if deposit whitelist is enabled
+         */
+        function depositWhitelist() external view returns (bool);
+
+        /**
+         * @notice Get a duration of the vault epoch.
+         * @return vault epoch duration
+         */
+        function epochDuration() external view returns (uint48);
+
+        /**
+         * @notice Get a start of the next vault epoch.
+         * @return start of the next epoch
+         */
+        function nextEpochStart() external view returns (uint48);
+
+        /**
+         * @notice Get a slasher (it provides networks a slashing mechanism).
+         * @return address of the slasher
+         */
+        function slasher() external view returns (address);
 
         /**
          * @notice Slash callback for burning collateral.

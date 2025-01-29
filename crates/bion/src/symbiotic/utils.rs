@@ -9,9 +9,17 @@ use std::str::FromStr;
 
 use crate::cmd::utils::format_number_with_decimals;
 
-use super::calls::{
-    get_token_decimals_multicall, get_token_symbol_multicall, get_vault_active_stake_multicall,
-    get_vault_collateral_multicall, get_vault_delegator_multicall, get_vault_total_stake_multicall,
+use super::{
+    calls::{
+        get_token_decimals_multicall, get_token_symbol_multicall, get_vault_active_stake_multicall,
+        get_vault_burner_multicall, get_vault_collateral_multicall,
+        get_vault_current_epoch_multicall, get_vault_current_epoch_start_multicall,
+        get_vault_delegator_multicall, get_vault_deposit_limit_multicall,
+        get_vault_deposit_whitelist_multicall, get_vault_entity_multicall,
+        get_vault_epoch_duration_multicall, get_vault_next_epoch_start_multicall,
+        get_vault_slasher_multicall, get_vault_total_entities, get_vault_total_stake_multicall,
+    },
+    consts::get_vault_factory,
 };
 
 const SYMBIOTIC_GITHUB_URL: &str =
@@ -21,55 +29,97 @@ const VAULT_FILE_NAME: &str = "info.json";
 #[derive(Clone)]
 pub struct VaultData {
     pub address: Address,
-    pub name: Option<String>,
     pub collateral: Option<Address>,
     pub delegator: Option<Address>,
     pub total_stake: Option<U256>,
     pub active_stake: Option<U256>,
     pub decimals: Option<u8>,
     pub symbol: Option<String>,
+    pub slasher: Option<Address>,
+    pub burner: Option<Address>,
+    pub deposit_limit: Option<U256>,
+    pub deposit_whitelist: Option<bool>,
+    pub current_epoch: Option<U256>,
+    pub current_epoch_start: Option<U256>,
+    pub epoch_duration: Option<U256>,
+    pub next_epoch_start: Option<U256>,
 }
 
 impl VaultData {
-    fn new(address: Address) -> Self {
+    pub fn new(address: Address) -> Self {
         Self {
             address,
-            name: None,
             collateral: None,
             delegator: None,
             total_stake: None,
             active_stake: None,
             decimals: None,
             symbol: None,
+            slasher: None,
+            burner: None,
+            deposit_limit: None,
+            deposit_whitelist: None,
+            current_epoch: None,
+            current_epoch_start: None,
+            epoch_duration: None,
+            next_epoch_start: None,
         }
     }
 
-    fn set_name(&mut self, name: String) {
-        self.name = Some(name);
-    }
-
-    fn set_collateral(&mut self, collateral: Address) {
+    pub fn set_collateral(&mut self, collateral: Address) {
         self.collateral = Some(collateral);
     }
 
-    fn set_delegator(&mut self, delegator: Address) {
+    pub fn set_delegator(&mut self, delegator: Address) {
         self.delegator = Some(delegator);
     }
 
-    fn set_total_stake(&mut self, total_stake: U256) {
+    pub fn set_total_stake(&mut self, total_stake: U256) {
         self.total_stake = Some(total_stake);
     }
 
-    fn set_active_stake(&mut self, active_stake: U256) {
+    pub fn set_active_stake(&mut self, active_stake: U256) {
         self.active_stake = Some(active_stake);
     }
 
-    fn set_decimals(&mut self, decimals: u8) {
+    pub fn set_decimals(&mut self, decimals: u8) {
         self.decimals = Some(decimals);
     }
 
-    fn set_symbol(&mut self, symbol: String) {
+    pub fn set_symbol(&mut self, symbol: String) {
         self.symbol = Some(symbol);
+    }
+
+    pub fn set_slasher(&mut self, slasher: Address) {
+        self.slasher = Some(slasher);
+    }
+
+    pub fn set_burner(&mut self, burner: Address) {
+        self.burner = Some(burner);
+    }
+
+    pub fn set_deposit_limit(&mut self, deposit_limit: U256) {
+        self.deposit_limit = Some(deposit_limit);
+    }
+
+    pub fn set_deposit_whitelist(&mut self, deposit_whitelist: bool) {
+        self.deposit_whitelist = Some(deposit_whitelist);
+    }
+
+    pub fn set_current_epoch(&mut self, current_epoch: U256) {
+        self.current_epoch = Some(current_epoch);
+    }
+
+    pub fn set_current_epoch_start(&mut self, current_epoch_start: U256) {
+        self.current_epoch_start = Some(current_epoch_start);
+    }
+
+    pub fn set_epoch_duration(&mut self, epoch_duration: U256) {
+        self.epoch_duration = Some(epoch_duration);
+    }
+
+    pub fn set_next_epoch_start(&mut self, next_epoch_start: U256) {
+        self.next_epoch_start = Some(next_epoch_start);
     }
 
     pub fn total_stake_formatted(&self) -> Option<String> {
@@ -103,6 +153,13 @@ impl VaultData {
             0.0
         };
         Some(format!("{} ({:.0}%)", active_stake, percentage))
+    }
+
+    pub fn deposit_limit_formatted(&self) -> Option<String> {
+        if self.deposit_limit.is_none() || self.decimals.is_none() {
+            return None;
+        }
+        format_number_with_decimals(self.deposit_limit.unwrap(), self.decimals.unwrap()).ok()
     }
 }
 
@@ -188,6 +245,38 @@ pub async fn fetch_vault_datas(
     Ok(vaults)
 }
 
+pub async fn fetch_vault_addresses(
+    provider: &RetryProvider,
+    chain_id: u64,
+) -> eyre::Result<Vec<Address>> {
+    let vault_factory = get_vault_factory(chain_id)?;
+
+    // exclude this one from the multicall
+    let total_entities = get_vault_total_entities(vault_factory, &provider)
+        .await?
+        .to::<usize>();
+
+    let mut multicall = Multicall::with_chain_id(provider, chain_id)?;
+    multicall.set_version(MulticallVersion::Multicall3);
+
+    // We first need all of the vaults to get the other data
+    for i in 0..total_entities {
+        get_vault_entity_multicall(&mut multicall, vault_factory, U256::try_from(i)?, true);
+    }
+
+    let vaults_addresses = multicall
+        .call()
+        .await?
+        .into_iter()
+        .filter_map(|result| match result {
+            Ok(result) => result.as_address(),
+            Err(_) => None,
+        })
+        .collect_vec();
+
+    Ok(vaults_addresses)
+}
+
 /// Fetches token metadata (decimals and symbol) for a list of vaults' collateral tokens
 ///
 /// # Arguments
@@ -245,10 +334,104 @@ pub async fn fetch_token_datas(
     Ok(out)
 }
 
+pub async fn fetch_vault_extra_metadata(
+    provider: &RetryProvider,
+    chain_id: u64,
+    vaults: Vec<VaultData>,
+) -> eyre::Result<Vec<VaultData>> {
+    let mut multicall = Multicall::with_chain_id(&provider, chain_id)?;
+    multicall.set_version(MulticallVersion::Multicall3);
+
+    for vault in &vaults {
+        get_vault_slasher_multicall(&mut multicall, vault.address, false);
+        get_vault_burner_multicall(&mut multicall, vault.address, false);
+        get_vault_deposit_limit_multicall(&mut multicall, vault.address, false);
+        get_vault_deposit_whitelist_multicall(&mut multicall, vault.address, false);
+        get_vault_current_epoch_multicall(&mut multicall, vault.address, false);
+        get_vault_current_epoch_start_multicall(&mut multicall, vault.address, false);
+        get_vault_epoch_duration_multicall(&mut multicall, vault.address, false);
+        get_vault_next_epoch_start_multicall(&mut multicall, vault.address, false);
+    }
+
+    let extra_metadata_calls = multicall.call().await?.into_iter().chunks(8);
+
+    let mut out = Vec::with_capacity(vaults.len());
+    for (extra_metadata_call, mut vault) in extra_metadata_calls.into_iter().zip(vaults) {
+        let vault_call = extra_metadata_call.into_iter().collect_vec();
+        let slasher = vault_call[0]
+            .as_ref()
+            .map(|data| data.as_address())
+            .ok()
+            .flatten();
+        let burner = vault_call[1]
+            .as_ref()
+            .map(|data| data.as_address())
+            .ok()
+            .flatten();
+        let deposit_limit = vault_call[2]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
+        let deposit_whitelist = vault_call[3]
+            .as_ref()
+            .map(|data| data.as_bool())
+            .ok()
+            .flatten();
+        let current_epoch = vault_call[4]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
+        let current_epoch_start = vault_call[5]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
+        let epoch_duration = vault_call[6]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
+        let next_epoch_start = vault_call[7]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
+
+        if let Some(slasher) = slasher {
+            vault.set_slasher(slasher);
+        }
+        if let Some(burner) = burner {
+            vault.set_burner(burner);
+        }
+        if let Some(deposit_limit) = deposit_limit {
+            vault.set_deposit_limit(deposit_limit.0);
+        }
+        if let Some(deposit_whitelist) = deposit_whitelist {
+            vault.set_deposit_whitelist(deposit_whitelist);
+        }
+        if let Some(current_epoch) = current_epoch {
+            vault.set_current_epoch(current_epoch.0);
+        }
+        if let Some(current_epoch_start) = current_epoch_start {
+            vault.set_current_epoch_start(current_epoch_start.0);
+        }
+        if let Some(epoch_duration) = epoch_duration {
+            vault.set_epoch_duration(epoch_duration.0);
+        }
+        if let Some(next_epoch_start) = next_epoch_start {
+            vault.set_next_epoch_start(next_epoch_start.0);
+        }
+        out.push(vault);
+    }
+
+    Ok(out)
+}
+
 #[derive(Debug, Deserialize)]
 pub struct VaultInfo {
     pub name: String,
-    pub tags: Vec<String>,
 }
 
 /// Fetches metadata for a Symbiotic vault from the official GitHub repository

@@ -2,7 +2,7 @@
 
 use alloy_dyn_abi::DynSolValue;
 use alloy_network::{Network, TransactionBuilder};
-use alloy_primitives::{Address, Bytes, U256};
+use alloy_primitives::{aliases::U48, Address, Bytes, U256};
 use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -18,7 +18,7 @@ use std::str::FromStr;
 use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
 use super::contracts::{
-    erc20, INetworkRegistry, IOperatorRegistry,
+    erc20, vault, INetworkRegistry, IOperatorRegistry,
     IOptInService::{self, isOptedInCall, isOptedInReturn},
     IVault::{self, totalStakeCall, totalStakeReturn},
 };
@@ -62,8 +62,8 @@ pub async fn get_vault_active_stake<A: TryInto<Address>>(
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let vault: Address = vault.try_into()?;
-    let vault_contract: Address = vault.try_into()?;
+    let vault = vault.try_into()?;
+    let vault_contract = vault.try_into()?;
 
     let call = totalStakeCall {};
 
@@ -73,7 +73,23 @@ where
     Ok(active_stake)
 }
 
-pub fn get_vault_collateral_multicall<T, P, N>(
+pub async fn get_vault_burner<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::burnerCall::new(());
+
+    let IVault::burnerReturn { _0: burner } = call_and_decode(call, vault, provider).await?;
+
+    Ok(burner)
+}
+
+pub fn get_vault_burner_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     vault: Address,
     allow_failure: bool,
@@ -85,7 +101,7 @@ where
 {
     let abi = IVault::abi::functions();
     // can safely unwrap
-    let function = abi.get("collateral").unwrap().first().unwrap();
+    let function = abi.get("burner").unwrap().first().unwrap();
 
     multicall.add_call(vault, function, &[], allow_failure)
 }
@@ -107,7 +123,7 @@ where
     Ok(collateral)
 }
 
-pub fn get_vault_delegator_multicall<T, P, N>(
+pub fn get_vault_collateral_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     vault: Address,
     allow_failure: bool,
@@ -119,7 +135,75 @@ where
 {
     let abi = IVault::abi::functions();
     // can safely unwrap
-    let function = abi.get("delegator").unwrap().first().unwrap();
+    let function = abi.get("collateral").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_current_epoch<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::currentEpochCall::new(());
+
+    let IVault::currentEpochReturn { _0: current_epoch } =
+        call_and_decode(call, vault, provider).await?;
+
+    Ok(current_epoch)
+}
+
+pub fn get_vault_current_epoch_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("currentEpoch").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_current_epoch_start<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::currentEpochStartCall::new(());
+
+    let IVault::currentEpochStartReturn { _0: current_epoch } =
+        call_and_decode(call, vault, provider).await?;
+
+    Ok(current_epoch)
+}
+
+pub fn get_vault_current_epoch_start_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("currentEpochStart").unwrap().first().unwrap();
 
     multicall.add_call(vault, function, &[], allow_failure)
 }
@@ -138,6 +222,144 @@ where
     let IVault::delegatorReturn { _0: delegator } = call_and_decode(call, vault, provider).await?;
 
     Ok(delegator)
+}
+
+pub fn get_vault_delegator_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("delegator").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_deposit_limit<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::depositLimitCall::new(());
+
+    let IVault::depositLimitReturn { _0: deposit_limit } =
+        call_and_decode(call, vault, provider).await?;
+
+    Ok(deposit_limit)
+}
+
+pub fn get_vault_deposit_limit_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("depositLimit").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_deposit_whitelist<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::depositWhitelistCall::new(());
+
+    let IVault::depositWhitelistReturn {
+        _0: deposit_whitelist,
+    } = call_and_decode(call, vault, provider).await?;
+
+    Ok(deposit_whitelist)
+}
+
+pub fn get_vault_deposit_whitelist_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("depositWhitelist").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_epoch_duration<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::epochDurationCall::new(());
+
+    let IVault::epochDurationReturn { _0: epoch_duration } =
+        call_and_decode(call, vault, provider).await?;
+
+    Ok(epoch_duration)
+}
+
+pub fn get_vault_epoch_duration_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("epochDuration").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_entity<A: TryInto<Address>>(
+    vault_factory: A,
+    index: U256,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let factory = vault_factory.try_into()?;
+
+    let call = VaultFactory::entityCall::new((index,));
+
+    let VaultFactory::entityReturn { _0: entity } =
+        call_and_decode(call, factory, provider).await?;
+
+    Ok(entity)
 }
 
 pub fn get_vault_entity_multicall<T, P, N>(
@@ -163,22 +385,72 @@ where
     )
 }
 
-pub async fn get_vault_entity<A: TryInto<Address>>(
-    vault_factory: A,
-    index: U256,
+pub async fn get_vault_next_epoch_start<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::nextEpochStartCall::new(());
+
+    let IVault::nextEpochStartReturn {
+        _0: next_epoch_start,
+    } = call_and_decode(call, vault, provider).await?;
+
+    Ok(next_epoch_start)
+}
+
+pub fn get_vault_next_epoch_start_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("nextEpochStart").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_slasher<A: TryInto<Address>>(
+    vault: A,
     provider: &RetryProvider,
 ) -> Result<Address>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let factory = vault_factory.try_into()?;
+    let vault = vault.try_into()?;
 
-    let call = VaultFactory::entityCall::new((index,));
+    let call = IVault::slasherCall::new(());
 
-    let VaultFactory::entityReturn { _0: entity } =
-        call_and_decode(call, factory, provider).await?;
+    let IVault::slasherReturn { _0: slasher } = call_and_decode(call, vault, provider).await?;
 
-    Ok(entity)
+    Ok(slasher)
+}
+
+pub fn get_vault_slasher_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("slasher").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
 }
 
 pub async fn get_vault_total_entities<A: TryInto<Address>>(
