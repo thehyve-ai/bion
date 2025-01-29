@@ -14,6 +14,9 @@ name = "bion"
 path = "bin/main.rs"
 
 [dependencies]
+multicall.workspace = true
+
+
 # hyve
 account-utils.workspace = true
 hyve-cli-runner.workspace = true
@@ -24,6 +27,7 @@ hyve-version.workspace = true
 alloy-chains.workspace = true
 # workspace version of alloy-consensus is broken for cast
 alloy-consensus = { version = "0.9.2", features = ["serde", "kzg"] }
+alloy-contract.workspace = true
 alloy-dyn-abi.workspace = true
 alloy-eips = { workspace = true, features = ["serde"] }
 alloy-json-abi.workspace = true

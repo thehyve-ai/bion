@@ -48,22 +48,25 @@ impl VaultOptInStatusCommand {
 
         validate_cli_args(None, &eth).await?;
 
-        println!(
-            "{}",
-            "🔄 Checking if the operator is opted in.".bright_cyan()
-        );
-
-        let chain = try_get_chain(&eth.etherscan)?;
-        let opt_in_service = get_vault_opt_in_service(chain)?;
-        let vault_factory = get_vault_factory(chain)?;
-
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
+        let chain_id = {
+            let cast = cast::Cast::new(&provider);
+            cast.chain_id().await?
+        };
+
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
 
         let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
         if !is_vault {
             return Err(eyre::eyre!("Address is not a vault."));
         }
+
+        println!(
+            "{}",
+            "🔄 Checking if the operator is opted in.".bright_cyan()
+        );
 
         let is_opted_in =
             is_opted_in_vault(address, vault_address, opt_in_service, &provider).await?;

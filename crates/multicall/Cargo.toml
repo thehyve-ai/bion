@@ -1,0 +1,23 @@
+[package]
+name = "multicall"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+alloy-dyn-abi.workspace = true
+alloy-json-abi.workspace = true
+alloy-sol-types.workspace = true
+alloy-contract.workspace = true
+alloy-chains.workspace = true
+alloy-primitives.workspace = true
+alloy-provider.workspace = true
+alloy-transport.workspace = true
+
+thiserror.workspace = true
+tokio.workspace = true

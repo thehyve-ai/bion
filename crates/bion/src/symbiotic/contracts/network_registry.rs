@@ -2,6 +2,7 @@ use alloy_sol_types::sol;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc, abi)]
     interface INetworkRegistry {
         error NetworkAlreadyRegistered();
         error EntityNotExist();

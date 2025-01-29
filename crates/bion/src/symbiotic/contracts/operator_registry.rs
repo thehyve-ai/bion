@@ -2,6 +2,7 @@ use alloy_sol_types::sol;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc, abi)]
     interface IOperatorRegistry {
         error OperatorAlreadyRegistered();
         error EntityNotExist();

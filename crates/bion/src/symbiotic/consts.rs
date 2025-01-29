@@ -118,8 +118,8 @@ pub mod addresses {
     }
 }
 
-pub fn get_vault_factory(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_vault_factory(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::VAULT_FACTORY)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::VAULT_FACTORY)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::VAULT_FACTORY)?),
@@ -127,8 +127,8 @@ pub fn get_vault_factory(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_delegator_factory(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_delegator_factory(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::DELEGATOR_FACTORY)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::DELEGATOR_FACTORY)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::DELEGATOR_FACTORY)?),
@@ -136,8 +136,8 @@ pub fn get_delegator_factory(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_slasher_factory(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_slasher_factory(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::SLASHER_FACTORY)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::SLASHER_FACTORY)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::SLASHER_FACTORY)?),
@@ -145,8 +145,8 @@ pub fn get_slasher_factory(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_network_registry(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_network_registry(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::NETWORK_REGISTRY)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::NETWORK_REGISTRY)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::NETWORK_REGISTRY)?),
@@ -154,8 +154,8 @@ pub fn get_network_registry(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_network_middleware_service(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_network_middleware_service(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::NETWORK_MIDDLEWARE_SERVICE)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::NETWORK_MIDDLEWARE_SERVICE)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::NETWORK_MIDDLEWARE_SERVICE)?),
@@ -163,8 +163,8 @@ pub fn get_network_middleware_service(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_operator_registry(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_operator_registry(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::OPERATOR_REGISTRY)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::OPERATOR_REGISTRY)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::OPERATOR_REGISTRY)?),
@@ -172,8 +172,8 @@ pub fn get_operator_registry(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_vault_opt_in_service(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_vault_opt_in_service(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::VAULT_OPT_IN_SERVICE)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::VAULT_OPT_IN_SERVICE)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::VAULT_OPT_IN_SERVICE)?),
@@ -181,8 +181,8 @@ pub fn get_vault_opt_in_service(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_network_opt_in_service(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_network_opt_in_service(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::NETWORK_OPT_IN_SERVICE)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::NETWORK_OPT_IN_SERVICE)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::NETWORK_OPT_IN_SERVICE)?),
@@ -190,8 +190,8 @@ pub fn get_network_opt_in_service(chain: Chain) -> eyre::Result<Address> {
     }
 }
 
-pub fn get_vault_configurator(chain: Chain) -> eyre::Result<Address> {
-    match chain.id() {
+pub fn get_vault_configurator(chain_id: u64) -> eyre::Result<Address> {
+    match chain_id {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::VAULT_CONFIGURATOR)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::VAULT_CONFIGURATOR)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::VAULT_CONFIGURATOR)?),

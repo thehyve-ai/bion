@@ -2,6 +2,7 @@ use alloy_sol_types::sol;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc, abi)]
     interface IVault  {
         error AlreadyClaimed();
         error AlreadySet();
@@ -219,6 +220,8 @@ sol! {
             uint256 amount
         ) external returns (uint256 depositedAmount, uint256 mintedShares);
 
+
+        function delegator() external view returns (address);
         /**
          * @notice Withdraw collateral from the vault (it will be claimable after the next epoch).
          * @param claimer account that needs to claim the withdrawal

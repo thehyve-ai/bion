@@ -1,13 +1,17 @@
 //! A collection of function that call important information from the Symbiotic contracts.
 
-use alloy_network::TransactionBuilder;
+use alloy_dyn_abi::DynSolValue;
+use alloy_network::{Network, TransactionBuilder};
 use alloy_primitives::{Address, Bytes, U256};
+use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
-use alloy_sol_types::SolCall;
+use alloy_sol_types::{JsonAbiExt, SolCall};
+use alloy_transport::Transport;
 use cast::Cast;
 use eyre::Result;
 use foundry_common::provider::RetryProvider;
+use multicall::Multicall;
 
 use std::str::FromStr;
 
@@ -15,7 +19,7 @@ use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
 use super::contracts::{
     erc20, INetworkRegistry, IOperatorRegistry,
-    IOptInService::{isOptedInCall, isOptedInReturn},
+    IOptInService::{self, isOptedInCall, isOptedInReturn},
     IVault::{self, totalStakeCall, totalStakeReturn},
 };
 
@@ -69,6 +73,23 @@ where
     Ok(active_stake)
 }
 
+pub fn get_vault_collateral_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("collateral").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
 pub async fn get_vault_collateral<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -84,6 +105,62 @@ where
         call_and_decode(call, vault, provider).await?;
 
     Ok(collateral)
+}
+
+pub fn get_vault_delegator_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("delegator").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+pub async fn get_vault_delegator<A: TryInto<Address>>(
+    vault: A,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault = vault.try_into()?;
+
+    let call = IVault::delegatorCall::new(());
+
+    let IVault::delegatorReturn { _0: delegator } = call_and_decode(call, vault, provider).await?;
+
+    Ok(delegator)
+}
+
+pub fn get_vault_entity_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault_factory: Address,
+    index: U256,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = VaultFactory::abi::functions();
+    // can safely unwrap
+    let function = abi.get("entity").unwrap().first().unwrap();
+
+    multicall.add_call(
+        vault_factory,
+        function,
+        &[DynSolValue::from(index)],
+        allow_failure,
+    )
 }
 
 pub async fn get_vault_entity<A: TryInto<Address>>(
@@ -292,4 +369,194 @@ async fn call_and_decode<C: SolCall>(
     let data = C::abi_decode_returns(data.as_ref(), true)?;
 
     Ok(data)
+}
+
+/// Multicall variant of get_token_decimals
+pub fn get_token_decimals_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    token: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let function = erc20::decimalsCall::abi();
+    multicall.add_call(token, &function, &[], allow_failure)
+}
+
+/// Multicall variant of get_token_symbol
+pub fn get_token_symbol_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    token: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let function = erc20::symbolCall::abi();
+    multicall.add_call(token, &function, &[], allow_failure)
+}
+
+/// Multicall variant of get_vault_active_stake
+pub fn get_vault_active_stake_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    let function = abi.get("totalStake").unwrap().first().unwrap();
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+/// Multicall variant of get_vault_total_entities
+pub fn get_vault_total_entities_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault_factory: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = VaultFactory::abi::functions();
+    let function = abi.get("totalEntities").unwrap().first().unwrap();
+    multicall.add_call(vault_factory, function, &[], allow_failure)
+}
+
+/// Multicall variant of get_vault_total_stake
+pub fn get_vault_total_stake_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    let function = abi.get("totalStake").unwrap().first().unwrap();
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
+/// Multicall variant of is_operator
+pub fn is_operator_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    address: Address,
+    operator_registry: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IOperatorRegistry::abi::functions();
+    let function = abi.get("isEntity").unwrap().first().unwrap();
+    multicall.add_call(
+        operator_registry,
+        function,
+        &[DynSolValue::from(address)],
+        allow_failure,
+    )
+}
+
+/// Multicall variant of is_opted_in_network
+pub fn is_opted_in_network_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    address: Address,
+    network: Address,
+    opt_in_service: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IOptInService::abi::functions();
+    let function = abi.get("isOptedIn").unwrap().first().unwrap();
+    multicall.add_call(
+        opt_in_service,
+        function,
+        &[DynSolValue::from(address), DynSolValue::from(network)],
+        allow_failure,
+    )
+}
+
+/// Multicall variant of is_opted_in_vault
+pub fn is_opted_in_vault_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    address: Address,
+    vault: Address,
+    opt_in_service: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IOptInService::abi::functions();
+    let function = abi.get("isOptedIn").unwrap().first().unwrap();
+    multicall.add_call(
+        opt_in_service,
+        function,
+        &[DynSolValue::from(address), DynSolValue::from(vault)],
+        allow_failure,
+    )
+}
+
+/// Multicall variant of is_network
+pub fn is_network_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network: Address,
+    network_registry: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkRegistry::abi::functions();
+    let function = abi.get("isEntity").unwrap().first().unwrap();
+    multicall.add_call(
+        network_registry,
+        function,
+        &[DynSolValue::from(network)],
+        allow_failure,
+    )
+}
+
+/// Multicall variant of is_vault
+pub fn is_vault_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    vault_factory: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = VaultFactory::abi::functions();
+    let function = abi.get("isEntity").unwrap().first().unwrap();
+    multicall.add_call(
+        vault_factory,
+        function,
+        &[DynSolValue::from(vault)],
+        allow_failure,
+    )
 }

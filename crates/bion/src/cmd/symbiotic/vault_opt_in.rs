@@ -62,14 +62,17 @@ impl VaultOptInCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
-        let opt_in_service = get_vault_opt_in_service(chain)?;
-        let vault_factory = get_vault_factory(chain)?;
-
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
+
+        let chain_id = {
+            let cast = cast::Cast::new(&provider);
+            cast.chain_id().await?
+        };
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
 
         let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
         if !is_vault {

@@ -50,13 +50,16 @@ impl RegisterOperatorCommand {
 
         validate_cli_args(Some(address), &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
-        let operator_registry = get_operator_registry(chain)?;
-
         // Currently the config and provider are created twice when running the Cast command.
         // This is not ideal and should be refactored.
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
+
+        let chain_id = {
+            let cast = cast::Cast::new(&provider);
+            cast.chain_id().await?
+        };
+        let operator_registry = get_operator_registry(chain_id)?;
 
         let is_registered = is_operator(address, operator_registry, &provider).await?;
         if is_registered {

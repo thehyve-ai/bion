@@ -8,6 +8,7 @@ members = [
 
 	"crates/cli-runner",
 	"crates/bion",
+	"crates/multicall",
 
 
 ]
@@ -41,12 +42,12 @@ alloy = { version = "0.9.2", features = [
 	"provider-anvil-api",
 	"rpc-types-anvil",
 ] }
-alloy-chains = "0.1.51"
+alloy-chains = "0.1.57"
 alloy-consensus = "0.5.4"
 alloy-contract = "0.9.2"
 alloy-dyn-abi = "0.8.16"
 alloy-eips = "0.9.2"
-alloy-json-abi = "0.8.16"
+alloy-json-abi = "0.8.19"
 alloy-json-rpc = "0.9.2"
 alloy-network = "0.9.2"
 alloy-primitives = "0.8.16"
@@ -151,7 +152,7 @@ nix = "0.26.4"
 num_cpus = "1.16.0"
 percentage = "0.1.0"
 pprof = "0.14"
-prettytable = "0.10.0"
+prettytable = { git = "https://github.com/thehyve-ai/prettytable-rs.git", branch = "master", package = "prettytable-rs" }
 rayon = "1.9.0"
 regex = "1"
 rustc-hash = { version = "2.0", default-features = false }
@@ -240,6 +241,7 @@ hyve-cli-runner = { path = "crates/cli-runner" }
 hyve-primitives = { path = "crates/primitives" }
 hyve-version = { path = "crates/version" }
 lockfile = { path = "crates/lockfile" }
+multicall = { path = "crates/multicall" }
 
 # Lighthouse
 eth2_keystore = { git = "https://github.com/thehyve-ai/lighthouse.git", branch = "stable", package = "eth2_keystore" }

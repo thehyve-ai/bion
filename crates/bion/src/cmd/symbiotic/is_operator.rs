@@ -38,11 +38,14 @@ impl IsOperatorCommand {
 
         validate_cli_args(None, &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
-        let op_registry = get_operator_registry(chain)?;
-
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
+
+        let chain_id = {
+            let cast = cast::Cast::new(&provider);
+            cast.chain_id().await?
+        };
+        let op_registry = get_operator_registry(chain_id)?;
 
         let is_opted_in = is_operator(address, op_registry, &provider).await?;
 

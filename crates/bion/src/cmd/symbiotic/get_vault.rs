@@ -40,7 +40,7 @@ impl GetVaultCommand {
 
         // table headers
         table.add_row(row![
-            "alias",
+            "burner",
             "address",
             "collateral_token",
             "tvl",

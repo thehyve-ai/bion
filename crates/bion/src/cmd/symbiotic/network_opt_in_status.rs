@@ -44,12 +44,16 @@ impl NetworkOptInStatusCommand {
 
         validate_cli_args(None, &eth).await?;
 
-        let chain = try_get_chain(&eth.etherscan)?;
         let hyve_network = Address::from_str(TESTNET_ADDRESSES[HYVE_NETWORK_ENTITY])?;
-        let opt_in_service = get_network_opt_in_service(chain)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
+
+        let chain_id = {
+            let cast = cast::Cast::new(&provider);
+            cast.chain_id().await?
+        };
+        let opt_in_service = get_network_opt_in_service(chain_id)?;
 
         let is_opted_in =
             is_opted_in_network(address, hyve_network, opt_in_service, &provider).await?;
