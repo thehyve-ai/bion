@@ -104,7 +104,7 @@ impl ListVaultsCommand {
                     Some(vault_info.name)
                 }
                 _ => {
-                    if self.verified_only {
+                    if verified_only {
                         continue;
                     }
                     None
@@ -157,7 +157,7 @@ impl ListVaultsCommand {
             table.add_row(row);
 
             i += 1;
-            if i >= self.limit {
+            if i >= limit {
                 break;
             }
         }
