@@ -18,6 +18,8 @@ use alloy_network::{AnyNetwork, TxSigner};
 use alloy_primitives::Address;
 use alloy_provider::Provider;
 use alloy_transport::Transport;
+use colored::Colorize;
+use dialoguer::{theme::ColorfulTheme, Input};
 use eyre::ContextCompat;
 use foundry_cli::opts::{EthereumOpts, EtherscanOpts, RpcOpts};
 use foundry_wallets::WalletSigner;
@@ -28,6 +30,7 @@ use serde::{de::DeserializeOwned, Serialize};
 use tracing::trace;
 
 use crate::{
+    cmd::hyve::bls::create::ExecuteError,
     common::{DirsCliArgs, NetworkCliArgs},
     symbiotic::consts::addresses::{holesky, mainnet, sepolia},
 };
@@ -61,17 +64,30 @@ pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
     }
 }
 
-pub fn try_get_chain(eth: &EtherscanOpts) -> eyre::Result<Chain> {
-    if let Some(chain_id) = eth.chain {
-        match chain_id.id() {
-            mainnet::CHAIN_ID => return Ok(Chain::mainnet()),
-            holesky::CHAIN_ID => return Ok(Chain::holesky()),
-            sepolia::CHAIN_ID => return Ok(Chain::sepolia()),
-            _ => return Err(eyre::eyre!("Invalid ChainID!")),
-        }
-    }
+pub fn print_success_message(msg: &str) {
+    println!("{}", msg.bold().green());
+}
 
-    Ok(Chain::mainnet())
+pub fn print_error_message(msg: &str) {
+    println!("{}", msg.bold().red());
+}
+
+pub fn read_user_confirmation() -> eyre::Result<String> {
+    Ok(Input::with_theme(&ColorfulTheme::default())
+        .validate_with(|input: &String| -> std::result::Result<(), &str> {
+            let normalized = input.trim().to_lowercase();
+            match normalized.as_str() {
+                "y" | "yes" | "n" | "no" => Ok(()),
+                _ => Err("Please type 'y/yes' or 'n/no'"),
+            }
+        })
+        .interact()
+        .map_err(|e: dialoguer::Error| match e {
+            dialoguer::Error::IO(e) => match e.kind() {
+                std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                _ => ExecuteError::Other(e.into()),
+            },
+        })?)
 }
 
 /// Clears a specified number of previous lines in the terminal output

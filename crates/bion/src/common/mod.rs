@@ -1,5 +1,6 @@
 use clap::{value_parser, Parser, ValueEnum};
 use hyve_primitives::dirs::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
+use serde::{Deserialize, Serialize};
 use std::net::{SocketAddr, SocketAddrV4};
 use std::path::PathBuf;
 
@@ -256,4 +257,14 @@ pub struct KeystoreCliArgs {
 
     #[arg(long, required = true, help = "The path to the keystore file.")]
     keystore_path: PathBuf,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub enum SigningMethod {
+    AWS,
+    GCP,
+    Ledger,
+    Mnemonic,
+    PrivateKey,
+    Trezor,
 }

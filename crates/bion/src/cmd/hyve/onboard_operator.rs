@@ -10,7 +10,7 @@ use hyve_cli_runner::CliContext;
 use std::path::PathBuf;
 
 use crate::{
-    cmd::{symbiotic::vault_opt_in, utils::get_chain_id},
+    cmd::utils::get_chain_id,
     common::DirsCliArgs,
     hyve::consts::get_hyve_network,
     symbiotic::{
@@ -19,9 +19,11 @@ use crate::{
             get_network_opt_in_service, get_operator_registry, get_vault_factory,
             get_vault_opt_in_service,
         },
-        contracts::vault_factory,
     },
-    utils::{clear_previous_lines, validate_cli_args},
+    utils::{
+        clear_previous_lines, print_error_message, print_loading_until_async,
+        print_success_message, validate_cli_args,
+    },
 };
 
 #[derive(Debug, Parser)]
@@ -101,51 +103,49 @@ impl OnboardOperatorCommand {
         let vault_factory = get_vault_factory(chain_id)?;
 
         println!(
-            "{}",
+            "\n{}\n",
             "🚀 Starting Operator onboarding...".bold().bright_cyan()
         );
 
-        // println!("{}", "Verifying Vault address...");
-        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
+        let is_vault = print_loading_until_async(
+            "🔍 Verifying Vault address...",
+            is_vault(vault_address, vault_factory, &provider),
+        )
+        .await?;
         if !is_vault {
-            clear_previous_lines(1);
-            println!("{}", "Vault address is not a valid Symbiotic vault.".red());
+            print_error_message("Vault address is not a valid Symbiotic vault.");
             return Ok(());
         }
 
-        // clear_previous_lines(1);
-
-        // println!("{}", "Verifying Operator is registered in Symbiotic...");
-        let is_operator = is_operator(address, operator_registry, &provider).await?;
+        let is_operator = print_loading_until_async(
+            "🔍 Checking Operator registration in Symbiotic...",
+            is_operator(address, operator_registry, &provider),
+        )
+        .await?;
         if !is_operator {
-            clear_previous_lines(1);
-            println!("{}", "Operator is not registered in Symbiotic.".red());
+            print_error_message("Operator is not registered in Symbiotic.");
             return Ok(());
         }
 
-        // clear_previous_lines(1);
-
-        // println!("{}", "Verifying Operator opt-in status in Hyve Network...");
-        let is_opted_in_network =
-            is_opted_in_network(address, hyve_network, network_opt_in_service, &provider).await?;
+        let is_opted_in_network = print_loading_until_async(
+            "🔍 Checking Operator opt-in status in Hyve Network...",
+            is_opted_in_network(address, hyve_network, network_opt_in_service, &provider),
+        )
+        .await?;
         if !is_opted_in_network {
-            clear_previous_lines(1);
-            println!("{}", "Operator is not opted in Hyve Network.".red());
+            print_error_message("Operator is not opted in Hyve Network.");
             return Ok(());
         }
 
-        // clear_previous_lines(1);
-
-        // println!("{}", "Verifying Operator opt-in status in Vault...");
-        let is_opted_in_vault =
-            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider).await?;
+        let is_opted_in_vault = print_loading_until_async(
+            "🔍 Checking Operator opt-in status in Vault...",
+            is_opted_in_vault(address, vault_address, vault_opt_in_service, &provider),
+        )
+        .await?;
         if !is_opted_in_vault {
-            clear_previous_lines(1);
-            println!("{}", "Operator is not opted in Vault.".red());
+            print_error_message("Operator is not opted in Vault.");
             return Ok(());
         }
-
-        // clear_previous_lines(1);
 
         Ok(())
     }

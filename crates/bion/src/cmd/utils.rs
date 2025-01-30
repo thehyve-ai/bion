@@ -2,8 +2,9 @@ use alloy_primitives::{utils::format_units, Address, U256};
 use cast::Cast;
 use foundry_common::provider::RetryProvider;
 use num_format::{Locale, ToFormattedString};
+use serde::{Deserialize, Serialize};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
 pub enum AddressType {
     EOA,
     Contract,

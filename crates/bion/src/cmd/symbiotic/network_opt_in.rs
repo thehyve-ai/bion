@@ -10,8 +10,11 @@ use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::utils::get_chain_id,
     hyve::consts::get_hyve_network,
-    symbiotic::{calls::is_opted_in_network, consts::get_network_opt_in_service},
-    utils::validate_cli_args,
+    symbiotic::{
+        calls::{is_network, is_opted_in_network},
+        consts::get_network_opt_in_service,
+    },
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
