@@ -75,3 +75,5 @@ strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
+num-format = "0.4.4"
+chrono.workspace = true

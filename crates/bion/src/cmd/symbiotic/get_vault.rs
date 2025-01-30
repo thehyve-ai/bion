@@ -1,4 +1,5 @@
-use alloy_primitives::Address;
+use alloy_primitives::{Address, U256};
+use chrono::{DateTime, Utc};
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
@@ -82,7 +83,7 @@ impl GetVaultCommand {
                 .unwrap_or("Unverified vault".to_string())
         );
         table.add_row(row![
-            b -> "Name",
+            Fcb -> "Name",
             symbiotic_link
         ]);
 
@@ -90,58 +91,97 @@ impl GetVaultCommand {
             "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault_address, vault_address
         );
-        table.add_row(row![b ->"Address", vault_link]);
+        table.add_row(row![Fcb ->"Address",  vault_link]);
 
         let collateral_link = format!(
             "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault.collateral.unwrap(),
             vault.symbol.clone().unwrap()
         );
-        table.add_row(row![b -> "Collateral", collateral_link]);
+        table.add_row(row![Fcb -> "Collateral",   collateral_link]);
         let delegator_link = format!(
             "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault.delegator.unwrap(),
             vault.delegator.unwrap()
         );
-        table.add_row(row![b -> "Delegator", delegator_link]);
+        table.add_row(row![Fcb -> "Delegator", delegator_link]);
 
         let slasher_link = format!(
             "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault.slasher.unwrap(),
             vault.slasher.unwrap()
         );
-        table.add_row(row![b -> "Slasher", slasher_link]);
+        table.add_row(row![Fcb -> "Slasher",  slasher_link]);
 
         let burner_link = format!(
             "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault.burner.unwrap(),
             vault.burner.unwrap()
         );
-        table.add_row(row![b -> "Burner", burner_link]);
+        table.add_row(row![Fcb -> "Burner",  burner_link]);
 
         let mut deposit_limit = vault.deposit_limit_formatted().unwrap();
         if deposit_limit == "0.000" {
             deposit_limit = "-".to_string();
         }
-        table.add_row(row![b -> "Deposit limit", deposit_limit]);
+        table.add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
 
         let deposit_whitelist = match vault.deposit_whitelist.unwrap() {
             true => "✅",
             false => "❌",
         };
-        table.add_row(row![b -> "Deposit whitelist", deposit_whitelist]);
-        table.add_row(row![b -> "Total Stake", vault.total_stake_formatted().unwrap()]);
+        table.add_row(row![Fcb -> "Deposit whitelist",  deposit_whitelist]);
+        table.add_row(row![Fcb -> "Total Stake",  vault.total_stake_formatted().unwrap()]);
         table.add_row(row![
-            b -> "Active Stake",
-            vault.active_stake_formatted_with_percentage().unwrap()
+            Fcb -> "Active Stake",
+             vault.active_stake_formatted_with_percentage().unwrap()
         ]);
-        table.add_row(row![b -> "Current epoch", vault.current_epoch.unwrap()]);
-        table.add_row(row![b -> "Current epoch start", vault.current_epoch_start.unwrap()]);
-        table.add_row(row![b -> "Epoch duration", vault.epoch_duration.unwrap()]);
-        table.add_row(row![b -> "Next epoch start", vault.next_epoch_start.unwrap()]);
+        table.add_row(row![Fcb -> "Current epoch",  vault.current_epoch.unwrap()]);
+        table.add_row(
+            row![Fcb -> "Current epoch start", parse_epoch_ts(vault.current_epoch_start.unwrap())],
+        );
+        table.add_row(
+            row![Fcb -> "Epoch duration",  parse_duration_secs(vault.epoch_duration.unwrap())],
+        );
+        table.add_row(
+            row![Fcb -> "Next epoch start", parse_epoch_ts(vault.next_epoch_start.unwrap())],
+        );
 
         table.printstd();
 
         Ok(())
+    }
+}
+
+fn parse_duration_secs(secs: U256) -> String {
+    let secs = secs.to_string().as_str().parse::<i64>().unwrap();
+
+    // also add days, hours, minutes, seconds
+    let days = secs / 86400;
+    let hours = (secs % 86400) / 3600;
+    let minutes = (secs % 3600) / 60;
+    let seconds = secs % 60;
+
+    let formatted = if days > 0 {
+        format!("{}d {}h {}m {}s", days, hours, minutes, seconds)
+    } else if hours > 0 {
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    } else if minutes > 0 {
+        format!("{}m {}s", minutes, seconds)
+    } else {
+        format!("{}s", seconds)
+    };
+
+    format!("{} ({})", secs, formatted)
+}
+
+fn parse_epoch_ts(ts: U256) -> String {
+    let ts = ts.to_string().as_str().parse::<i64>().unwrap();
+    match DateTime::<Utc>::from_timestamp(ts, 0) {
+        Some(datetime) => {
+            let dt = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            format!("{} ({} UTC)", ts, dt)
+        }
+        None => ts.to_string(),
     }
 }

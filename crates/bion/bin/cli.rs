@@ -1,5 +1,6 @@
 use bion::cmd::{
     hyve::{bls::BLSCommands, HyveCommands},
+    network::{NetworkCommand, NetworkSubcommands},
     symbiotic::SymbioticCommands,
 };
 use clap::{
@@ -124,6 +125,7 @@ impl Cli {
                     runner.run_command_until_exit(|ctx| vault_opt_out.execute(ctx))
                 }
             },
+            Commands::Network(network) => runner.run_command_until_exit(|ctx| network.execute(ctx)),
         }
     }
 }
@@ -135,6 +137,9 @@ pub enum Commands {
 
     #[command(name = "symbiotic", subcommand)]
     Symbiotic(SymbioticCommands),
+
+    #[command(name = "network")]
+    Network(NetworkCommand),
 }
 
 fn get_color_style() -> Styles {

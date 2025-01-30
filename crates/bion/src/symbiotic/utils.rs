@@ -7,7 +7,7 @@ use serde::Deserialize;
 
 use std::str::FromStr;
 
-use crate::cmd::utils::format_number_with_decimals;
+use crate::cmd::utils::{format_number_with_decimals, parse_currency};
 
 use super::{
     calls::{
@@ -141,11 +141,11 @@ impl VaultData {
             return None;
         }
 
-        let total_stake = self.total_stake_formatted()?;
-        let active_stake = self.active_stake_formatted()?;
+        let total_f64 = parse_currency(self.total_stake.unwrap(), self.decimals.unwrap()).unwrap();
+        let active_f64 =
+            parse_currency(self.active_stake.unwrap(), self.decimals.unwrap()).unwrap();
 
-        let total_f64 = f64::from_str(&total_stake).unwrap();
-        let active_f64 = f64::from_str(&active_stake).unwrap();
+        let active_stake = self.active_stake_formatted()?;
 
         let percentage = if total_f64 > 0.0 {
             (active_f64 / total_f64 * 100.0).round()

@@ -9,7 +9,9 @@ use std::{str::FromStr, time::Instant};
 
 use crate::{
     cmd::utils::{format_number_with_decimals, get_chain_id},
-    symbiotic::utils::{fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, VaultInfo},
+    symbiotic::utils::{
+        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, get_vault_metadata, VaultInfo,
+    },
     utils::validate_cli_args,
 };
 
@@ -95,39 +97,8 @@ impl ListVaultsCommand {
             .sorted_by(|a, b| b.active_stake.cmp(&a.active_stake))
         {
             let vault_address = vault.address;
-            let url = format!("{SYMBIOTIC_GITHUB_URL}/{vault_address}/{VAULT_FILE_NAME}",);
-            let res = reqwest::get(&url).await?;
-
-            let name = match res.error_for_status() {
-                Ok(response) => {
-                    let vault_info: VaultInfo = serde_json::from_str(&response.text().await?)?;
-                    Some(vault_info.name)
-                }
-                _ => {
-                    if verified_only {
-                        continue;
-                    }
-                    None
-                }
-            };
-
-            let total_stake_formatted =
-                format_number_with_decimals(vault.total_stake.unwrap(), vault.decimals.unwrap())?;
-
-            let active_stake_formatted = {
-                let active = format_number_with_decimals(
-                    vault.active_stake.unwrap(),
-                    vault.decimals.unwrap(),
-                )?;
-                let total_f64 = f64::from_str(&total_stake_formatted).unwrap();
-                let active_f64 = f64::from_str(&active).unwrap();
-                let percentage = if total_f64 > 0.0 {
-                    (active_f64 / total_f64 * 100.0).round()
-                } else {
-                    0.0
-                };
-                format!("{} ({:.0}%)", active, percentage)
-            };
+            let vault_info = get_vault_metadata(vault_address).await?;
+            let name = vault_info.map(|v| v.name);
 
             let symbiotic_link = format!(
                 "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
@@ -142,7 +113,7 @@ impl ListVaultsCommand {
             let collateral_link = format!(
                 "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
                 vault.collateral.unwrap(),
-                vault.symbol.unwrap()
+                vault.symbol.as_ref().unwrap()
             );
 
             let row = row![
@@ -150,8 +121,8 @@ impl ListVaultsCommand {
                 symbiotic_link,
                 vault_link,
                 collateral_link,
-                total_stake_formatted,
-                active_stake_formatted,
+                vault.total_stake_formatted().unwrap(),
+                vault.active_stake_formatted_with_percentage().unwrap(),
             ];
 
             table.add_row(row);
