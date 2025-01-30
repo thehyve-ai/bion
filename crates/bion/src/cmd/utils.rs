@@ -1,7 +1,27 @@
-use alloy_primitives::{utils::format_units, U256};
+use alloy_primitives::{utils::format_units, Address, U256};
 use cast::Cast;
 use foundry_common::provider::RetryProvider;
 use num_format::{Locale, ToFormattedString};
+
+#[derive(Debug, PartialEq)]
+pub enum AddressType {
+    EOA,
+    Contract,
+}
+
+pub async fn get_address_type(
+    address: Address,
+    provider: &RetryProvider,
+) -> eyre::Result<AddressType> {
+    let cast = Cast::new(&provider);
+    let code = cast.code(address, None, false).await?;
+
+    if code.len() > 0 && code != "0x" {
+        Ok(AddressType::Contract)
+    } else {
+        Ok(AddressType::EOA)
+    }
+}
 
 pub async fn get_chain_id(provider: &RetryProvider) -> eyre::Result<u64> {
     // get the chain id
