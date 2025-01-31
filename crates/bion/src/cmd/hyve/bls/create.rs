@@ -154,7 +154,7 @@ impl CreateCommand {
             "🔄 Deriving BLS keys from keystore. This may take up to 2 minutes...".bright_cyan()
         );
 
-        let operators_dir = self.dirs.operators_dir();
+        let operators_dir = self.dirs.operators_dir(None)?;
         let mut defs = OperatorDefinitions::open_or_create(&operators_dir)
             .map_err(|e| eyre::eyre!(format!("Unable to open {:?}: {:?}", &operators_dir, e)))?;
 

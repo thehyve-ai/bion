@@ -23,7 +23,7 @@ pub struct DeleteCommand {
 
 impl DeleteCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let operators_dir = self.dirs.operators_dir();
+        let operators_dir = self.dirs.operators_dir(None)?;
         let mut pubkey = self.voting_pubkey;
         if !pubkey.starts_with("0x") {
             pubkey = format!("0x{}", pubkey);

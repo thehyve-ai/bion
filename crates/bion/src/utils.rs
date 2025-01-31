@@ -91,7 +91,7 @@ pub fn get_keystore_password() -> eyre::Result<ZeroizeString> {
     ];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
-        .with_prompt("\nChoose a password option for the BLS keystore")
+        .with_prompt("\nChoose a password option for the keystore")
         .items(&options)
         .default(0)
         .interact()

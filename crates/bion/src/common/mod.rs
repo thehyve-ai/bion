@@ -1,8 +1,10 @@
 use clap::{value_parser, Parser, ValueEnum};
 use hyve_primitives::dirs::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
 use serde::{Deserialize, Serialize};
-use std::net::{SocketAddr, SocketAddrV4};
+
 use std::path::PathBuf;
+
+use crate::cmd::utils::get_network;
 
 pub mod consts;
 
@@ -10,12 +12,15 @@ pub mod consts;
 pub enum Networks {
     #[value(alias("sepolia"))]
     Sepolia,
+    #[value(alias("mainnet"))]
+    Mainnet,
 }
 
 impl Networks {
     pub fn as_str(&self) -> &str {
         match self {
             Networks::Sepolia => "sepolia",
+            Networks::Mainnet => "mainnet",
         }
     }
 }
@@ -47,14 +52,23 @@ pub struct DirsCliArgs {
 }
 
 impl DirsCliArgs {
-    pub fn data_dir(&self) -> PathBuf {
-        self.data_dir.get_data_dir().join(self.network.as_str())
+    pub fn data_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
+        let network = if let Some(chain_id) = chain_id {
+            get_network(chain_id)?
+        } else {
+            self.network.as_str().to_string()
+        };
+        let data_dir = self.data_dir.get_data_dir().join(network);
+        Ok(data_dir)
     }
 
-    pub fn operators_dir(&self) -> PathBuf {
-        self.operators_dir
+    pub fn operators_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
+        let data_dir = self.data_dir(chain_id)?;
+        let operators_dir = self
+            .operators_dir
             .clone()
-            .unwrap_or_else(|| self.data_dir().join(DEFAULT_OPERATOR_DIR))
+            .unwrap_or_else(|| data_dir.join(DEFAULT_OPERATOR_DIR));
+        Ok(operators_dir)
     }
 }
 
@@ -261,10 +275,7 @@ pub struct KeystoreCliArgs {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub enum SigningMethod {
-    AWS,
-    GCP,
+    Keystore,
     Ledger,
-    Mnemonic,
-    PrivateKey,
     Trezor,
 }

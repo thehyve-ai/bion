@@ -49,7 +49,7 @@ pub type ImportedNetworks = HashMap<String, Address>;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct NetworkMetadata {
-    address: Address,
+    pub address: Address,
     alias: String,
     address_type: AddressType,
     signing_method: Option<SigningMethod>,

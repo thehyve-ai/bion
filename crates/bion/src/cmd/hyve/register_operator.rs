@@ -108,7 +108,7 @@ impl RegisterOperatorCommand {
             return Err(eyre::eyre!("Address is not a vault."));
         }
 
-        let operators_dir = dirs.operators_dir();
+        let operators_dir = dirs.operators_dir(Some(chain_id))?;
         let mut pubkey = voting_pubkey;
         if !pubkey.starts_with("0x") {
             pubkey = format!("0x{}", pubkey);

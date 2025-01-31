@@ -15,7 +15,7 @@ pub struct ListCommand {
 
 impl ListCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let operators_dir = self.dirs.operators_dir();
+        let operators_dir = self.dirs.operators_dir(None)?;
 
         let operator_defs = OperatorDefinitions::open(&operators_dir)
             .map_err(|e| eyre::eyre!(format!("Unable to open {:?}: {:?}", &operators_dir, e)))?;

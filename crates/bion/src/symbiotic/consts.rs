@@ -1,5 +1,4 @@
 use addresses::{holesky, mainnet, sepolia};
-use alloy_chains::Chain;
 use alloy_primitives::Address;
 
 use std::str::FromStr;

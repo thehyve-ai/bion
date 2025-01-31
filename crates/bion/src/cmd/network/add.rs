@@ -1,6 +1,7 @@
-use alloy_primitives::hex::FromHex;
-use alloy_primitives::{Address, FixedBytes};
-use alloy_signer_local::LocalSigner;
+use alloy_primitives::{Address, B256};
+use alloy_signer::Signer;
+use alloy_signer_local::coins_bip39::English;
+use alloy_signer_local::{LocalSigner, MnemonicBuilder, PrivateKeySigner};
 use clap::Parser;
 use colored::Colorize;
 use dialoguer::theme::ColorfulTheme;
@@ -16,12 +17,12 @@ use std::path::PathBuf;
 use crate::cmd::network::utils::get_network_metadata;
 use crate::cmd::network::{ImportedNetworks, NetworkMetadata};
 use crate::cmd::utils::{get_address_type, get_chain_id, AddressType};
-use crate::common::DirsCliArgs;
+use crate::common::{DirsCliArgs, SigningMethod};
 use crate::symbiotic::calls::is_network;
 use crate::symbiotic::consts::get_network_registry;
 use crate::utils::{
     get_keystore_password, load_from_json_file, print_error_message, print_loading_until_async,
-    read_user_confirmation, write_to_json_file, ExecuteError,
+    print_success_message, read_user_confirmation, write_to_json_file, ExecuteError,
 };
 
 use super::utils::NetworkInfo;
@@ -88,7 +89,7 @@ pub struct AddCommand {
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
     pub address: Address,
 
-    pub alias: String,
+    alias: String,
 
     #[clap(flatten)]
     dirs: DirsCliArgs,
@@ -103,34 +104,44 @@ impl AddCommand {
     }
 
     pub async fn run(self, _ctx: CliContext) -> eyre::Result<()> {
-        let networks_dir = self.dirs.data_dir().join(format!(
+        let config = self.eth.load_config()?;
+        let provider = utils::get_provider(&config)?;
+
+        let chain_id = get_chain_id(&provider).await?;
+        let network_registry = get_network_registry(chain_id)?;
+
+        println!("{}{}", "Adding network:".bright_cyan(), self.alias.bold());
+
+        let network_definitions_path = self.dirs.data_dir(Some(chain_id))?.join(format!(
             "{}/{}",
             NETWORK_DIRECTORY, NETWORK_DEFINITIONS_FILE
         ));
-        let network_config_dir = self.dirs.data_dir().join(format!(
-            "{}/{}/{}",
-            NETWORK_DIRECTORY, self.address, NETWORK_CONFIG_FILE
-        ));
+        let network_config_dir = self
+            .dirs
+            .data_dir(Some(chain_id))?
+            .join(format!("{}/{}", NETWORK_DIRECTORY, self.address));
+        let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
 
-        let mut networks_map = match load_from_json_file(&networks_dir) {
+        let mut networks_map = match load_from_json_file(&network_definitions_path) {
             Ok(networks_map) => networks_map,
-            Err(..) => {
-                create_dir_all(&networks_dir).map_err(|e| {
+            Err(e) => {
+                println!("{}", e);
+                create_dir_all(&network_definitions_path).map_err(|e| {
                     eyre::eyre!(format!(
                         "Unable to create import directory: {:?}: {:?}",
-                        networks_dir, e
+                        network_definitions_path, e
                     ))
                 })?;
 
                 let networks_map = ImportedNetworks::new();
-                write_to_json_file(&networks_dir, &networks_map, true)
+                write_to_json_file(&network_definitions_path, &networks_map, true)
                     .map_err(|e| eyre::eyre!(e))?;
                 networks_map
             }
         };
 
         let mut network =
-            match load_from_json_file::<&PathBuf, NetworkMetadata>(&network_config_dir) {
+            match load_from_json_file::<&PathBuf, NetworkMetadata>(&network_config_path) {
                 Ok(..) => {
                     print_error_message(
                         format!("\nNetwork configuration already exists: {}", self.address)
@@ -139,22 +150,16 @@ impl AddCommand {
                     return Ok(());
                 }
                 Err(..) => {
-                    create_dir_all(&network_config_dir).map_err(|e| {
+                    create_dir_all(&network_config_path).map_err(|e| {
                         eyre::eyre!(format!(
                             "Unable to create network directory: {:?}: {:?}",
-                            network_config_dir, e
+                            network_config_path, e
                         ))
                     })?;
 
                     NetworkMetadata::new(self.address, self.alias.clone())
                 }
             };
-
-        let config = self.eth.load_config()?;
-        let provider = utils::get_provider(&config)?;
-
-        let chain_id = get_chain_id(&provider).await?;
-        let network_registry = get_network_registry(chain_id)?;
 
         let address_type = get_address_type(self.address, &provider).await?;
         network.set_address_type(address_type.clone());
@@ -207,12 +212,15 @@ impl AddCommand {
         }
 
         // store network config
-        write_to_json_file(network_config_dir, &network, true).map_err(|e| eyre::eyre!(e))?;
+        write_to_json_file(network_config_path, &network, true).map_err(|e| eyre::eyre!(e))?;
 
         networks_map.insert(network.alias.clone(), self.address);
 
         // store networks map
-        write_to_json_file(networks_dir, &networks_map, false).map_err(|e| eyre::eyre!(e))?;
+        write_to_json_file(network_definitions_path, &networks_map, false)
+            .map_err(|e| eyre::eyre!(e))?;
+
+        print_success_message(format!("✅ Successfully added network: {}", network.alias).as_str());
 
         Ok(())
     }
@@ -254,35 +262,46 @@ impl AddCommand {
                 ))
             })?;
 
+        let mut store_private_key = false;
+        if selection == 0 || selection == 1 || selection == 2 {
+            println!(
+                "\n {}",
+                "Do you want to store the private key? (y/n)".bright_cyan()
+            );
+
+            let confirmation: String = read_user_confirmation()?;
+            if confirmation.trim().to_lowercase().as_str() == "y"
+                || confirmation.trim().to_lowercase().as_str() == "yes"
+            {
+                store_private_key = true;
+            }
+        }
+
         match selection {
             0 => {
-                // Private Key
-                let private_key = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Enter private key:")
-                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
-                        let normalized = input.trim().to_lowercase();
-                        if normalized.len() == 64 {
-                            Ok(())
-                        } else {
-                            Err("Private key must be 64 characters long.")
-                        }
-                    })
-                    .interact()
-                    .map_err(|e: dialoguer::Error| match e {
-                        dialoguer::Error::IO(e) => match e.kind() {
-                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
-                            _ => ExecuteError::Other(e.into()),
-                        },
-                    })?;
-                let private_key_bytes = FixedBytes::from_hex(private_key)?;
-                let signer = LocalSigner::from_bytes(&private_key_bytes)?;
+                // Private key
+                if !store_private_key {
+                    return Ok(()); // do nothing
+                }
+
+                let private_key = rpassword::prompt_password_stdout("Enter private key:")?;
+                let signer = foundry_wallets::utils::create_private_key_signer(&private_key)?;
+                if signer.address().to_string().to_lowercase()
+                    != network.address.to_string().to_lowercase()
+                {
+                    print_error_message("Address does not match signer!");
+                    return Err(eyre::eyre!(""));
+                }
+
+                let private_key_bytes: B256 =
+                    alloy_primitives::hex::FromHex::from_hex(private_key)?;
 
                 let keystore_password = get_keystore_password()?;
 
-                println!("✅ {}", "Keystore password setup complete".bright_green());
+                println!("✅ {}", "Keystore password setup completed".bright_green());
 
                 let mut rng = rand::thread_rng();
-                let (_, id) = alloy_signer_local::LocalSigner::encrypt_keystore(
+                let (_, _) = LocalSigner::encrypt_keystore(
                     &network_config_dir,
                     &mut rng,
                     private_key_bytes,
@@ -292,25 +311,123 @@ impl AddCommand {
 
                 println!("✅ {}", "Keystore creation completed".bright_green());
 
-                network.set_signing_method(Some(crate::common::SigningMethod::PrivateKey));
+                network.set_signing_method(Some(SigningMethod::Keystore));
                 network.set_keystore_file(Some(network_config_dir.clone()));
                 network.set_password_enabled(true);
+                Ok(())
             }
             1 => {
                 // Keystore
+                if !store_private_key {
+                    return Ok(()); // do nothing
+                }
+
+                let keypath = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Enter path to keystore:")
+                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
+                        let normalized = input.trim().to_lowercase();
+                        if normalized.len() == 0 {
+                            Err("Keystore path must not be empty.")
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .interact()
+                    .map_err(|e: dialoguer::Error| match e {
+                        dialoguer::Error::IO(e) => match e.kind() {
+                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                            _ => ExecuteError::Other(e.into()),
+                        },
+                    })?;
+
+                let password = rpassword::prompt_password_stdout("Enter keystore password")?;
+
+                return match PrivateKeySigner::decrypt_keystore(keypath.clone(), password) {
+                    Ok(signer) => {
+                        if signer.address().to_string().to_lowercase()
+                            != network.address.to_string().to_lowercase()
+                        {
+                            print_error_message("Address does not match signer!");
+                            return Err(eyre::eyre!(""));
+                        }
+
+                        network.set_signing_method(Some(SigningMethod::Keystore));
+                        network.set_keystore_file(Some(keypath.into()));
+                        network.set_password_enabled(true);
+                        Ok(())
+                    }
+                    Err(e) => Err(eyre::eyre!("Failed to decrypt keystore: {}", e)),
+                };
             }
             2 => {
                 // Mnemonic
+                if !store_private_key {
+                    return Ok(()); // do nothing
+                }
+
+                let phrase = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt(
+                        "Enter mnemonic phrase or path to a file that contains the phrase:",
+                    )
+                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
+                        let normalized = input.trim().to_lowercase();
+                        if normalized.len() == 0 {
+                            Err("Mnemonic phrase or path cannot be empty.")
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .interact()
+                    .map_err(|e: dialoguer::Error| match e {
+                        dialoguer::Error::IO(e) => match e.kind() {
+                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                            _ => ExecuteError::Other(e.into()),
+                        },
+                    })?;
+
+                let signer = MnemonicBuilder::<English>::default()
+                    .phrase(phrase)
+                    .build()?;
+
+                if signer.address().to_string().to_lowercase()
+                    != network.address.to_string().to_lowercase()
+                {
+                    print_error_message("Address does not match signer!");
+                    return Err(eyre::eyre!(""));
+                }
+
+                let keystore_password = get_keystore_password()?;
+
+                println!("✅ {}", "Keystore password setup completed".bright_green());
+
+                let mut rng = rand::thread_rng();
+                let (_, _) = LocalSigner::encrypt_keystore(
+                    &network_config_dir,
+                    &mut rng,
+                    signer.to_bytes(),
+                    keystore_password.as_ref(),
+                    Some("keystore"),
+                )?;
+
+                println!("✅ {}", "Keystore creation completed".bright_green());
+
+                network.set_signing_method(Some(SigningMethod::Keystore));
+                network.set_keystore_file(Some(network_config_dir.clone()));
+                network.set_password_enabled(true);
+
+                Ok(())
             }
             3 => {
                 // Ledger
+                network.set_signing_method(Some(SigningMethod::Ledger));
+                Ok(())
             }
             4 => {
                 // Trezor
+                network.set_signing_method(Some(SigningMethod::Trezor));
+                Ok(())
             }
             _ => unreachable!(),
         }
-
-        Ok(())
     }
 }
