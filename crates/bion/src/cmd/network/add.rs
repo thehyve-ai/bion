@@ -89,6 +89,7 @@ pub struct AddCommand {
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
     pub address: Address,
 
+    #[arg(skip)]
     alias: String,
 
     #[clap(flatten)]
@@ -110,7 +111,7 @@ impl AddCommand {
         let chain_id = get_chain_id(&provider).await?;
         let network_registry = get_network_registry(chain_id)?;
 
-        println!("{}{}", "Adding network:".bright_cyan(), self.alias.bold());
+        println!("{}{}", "Adding network: ".bright_cyan(), self.alias.bold());
 
         let network_definitions_path = self.dirs.data_dir(Some(chain_id))?.join(format!(
             "{}/{}",
@@ -124,9 +125,9 @@ impl AddCommand {
 
         let mut networks_map = match load_from_json_file(&network_definitions_path) {
             Ok(networks_map) => networks_map,
-            Err(e) => {
-                println!("{}", e);
-                create_dir_all(&network_definitions_path).map_err(|e| {
+            Err(..) => {
+                let networks_dir = self.dirs.data_dir(Some(chain_id))?.join(NETWORK_DIRECTORY);
+                create_dir_all(&networks_dir).map_err(|e| {
                     eyre::eyre!(format!(
                         "Unable to create import directory: {:?}: {:?}",
                         network_definitions_path, e
@@ -150,21 +151,24 @@ impl AddCommand {
                     return Ok(());
                 }
                 Err(..) => {
-                    create_dir_all(&network_config_path).map_err(|e| {
+                    create_dir_all(&network_config_dir).map_err(|e| {
                         eyre::eyre!(format!(
                             "Unable to create network directory: {:?}: {:?}",
-                            network_config_path, e
+                            network_config_dir, e
                         ))
                     })?;
 
-                    NetworkMetadata::new(self.address, self.alias.clone())
+                    let network = NetworkMetadata::new(self.address, self.alias.clone());
+                    write_to_json_file(&network_config_path, &network, true)
+                        .map_err(|e| eyre::eyre!(e))?;
+                    network
                 }
             };
 
         let address_type = get_address_type(self.address, &provider).await?;
         network.set_address_type(address_type.clone());
 
-        println!("Address type: {:?}", address_type);
+        println!("\n{}{:?}", "Address type: ".bright_cyan(), address_type);
 
         let network_info = print_loading_until_async(
             "Fetching network metadata",
@@ -176,7 +180,11 @@ impl AddCommand {
             network.set_alias(network_alias);
         }
 
-        println!("Continuing with network alias: {}", network.alias);
+        println!(
+            "\n{}{}",
+            "Continuing with network alias: ".bright_cyan(),
+            network.alias.bold()
+        );
 
         // For now terminate if the alias already exists, in the future update functionality will be added
         if networks_map.contains_key(self.alias.as_str())
@@ -199,7 +207,7 @@ impl AddCommand {
         .await?;
 
         if is_network {
-            println!("Network is active");
+            println!("{}", "Network is active".bright_cyan());
         } else {
             println!(
                 "Network is inactive, you can register the network with bion network {} register",
@@ -212,7 +220,7 @@ impl AddCommand {
         }
 
         // store network config
-        write_to_json_file(network_config_path, &network, true).map_err(|e| eyre::eyre!(e))?;
+        write_to_json_file(network_config_path, &network, false).map_err(|e| eyre::eyre!(e))?;
 
         networks_map.insert(network.alias.clone(), self.address);
 
