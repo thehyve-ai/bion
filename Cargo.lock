@@ -1613,6 +1613,7 @@ dependencies = [
  "num-format",
  "phf",
  "prettytable-rs",
+ "rand",
  "reqwest",
  "rpassword 5.0.1",
  "serde",

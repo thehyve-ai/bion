@@ -1,39 +1,33 @@
+use account_utils::{helpers::random_password_string, ZeroizeString};
+use alloy_network::TxSigner;
+use alloy_primitives::Address;
+use colored::Colorize;
+use dialoguer::{theme::ColorfulTheme, Input, Select};
+use foundry_cli::opts::{EthereumOpts, RpcOpts};
+use serde::{de::DeserializeOwned, Serialize};
+
 use std::{
     fs,
     future::Future,
     io::{BufReader, Write},
-    net::IpAddr,
     path::Path,
     sync::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::Duration,
 };
 
-use alloy_chains::Chain;
-use alloy_dyn_abi::JsonAbiExt;
-use alloy_json_abi::Function;
-use alloy_network::{AnyNetwork, TxSigner};
-use alloy_primitives::Address;
-use alloy_provider::Provider;
-use alloy_transport::Transport;
-use colored::Colorize;
-use dialoguer::{theme::ColorfulTheme, Input};
-use eyre::ContextCompat;
-use foundry_cli::opts::{EthereumOpts, EtherscanOpts, RpcOpts};
-use foundry_wallets::WalletSigner;
-use futures_util::future::join_all;
+#[derive(Debug, thiserror::Error)]
+pub enum ExecuteError {
+    #[error("User cancelled")]
+    UserCancelled,
 
-use hyve_primitives::alloy_primitives::{hex, U256};
-use serde::{de::DeserializeOwned, Serialize};
-use tracing::trace;
+    #[error("Ignorable error")]
+    Ignore,
 
-use crate::{
-    cmd::hyve::bls::create::ExecuteError,
-    common::{DirsCliArgs, NetworkCliArgs},
-    symbiotic::consts::addresses::{holesky, mainnet, sepolia},
-};
+    #[error("Other error: {0}")]
+    Other(#[from] eyre::Error),
+}
 
 pub async fn validate_cli_args(address: Option<Address>, eth: &EthereumOpts) -> eyre::Result<()> {
     if let Some(address) = address {
@@ -88,6 +82,95 @@ pub fn read_user_confirmation() -> eyre::Result<String> {
                 _ => ExecuteError::Other(e.into()),
             },
         })?)
+}
+
+pub fn get_keystore_password() -> eyre::Result<ZeroizeString> {
+    let options = vec![
+        "Enter a custom password",
+        "Generate a random strong password",
+    ];
+
+    let selection = Select::with_theme(&ColorfulTheme::default())
+        .with_prompt("\nChoose a password option for the BLS keystore")
+        .items(&options)
+        .default(0)
+        .interact()
+        .map_err(|e| eyre::eyre!(format!("Failed to show password selection menu: {}", e)))?;
+
+    match selection {
+        0 => {
+            println!("{}", "Please enter a password when prompted.".bright_cyan());
+            Ok(get_keystore_password_from_input()?)
+        }
+        2 => Ok(get_random_keystore_password()?),
+        _ => unreachable!(),
+    }
+}
+
+pub fn get_keystore_password_from_input() -> eyre::Result<ZeroizeString> {
+    let password = loop {
+        let password = rpassword::prompt_password_stderr("Enter your password:")
+            .map_err(|e| format!("Error reading from stdin: {}", e))
+            .map(ZeroizeString::from)
+            .map_err(|e| eyre::eyre!(e))?;
+
+        let confirmation = rpassword::prompt_password_stderr("Confirm your password:")
+            .map_err(|e| eyre::eyre!("Error reading from stdin: {}", e))?;
+
+        if password.as_str() != confirmation {
+            clear_previous_lines(2);
+            println!(
+                "\n{}",
+                "❌ Passwords do not match. Please try again.".bright_red()
+            );
+            continue;
+        }
+        if password.as_str().trim().is_empty() {
+            clear_previous_lines(2);
+            println!(
+                "\n{}",
+                "❌ Password cannot be empty. Please try again.".bright_red()
+            );
+
+            continue;
+        }
+        clear_previous_lines(3);
+        break password;
+    };
+
+    Ok(password)
+}
+
+fn get_random_keystore_password() -> eyre::Result<ZeroizeString> {
+    let password = random_password_string();
+
+    println!(
+        "\n⚠️  {}",
+        "WARNING: Please store this password safely. It will not be shown again!"
+            .bright_yellow()
+            .bold()
+    );
+    println!("{}", "Your password is:".bright_white());
+    println!("{}", "─".repeat(20));
+    println!("{}", password.as_str().bright_yellow().bold());
+    println!("{}", "─".repeat(20));
+    println!(
+        "{}",
+        "Please type 'yes' after you have safely stored this password:".bright_cyan()
+    );
+
+    loop {
+        let confirmation: String = read_user_confirmation()?;
+
+        if confirmation.trim() == "yes" {
+            println!("\n{}", "✅ Password confirmed as backed up.".bright_green());
+            break;
+        } else {
+            println!("{}", "Password confirmation cancelled".bright_cyan());
+            return Err(eyre::eyre!(ExecuteError::Ignore));
+        }
+    }
+    Ok(password)
 }
 
 /// Clears a specified number of previous lines in the terminal output

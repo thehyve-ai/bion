@@ -1,25 +1,27 @@
-use std::fs::create_dir_all;
-
-use alloy_primitives::Address;
-use chrono::format;
+use alloy_primitives::hex::FromHex;
+use alloy_primitives::{Address, FixedBytes};
+use alloy_signer_local::LocalSigner;
 use clap::Parser;
 use colored::Colorize;
 use dialoguer::theme::ColorfulTheme;
-use dialoguer::Select;
+use dialoguer::{Input, Select};
 use foundry_cli::utils;
 use foundry_cli::{opts::EthereumOpts, utils::LoadConfig};
 use hyve_cli_runner::CliContext;
 use itertools::Itertools;
 
+use std::fs::create_dir_all;
+use std::path::PathBuf;
+
 use crate::cmd::network::utils::get_network_metadata;
 use crate::cmd::network::{ImportedNetworks, NetworkMetadata};
 use crate::cmd::utils::{get_address_type, get_chain_id, AddressType};
-use crate::common::{DirsCliArgs, SigningMethod};
+use crate::common::DirsCliArgs;
 use crate::symbiotic::calls::is_network;
 use crate::symbiotic::consts::get_network_registry;
 use crate::utils::{
-    load_from_json_file, print_error_message, print_loading_until_async, read_user_confirmation,
-    write_to_json_file,
+    get_keystore_password, load_from_json_file, print_error_message, print_loading_until_async,
+    read_user_confirmation, write_to_json_file, ExecuteError,
 };
 
 use super::utils::NetworkInfo;
@@ -127,27 +129,26 @@ impl AddCommand {
             }
         };
 
-        let mut create_new_network_config = false;
-        let mut network = match load_from_json_file(&network_config_dir) {
-            Ok(network) => {
-                print_error_message(
-                    format!("Network configuration already exists: {}", self.address).as_str(),
-                );
-                return Ok(());
-            }
-            Err(..) => {
-                create_dir_all(&network_config_dir).map_err(|e| {
-                    eyre::eyre!(format!(
-                        "Unable to create network directory: {:?}: {:?}",
-                        network_config_dir, e
-                    ))
-                })?;
+        let mut network =
+            match load_from_json_file::<&PathBuf, NetworkMetadata>(&network_config_dir) {
+                Ok(..) => {
+                    print_error_message(
+                        format!("\nNetwork configuration already exists: {}", self.address)
+                            .as_str(),
+                    );
+                    return Ok(());
+                }
+                Err(..) => {
+                    create_dir_all(&network_config_dir).map_err(|e| {
+                        eyre::eyre!(format!(
+                            "Unable to create network directory: {:?}: {:?}",
+                            network_config_dir, e
+                        ))
+                    })?;
 
-                create_new_network_config = true;
-                NetworkMetadata::new(self.address, self.alias.clone())
-            }
-            _ => unreachable!(),
-        };
+                    NetworkMetadata::new(self.address, self.alias.clone())
+                }
+            };
 
         let config = self.eth.load_config()?;
         let provider = utils::get_provider(&config)?;
@@ -170,7 +171,7 @@ impl AddCommand {
             network.set_alias(network_alias);
         }
 
-        println!("Continuing with network name: {}", network.alias);
+        println!("Continuing with network alias: {}", network.alias);
 
         // For now terminate if the alias already exists, in the future update functionality will be added
         if networks_map.contains_key(self.alias.as_str())
@@ -202,12 +203,11 @@ impl AddCommand {
         }
 
         if address_type == AddressType::EOA {
-            self.handle_signing_method(&network)?;
+            self.handle_signing_method(&mut network, &network_config_dir)?;
         }
 
         // store network config
-        write_to_json_file(network_config_dir, &network, create_new_network_config)
-            .map_err(|e| eyre::eyre!(e))?;
+        write_to_json_file(network_config_dir, &network, true).map_err(|e| eyre::eyre!(e))?;
 
         networks_map.insert(network.alias.clone(), self.address);
 
@@ -235,8 +235,12 @@ impl AddCommand {
         Ok(None)
     }
 
-    fn handle_signing_method(&self, mut network: &NetworkMetadata) -> eyre::Result<SigningMethod> {
-        let options = vec!["Raw private key", "Ledger", "Mnemonic"];
+    fn handle_signing_method(
+        &self,
+        network: &mut NetworkMetadata,
+        network_config_dir: &PathBuf,
+    ) -> eyre::Result<()> {
+        let options = vec!["Private Key", "Keystore", "Mnemonic", "Ledger", "Trezor"];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("\nChoose a signing method:")
@@ -251,10 +255,62 @@ impl AddCommand {
             })?;
 
         match selection {
-            0 => Ok(SigningMethod::PrivateKey),
-            1 => Ok(SigningMethod::Ledger),
-            2 => Ok(SigningMethod::Mnemonic),
+            0 => {
+                // Private Key
+                let private_key = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("Enter private key:")
+                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
+                        let normalized = input.trim().to_lowercase();
+                        if normalized.len() == 64 {
+                            Ok(())
+                        } else {
+                            Err("Private key must be 64 characters long.")
+                        }
+                    })
+                    .interact()
+                    .map_err(|e: dialoguer::Error| match e {
+                        dialoguer::Error::IO(e) => match e.kind() {
+                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                            _ => ExecuteError::Other(e.into()),
+                        },
+                    })?;
+                let private_key_bytes = FixedBytes::from_hex(private_key)?;
+                let signer = LocalSigner::from_bytes(&private_key_bytes)?;
+
+                let keystore_password = get_keystore_password()?;
+
+                println!("✅ {}", "Keystore password setup complete".bright_green());
+
+                let mut rng = rand::thread_rng();
+                let (_, id) = alloy_signer_local::LocalSigner::encrypt_keystore(
+                    &network_config_dir,
+                    &mut rng,
+                    private_key_bytes,
+                    keystore_password.as_ref(),
+                    Some("keystore"),
+                )?;
+
+                println!("✅ {}", "Keystore creation completed".bright_green());
+
+                network.set_signing_method(Some(crate::common::SigningMethod::PrivateKey));
+                network.set_keystore_file(Some(network_config_dir.clone()));
+                network.set_password_enabled(true);
+            }
+            1 => {
+                // Keystore
+            }
+            2 => {
+                // Mnemonic
+            }
+            3 => {
+                // Ledger
+            }
+            4 => {
+                // Trezor
+            }
             _ => unreachable!(),
         }
+
+        Ok(())
     }
 }
