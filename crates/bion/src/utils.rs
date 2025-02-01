@@ -59,7 +59,7 @@ pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
 }
 
 pub fn print_success_message(msg: &str) {
-    println!("{}", msg.bold().green());
+    println!("{}", msg.green());
 }
 
 pub fn print_error_message(msg: &str) {
@@ -283,7 +283,6 @@ pub fn write_to_json_file<P: AsRef<Path>, S: Serialize>(
 
 /// Load an object from a JSON file.
 pub fn load_from_json_file<P: AsRef<Path>, T: DeserializeOwned>(path: P) -> Result<T, String> {
-    eprintln!("Loading {:?}", path.as_ref());
     let file = fs::File::open(&path)
         .map_err(|e| format!("Failed to open {:?}: {:?}", path.as_ref(), e))?;
     let reader = BufReader::new(file);

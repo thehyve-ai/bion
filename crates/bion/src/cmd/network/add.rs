@@ -207,11 +207,12 @@ impl AddCommand {
         .await?;
 
         if is_network {
-            println!("{}", "Network is active".bright_cyan());
+            println!("\n{}", "Network is active".bright_cyan());
         } else {
             println!(
-                "Network is inactive, you can register the network with bion network {} register",
-                network.alias
+                "\n{}",
+                format!("Network is inactive, you can register the network with bion network {} register", network.alias)
+                    .bright_cyan()
             );
         }
 
@@ -306,7 +307,7 @@ impl AddCommand {
 
                 let keystore_password = get_keystore_password()?;
 
-                println!("✅ {}", "Keystore password setup completed".bright_green());
+                print_success_message("✅ Keystore password setup completed");
 
                 let mut rng = rand::thread_rng();
                 let (_, _) = LocalSigner::encrypt_keystore(
@@ -317,7 +318,7 @@ impl AddCommand {
                     Some("keystore"),
                 )?;
 
-                println!("✅ {}", "Keystore creation completed".bright_green());
+                print_success_message("✅ Keystore creation completed");
 
                 network.set_signing_method(Some(SigningMethod::Keystore));
                 network.set_keystore_file(Some(network_config_dir.clone()));
@@ -358,6 +359,8 @@ impl AddCommand {
                             print_error_message("Address does not match signer!");
                             return Err(eyre::eyre!(""));
                         }
+
+                        print_success_message("✅ Keystore successfully decrypted");
 
                         network.set_signing_method(Some(SigningMethod::Keystore));
                         network.set_keystore_file(Some(keypath.into()));
@@ -406,7 +409,7 @@ impl AddCommand {
 
                 let keystore_password = get_keystore_password()?;
 
-                println!("✅ {}", "Keystore password setup completed".bright_green());
+                print_success_message("✅ Keystore password setup completed");
 
                 let mut rng = rand::thread_rng();
                 let (_, _) = LocalSigner::encrypt_keystore(
@@ -417,7 +420,7 @@ impl AddCommand {
                     Some("keystore"),
                 )?;
 
-                println!("✅ {}", "Keystore creation completed".bright_green());
+                print_success_message("✅ Keystore creation completed");
 
                 network.set_signing_method(Some(SigningMethod::Keystore));
                 network.set_keystore_file(Some(network_config_dir.clone()));
