@@ -11,18 +11,22 @@ use foundry_cli::{opts::EthereumOpts, utils::LoadConfig};
 use hyve_cli_runner::CliContext;
 use itertools::Itertools;
 
-use std::fs::create_dir_all;
 use std::path::PathBuf;
 
-use crate::cmd::network::utils::get_network_metadata;
-use crate::cmd::network::{ImportedNetworks, NetworkMetadata};
+use crate::cmd::network::consts::{
+    NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY,
+};
+use crate::cmd::network::utils::{
+    get_network_metadata, get_or_create_network_config, get_or_create_network_definitions,
+};
+use crate::cmd::network::NetworkConfig;
 use crate::cmd::utils::{get_address_type, get_chain_id, AddressType};
 use crate::common::{DirsCliArgs, SigningMethod};
 use crate::symbiotic::calls::is_network;
 use crate::symbiotic::consts::get_network_registry;
 use crate::utils::{
-    get_keystore_password, load_from_json_file, print_error_message, print_loading_until_async,
-    print_success_message, read_user_confirmation, write_to_json_file, ExecuteError,
+    get_keystore_password, print_error_message, print_loading_until_async, print_success_message,
+    read_user_confirmation, write_to_json_file, ExecuteError,
 };
 
 use super::utils::NetworkInfo;
@@ -79,10 +83,6 @@ use super::utils::NetworkInfo;
 //
 // }
 
-const NETWORK_DIRECTORY: &str = "networks";
-const NETWORK_DEFINITIONS_FILE: &str = "network_definitions.json";
-const NETWORK_CONFIG_FILE: &str = "config.json";
-
 #[derive(Debug, Parser)]
 #[clap(about = "Add a network to your bion config.")]
 pub struct AddCommand {
@@ -123,49 +123,16 @@ impl AddCommand {
             .join(format!("{}/{}", NETWORK_DIRECTORY, self.address));
         let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
 
-        let mut networks_map = match load_from_json_file(&network_definitions_path) {
-            Ok(networks_map) => networks_map,
-            Err(..) => {
-                let networks_dir = self.dirs.data_dir(Some(chain_id))?.join(NETWORK_DIRECTORY);
-                create_dir_all(&networks_dir).map_err(|e| {
-                    eyre::eyre!(format!(
-                        "Unable to create import directory: {:?}: {:?}",
-                        network_definitions_path, e
-                    ))
-                })?;
-
-                let networks_map = ImportedNetworks::new();
-                write_to_json_file(&network_definitions_path, &networks_map, true)
-                    .map_err(|e| eyre::eyre!(e))?;
-                networks_map
-            }
-        };
+        let mut networks_map = get_or_create_network_definitions(chain_id, &self.dirs)?;
 
         let mut network =
-            match load_from_json_file::<&PathBuf, NetworkMetadata>(&network_config_path) {
-                Ok(..) => {
-                    print_error_message(
-                        format!("\nNetwork configuration already exists: {}", self.address)
-                            .as_str(),
-                    );
-                    return Ok(());
-                }
-                Err(..) => {
-                    create_dir_all(&network_config_dir).map_err(|e| {
-                        eyre::eyre!(format!(
-                            "Unable to create network directory: {:?}: {:?}",
-                            network_config_dir, e
-                        ))
-                    })?;
+            get_or_create_network_config(chain_id, self.address, self.alias.clone(), &self.dirs)?;
 
-                    let network = NetworkMetadata::new(self.address, self.alias.clone());
-                    write_to_json_file(&network_config_path, &network, true)
-                        .map_err(|e| eyre::eyre!(e))?;
-                    network
-                }
-            };
-
-        let address_type = get_address_type(self.address, &provider).await?;
+        let address_type = print_loading_until_async(
+            "Fetching address type",
+            get_address_type(self.address, &provider),
+        )
+        .await?;
         network.set_address_type(address_type.clone());
 
         println!("\n{}{:?}", "Address type: ".bright_cyan(), address_type);
@@ -211,14 +178,12 @@ impl AddCommand {
         } else {
             println!(
                 "\n{}",
-                format!("Network is inactive, you can register the network with bion network {} register", network.alias)
+                format!("Network is inactive, you can register the network with `bion network {} register`", network.alias)
                     .bright_cyan()
             );
         }
 
-        if address_type == AddressType::EOA {
-            self.handle_signing_method(&mut network, &network_config_dir)?;
-        }
+        self.handle_signing_method(&mut network, &network_config_dir)?;
 
         // store network config
         write_to_json_file(network_config_path, &network, false).map_err(|e| eyre::eyre!(e))?;
@@ -254,9 +219,13 @@ impl AddCommand {
 
     fn handle_signing_method(
         &self,
-        network: &mut NetworkMetadata,
+        network: &mut NetworkConfig,
         network_config_dir: &PathBuf,
     ) -> eyre::Result<()> {
+        if network.address_type != AddressType::EOA {
+            return Ok(());
+        }
+
         let options = vec!["Private Key", "Keystore", "Mnemonic", "Ledger", "Trezor"];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
@@ -293,7 +262,7 @@ impl AddCommand {
                     return Ok(()); // do nothing
                 }
 
-                let private_key = rpassword::prompt_password_stdout("Enter private key:")?;
+                let private_key = rpassword::prompt_password_stdout("\nEnter private key:")?;
                 let signer = foundry_wallets::utils::create_private_key_signer(&private_key)?;
                 if signer.address().to_string().to_lowercase()
                     != network.address.to_string().to_lowercase()
@@ -332,7 +301,7 @@ impl AddCommand {
                 }
 
                 let keypath = Input::with_theme(&ColorfulTheme::default())
-                    .with_prompt("Enter path to keystore:")
+                    .with_prompt("\nEnter path to keystore:")
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();
                         if normalized.len() == 0 {
@@ -349,7 +318,7 @@ impl AddCommand {
                         },
                     })?;
 
-                let password = rpassword::prompt_password_stdout("Enter keystore password")?;
+                let password = rpassword::prompt_password_stdout("\nEnter keystore password")?;
 
                 return match PrivateKeySigner::decrypt_keystore(keypath.clone(), password) {
                     Ok(signer) => {
@@ -378,7 +347,7 @@ impl AddCommand {
 
                 let phrase = Input::with_theme(&ColorfulTheme::default())
                     .with_prompt(
-                        "Enter mnemonic phrase or path to a file that contains the phrase:",
+                        "\nEnter mnemonic phrase or path to a file that contains the phrase:",
                     )
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();

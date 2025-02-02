@@ -4,6 +4,7 @@ use add::AddCommand;
 use alloy_primitives::Address;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
+use remove::RemoveCommand;
 use serde::{Deserialize, Serialize};
 use set_max_network_limit::SetMaxNetworkLimitCommand;
 
@@ -12,6 +13,8 @@ use crate::common::SigningMethod;
 use super::utils::AddressType;
 
 mod add;
+pub mod consts;
+mod remove;
 mod set_max_network_limit;
 mod utils;
 
@@ -32,6 +35,9 @@ pub enum NetworkSubcommands {
 
     #[command(name = "add")]
     Add(AddCommand),
+
+    #[command(name = "remove")]
+    Remove(RemoveCommand),
 }
 
 impl NetworkCommand {
@@ -41,6 +47,9 @@ impl NetworkCommand {
                 set_max_network_limit.execute(ctx).await
             }
             NetworkSubcommands::Add(add) => add.with_alias(self.network_alias).run(ctx).await,
+            NetworkSubcommands::Remove(remove) => {
+                remove.with_alias(self.network_alias).execute(ctx).await
+            }
         }
     }
 }
@@ -48,7 +57,7 @@ impl NetworkCommand {
 pub type ImportedNetworks = HashMap<String, Address>;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct NetworkMetadata {
+pub struct NetworkConfig {
     pub address: Address,
     alias: String,
     address_type: AddressType,
@@ -59,7 +68,7 @@ pub struct NetworkMetadata {
     keystore_file: Option<PathBuf>,
 }
 
-impl NetworkMetadata {
+impl NetworkConfig {
     pub fn new(address: Address, alias: String) -> Self {
         Self {
             address,
