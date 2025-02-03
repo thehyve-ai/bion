@@ -34,6 +34,10 @@ pub struct RegisterCommand {
     #[clap(flatten)]
     tx: TransactionOpts,
 
+    /// Send via `eth_sendTransaction using the `--from` argument or $ETH_FROM as sender
+    #[arg(long, requires = "from")]
+    pub unlocked: bool,
+
     /// Timeout for sending the transaction.
     #[arg(long, env = "ETH_TIMEOUT")]
     pub timeout: Option<u64>,
@@ -57,6 +61,7 @@ impl RegisterCommand {
             tx,
             confirmations,
             timeout,
+            unlocked,
         } = self;
 
         validate_cli_args(Some(address), &eth).await?;
@@ -106,10 +111,10 @@ impl RegisterCommand {
             to: Some(to),
             sig: Some("registerNetwork()".to_string()),
             args: vec![],
-            cast_async: true,
+            cast_async: false,
             confirmations,
             command: None,
-            unlocked: true,
+            unlocked,
             timeout,
             tx,
             eth,

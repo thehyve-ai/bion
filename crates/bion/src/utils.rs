@@ -47,7 +47,11 @@ pub async fn validate_address_with_signer(
 
     match address.to_string().to_lowercase() == from.to_string().to_lowercase() {
         true => Ok(()),
-        false => Err(eyre::eyre!("Address does not match signer!")),
+        false => Err(eyre::eyre!(
+            "Address does not match signer! Address: {}, Signer: {}",
+            address,
+            from
+        )),
     }
 }
 
