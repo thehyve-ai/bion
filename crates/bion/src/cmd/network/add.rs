@@ -104,7 +104,7 @@ impl AddCommand {
         Self { alias, ..self }
     }
 
-    pub async fn run(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let config = self.eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 

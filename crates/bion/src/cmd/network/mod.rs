@@ -4,6 +4,7 @@ use add::AddCommand;
 use alloy_primitives::Address;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
+use register::RegisterCommand;
 use remove::RemoveCommand;
 use serde::{Deserialize, Serialize};
 use set_max_network_limit::SetMaxNetworkLimitCommand;
@@ -14,6 +15,7 @@ use super::utils::AddressType;
 
 mod add;
 pub mod consts;
+mod register;
 mod remove;
 mod set_max_network_limit;
 mod utils;
@@ -21,8 +23,8 @@ mod utils;
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your network.")]
 pub struct NetworkCommand {
-    #[arg(value_name = "NETWORK_ALIAS", help = "The saved network alias.")]
-    pub network_alias: String,
+    #[arg(value_name = "ALIAS", help = "The saved network alias.")]
+    pub alias: String,
 
     #[command(subcommand)]
     pub command: NetworkSubcommands,
@@ -30,9 +32,13 @@ pub struct NetworkCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum NetworkSubcommands {
+    #[command(name = "register")]
+    Register(RegisterCommand),
+
     #[command(name = "set-max-network-limit")]
     SetMaxNetworkLimit(SetMaxNetworkLimitCommand),
 
+    // Import network management
     #[command(name = "add")]
     Add(AddCommand),
 
@@ -43,13 +49,14 @@ pub enum NetworkSubcommands {
 impl NetworkCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
+            NetworkSubcommands::Register(register) => {
+                register.with_alias(self.alias).execute(ctx).await
+            }
             NetworkSubcommands::SetMaxNetworkLimit(set_max_network_limit) => {
                 set_max_network_limit.execute(ctx).await
             }
-            NetworkSubcommands::Add(add) => add.with_alias(self.network_alias).run(ctx).await,
-            NetworkSubcommands::Remove(remove) => {
-                remove.with_alias(self.network_alias).execute(ctx).await
-            }
+            NetworkSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
+            NetworkSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,
         }
     }
 }

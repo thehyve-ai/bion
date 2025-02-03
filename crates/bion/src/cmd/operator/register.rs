@@ -6,8 +6,8 @@ use hyve_cli_runner::CliContext;
 use crate::common::DirsCliArgs;
 
 #[derive(Debug, Parser)]
-pub struct AddCommand {
-    #[arg(value_name = "ADDRESS", help = "The address to add.")]
+pub struct RegisterCommand {
+    #[arg(value_name = "ADDRESS", help = "The address to register.")]
     pub address: Address,
 
     #[arg(skip)]
@@ -20,12 +20,12 @@ pub struct AddCommand {
     eth: EthereumOpts,
 }
 
-impl AddCommand {
+impl RegisterCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }
 
-    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         Ok(())
     }
 }
