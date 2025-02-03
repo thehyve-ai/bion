@@ -5,8 +5,6 @@ use itertools::Itertools;
 use multicall::{Multicall, MulticallVersion};
 use serde::Deserialize;
 
-use std::str::FromStr;
-
 use crate::cmd::utils::{format_number_with_decimals, parse_currency};
 
 use super::{

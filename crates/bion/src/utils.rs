@@ -29,10 +29,7 @@ pub enum ExecuteError {
     Other(#[from] eyre::Error),
 }
 
-pub async fn validate_cli_args(address: Option<Address>, eth: &EthereumOpts) -> eyre::Result<()> {
-    if let Some(address) = address {
-        validate_address_with_signer(address, eth).await?;
-    }
+pub fn validate_cli_args(eth: &EthereumOpts) -> eyre::Result<()> {
     validate_rpc_url(&eth.rpc)?;
 
     Ok(())
@@ -58,7 +55,10 @@ pub async fn validate_address_with_signer(
 pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
     match rpc.url.is_some() {
         true => Ok(()),
-        false => Err(eyre::eyre!("RPC URL is required!")),
+        false => {
+            print_error_message("RPC URL is required!");
+            eyre::bail!("")
+        }
     }
 }
 

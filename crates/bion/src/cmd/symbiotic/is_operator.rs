@@ -37,7 +37,7 @@ impl IsOperatorCommand {
             "🔄 Checking if the provided operator is registered.".bright_cyan()
         );
 
-        validate_cli_args(None, &eth).await?;
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

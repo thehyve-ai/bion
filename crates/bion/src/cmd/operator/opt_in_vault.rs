@@ -1,3 +1,4 @@
+use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -10,7 +11,10 @@ use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
-    symbiotic::{calls::is_operator, consts::get_operator_registry},
+    symbiotic::{
+        calls::{is_opted_in_vault, is_vault},
+        consts::{get_vault_factory, get_vault_opt_in_service},
+    },
     utils::{
         print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
     },
@@ -19,7 +23,13 @@ use crate::{
 use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
-pub struct RegisterCommand {
+pub struct OptInVaultCommand {
+    #[arg(
+        value_name = "ADDRESS",
+        help = "The address of the vault to opt-in to."
+    )]
+    pub address: Address,
+
     #[arg(skip)]
     alias: String,
 
@@ -45,13 +55,14 @@ pub struct RegisterCommand {
     confirmations: u64,
 }
 
-impl RegisterCommand {
+impl OptInVaultCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }
 
-    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
             alias,
             dirs,
             mut eth,
@@ -69,26 +80,36 @@ impl RegisterCommand {
         let chain_id = get_chain_id(&provider).await?;
         let network_config = get_operator_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
 
-        let operator_registry = get_operator_registry(chain_id)?;
-
-        let is_registered = print_loading_until_async(
-            "Checking registration status",
-            is_operator(network_config.address, operator_registry, &provider),
+        let is_network = print_loading_until_async(
+            "Checking vault status",
+            is_vault(address, vault_factory, &provider),
         )
         .await?;
 
-        if is_registered {
-            print_error_message("Operator is already registered");
+        if !is_network {
+            print_error_message("Provided address is not a valid Symbiotic vault.");
             return Ok(());
         }
 
-        let to = NameOrAddress::Address(operator_registry);
+        let is_opted_in = print_loading_until_async(
+            "Checking opted in status",
+            is_opted_in_vault(address, address, opt_in_service, &provider),
+        )
+        .await?;
+
+        if is_opted_in {
+            return Err(eyre::eyre!("Operator is already opted in."));
+        }
+
+        let to = NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("registerOperator()".to_string()),
-            args: vec![],
+            sig: Some("optIn(address where)".to_string()),
+            args: vec![address.to_string()],
             cast_async: false,
             confirmations,
             command: None,
@@ -100,9 +121,9 @@ impl RegisterCommand {
         };
 
         if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully registered operator.");
+            print_success_message("✅ Successfully opted in vault.");
         } else {
-            print_error_message("❌ Failed to register operator, please try again.");
+            print_error_message("❌ Failed to opt-in to vault, please try again.");
         }
         Ok(())
     }
