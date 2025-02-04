@@ -77,7 +77,7 @@ pub fn get_or_create_network_config(
     let network_config_dir = networks_dir.join(address.to_string());
     let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
     return match load_from_json_file(&network_config_path) {
-        Ok(network) => Ok(network),
+        Ok(network_config) => Ok(network_config),
         Err(..) => {
             create_dir_all(&network_config_dir).map_err(|e| {
                 eyre::eyre!(format!(
@@ -86,9 +86,10 @@ pub fn get_or_create_network_config(
                 ))
             })?;
 
-            let network = NetworkConfig::new(address, chain_id, alias);
-            write_to_json_file(&network_config_path, &network, true).map_err(|e| eyre::eyre!(e))?;
-            Ok(network)
+            let network_config = NetworkConfig::new(address, chain_id, alias);
+            write_to_json_file(&network_config_path, &network_config, true)
+                .map_err(|e| eyre::eyre!(e))?;
+            Ok(network_config)
         }
     };
 }
@@ -134,6 +135,5 @@ pub fn set_foundry_signing_method(
             }
         }
     }
-
     Ok(())
 }

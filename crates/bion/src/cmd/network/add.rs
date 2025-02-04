@@ -77,9 +77,10 @@ impl AddCommand {
             get_address_type(address, &provider),
         )
         .await?;
-        network_config.set_address_type(address_type.clone());
 
         println!("\n{}{:?}", "Address type: ".bright_cyan(), address_type);
+
+        network_config.set_address_type(address_type);
 
         let network_info =
             print_loading_until_async("Fetching network metadata", get_network_metadata(address))

@@ -9,8 +9,8 @@ use set_max_network_limit::SetMaxNetworkLimitCommand;
 use set_middleware::SetMiddlewareCommand;
 
 mod add;
-pub(crate) mod config;
-pub(crate) mod consts;
+mod config;
+mod consts;
 mod opt_in_vault;
 mod opt_out_vault;
 mod register;

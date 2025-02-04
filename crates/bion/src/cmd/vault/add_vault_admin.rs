@@ -6,7 +6,7 @@ use hyve_cli_runner::CliContext;
 use crate::common::DirsCliArgs;
 
 #[derive(Debug, Parser)]
-pub struct AddCommand {
+pub struct AddVaultAdminCommand {
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
     pub address: Address,
 
@@ -20,7 +20,7 @@ pub struct AddCommand {
     eth: EthereumOpts,
 }
 
-impl AddCommand {
+impl AddVaultAdminCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }

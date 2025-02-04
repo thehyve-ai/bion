@@ -78,12 +78,14 @@ impl AddCommand {
         )
         .await?;
 
-        if address_type == AddressType::Contract {
-            print_error_message("Address is a contract.");
-            return Ok(());
-        }
-
         println!("\n{}{:?}", "Address type: ".bright_cyan(), address_type);
+
+        operator_config.set_address_type(address_type);
+
+        // if address_type == AddressType::Contract {
+        //     print_error_message("Address is a contract.");
+        //     return Ok(());
+        // }
 
         // For now terminate if the alias already exists, in the future update functionality will be added
         if operators_map.contains_key(alias.as_str())

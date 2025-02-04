@@ -9,8 +9,8 @@ use register::RegisterCommand;
 use remove::RemoveCommand;
 
 mod add;
-pub(crate) mod config;
-pub(crate) mod consts;
+mod config;
+mod consts;
 mod opt_in_network;
 mod opt_in_vault;
 mod opt_out_network;

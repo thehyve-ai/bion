@@ -18,22 +18,22 @@ pub fn get_or_create_operator_definitions(
     dirs: &DirsCliArgs,
 ) -> eyre::Result<ImportedOperators> {
     let data_dir = dirs.data_dir(Some(chain_id))?;
-    let networks_dir = data_dir.join(OPERATOR_DIRECTORY);
-    let network_definitions_path = networks_dir.join(OPERATOR_DEFINITIONS_FILE);
-    return match load_from_json_file(&network_definitions_path) {
-        Ok(networks_map) => Ok(networks_map),
+    let operators_dir = data_dir.join(OPERATOR_DIRECTORY);
+    let operator_definitions_path = operators_dir.join(OPERATOR_DEFINITIONS_FILE);
+    return match load_from_json_file(&operator_definitions_path) {
+        Ok(operators_map) => Ok(operators_map),
         Err(..) => {
-            create_dir_all(&networks_dir).map_err(|e| {
+            create_dir_all(&operators_dir).map_err(|e| {
                 eyre::eyre!(format!(
-                    "Unable to create network directory: {:?}: {:?}",
-                    network_definitions_path, e
+                    "Unable to create operator directory: {:?}: {:?}",
+                    operator_definitions_path, e
                 ))
             })?;
 
-            let networks_map = ImportedOperators::new();
-            write_to_json_file(&network_definitions_path, &networks_map, true)
+            let operators_map = ImportedOperators::new();
+            write_to_json_file(&operator_definitions_path, &operators_map, true)
                 .map_err(|e| eyre::eyre!(e))?;
-            Ok(networks_map)
+            Ok(operators_map)
         }
     };
 }
@@ -45,22 +45,23 @@ pub fn get_or_create_operator_config(
     dirs: &DirsCliArgs,
 ) -> eyre::Result<OperatorConfig> {
     let data_dir = dirs.data_dir(Some(chain_id))?;
-    let networks_dir = data_dir.join(OPERATOR_DIRECTORY);
-    let network_config_dir = networks_dir.join(address.to_string());
-    let network_config_path = network_config_dir.join(OPERATOR_CONFIG_FILE);
-    return match load_from_json_file(&network_config_path) {
-        Ok(network) => Ok(network),
+    let operators_dir = data_dir.join(OPERATOR_DIRECTORY);
+    let operator_config_dir = operators_dir.join(address.to_string());
+    let operator_config_path = operator_config_dir.join(OPERATOR_CONFIG_FILE);
+    return match load_from_json_file(&operator_config_path) {
+        Ok(operator_config) => Ok(operator_config),
         Err(..) => {
-            create_dir_all(&network_config_dir).map_err(|e| {
+            create_dir_all(&operator_config_dir).map_err(|e| {
                 eyre::eyre!(format!(
-                    "Unable to create network config directory: {:?}: {:?}",
-                    network_config_dir, e
+                    "Unable to create operator config directory: {:?}: {:?}",
+                    operator_config_dir, e
                 ))
             })?;
 
-            let network = OperatorConfig::new(address, chain_id, alias);
-            write_to_json_file(&network_config_path, &network, true).map_err(|e| eyre::eyre!(e))?;
-            Ok(network)
+            let operator_config = OperatorConfig::new(address, chain_id, alias);
+            write_to_json_file(&operator_config_path, &operator_config, true)
+                .map_err(|e| eyre::eyre!(e))?;
+            Ok(operator_config)
         }
     };
 }
@@ -106,6 +107,5 @@ pub fn set_foundry_signing_method(
             }
         }
     }
-
     Ok(())
 }

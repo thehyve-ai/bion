@@ -1,13 +1,18 @@
 use std::{collections::HashMap, path::PathBuf};
 
-use add::AddCommand;
+use add_vault_admin::AddVaultAdminCommand;
 use alloy_primitives::Address;
 use clap::{Parser, Subcommand};
+use remove_vault_admin::RemoveVaultAdminCommand;
 use serde::{Deserialize, Serialize};
 
 use crate::common::SigningMethod;
 
-mod add;
+mod add_vault_admin;
+mod config;
+mod consts;
+mod remove_vault_admin;
+mod utils;
 
 #[derive(Debug, Parser)]
 pub struct VaultCommand {}
@@ -15,7 +20,11 @@ pub struct VaultCommand {}
 #[derive(Debug, Subcommand)]
 pub enum VaultSubcommands {
     // Import vault management
-    Add(AddCommand),
+    #[command(name = "add-vault-admin")]
+    AddVaultAdmin(AddVaultAdminCommand),
+
+    #[command(name = "remove-vault-admin")]
+    RemoveVaultAdmin(RemoveVaultAdminCommand),
 }
 
 pub type ImportedVaults = HashMap<String, Address>;

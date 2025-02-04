@@ -16,16 +16,16 @@ use crate::{
     },
 };
 
-use super::consts::OPERATOR_DIRECTORY;
+use super::consts::VAULT_DIRECTORY;
 
-pub type ImportedOperators = HashMap<String, Address>;
+pub type ImportedVaultAdmins = HashMap<String, Address>;
 
 #[derive(Debug, Deserialize, Serialize)]
-pub struct OperatorConfig {
+pub struct VaultAdminConfig {
     pub address: Address,
     chain_id: u64,
     pub alias: String,
-    address_type: AddressType, // default value that will be overwritten
+    address_type: AddressType,
     pub signing_method: Option<SigningMethod>,
     password_enabled: bool,
     date_created: i64,
@@ -33,13 +33,13 @@ pub struct OperatorConfig {
     pub keystore_file: Option<PathBuf>,
 }
 
-impl OperatorConfig {
+impl VaultAdminConfig {
     pub fn new(address: Address, chain_id: u64, alias: String) -> Self {
         Self {
             address,
             chain_id,
             alias,
-            address_type: AddressType::EOA,
+            address_type: AddressType::EOA, // default value that will be overwritten
             signing_method: None,
             password_enabled: false,
             date_created: chrono::Utc::now().timestamp(),
@@ -62,7 +62,7 @@ impl OperatorConfig {
         }
 
         let data_dir = dirs.data_dir(Some(self.chain_id))?;
-        let operator_config_dir = data_dir.join(format!("{}/{}", OPERATOR_DIRECTORY, self.address));
+        let vault_admin_config_dir = data_dir.join(format!("{}/{}", VAULT_DIRECTORY, self.address));
 
         let options = vec!["Private Key", "Keystore", "Mnemonic", "Ledger", "Trezor"];
 
@@ -118,7 +118,7 @@ impl OperatorConfig {
 
                 let mut rng = rand::thread_rng();
                 let (_, _) = LocalSigner::encrypt_keystore(
-                    &operator_config_dir,
+                    &vault_admin_config_dir,
                     &mut rng,
                     private_key_bytes,
                     keystore_password.as_ref(),
@@ -128,7 +128,7 @@ impl OperatorConfig {
                 print_success_message("✅ Keystore creation completed");
 
                 self.signing_method = Some(SigningMethod::Keystore);
-                self.keystore_file = Some(operator_config_dir.join("keystore"));
+                self.keystore_file = Some(vault_admin_config_dir.join("keystore"));
                 self.password_enabled = true;
                 Ok(())
             }
@@ -170,7 +170,7 @@ impl OperatorConfig {
                         print_success_message("✅ Keystore successfully decrypted");
 
                         self.signing_method = Some(SigningMethod::Keystore);
-                        self.keystore_file = Some(operator_config_dir.join("keystore"));
+                        self.keystore_file = Some(vault_admin_config_dir.join("keystore"));
                         self.password_enabled = true;
                         Ok(())
                     }
@@ -220,7 +220,7 @@ impl OperatorConfig {
 
                 let mut rng = rand::thread_rng();
                 let (_, _) = LocalSigner::encrypt_keystore(
-                    &operator_config_dir,
+                    &vault_admin_config_dir,
                     &mut rng,
                     signer.to_bytes(),
                     keystore_password.as_ref(),
@@ -230,7 +230,7 @@ impl OperatorConfig {
                 print_success_message("✅ Keystore creation completed");
 
                 self.signing_method = Some(SigningMethod::Keystore);
-                self.keystore_file = Some(operator_config_dir.clone().join("keystore"));
+                self.keystore_file = Some(vault_admin_config_dir.clone().join("keystore"));
                 self.password_enabled = true;
 
                 Ok(())
