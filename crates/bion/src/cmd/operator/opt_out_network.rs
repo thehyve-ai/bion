@@ -74,8 +74,8 @@ impl OptOutNetworkCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_operator_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
         let network_registry = get_network_registry(chain_id)?;
         let opt_in_service = get_network_opt_in_service(chain_id)?;
 

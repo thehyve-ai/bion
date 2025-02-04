@@ -78,18 +78,18 @@ impl OptInVaultCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_operator_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
-        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
         let vault_factory = get_vault_factory(chain_id)?;
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
 
-        let is_network = print_loading_until_async(
+        let is_vault = print_loading_until_async(
             "Checking vault status",
             is_vault(address, vault_factory, &provider),
         )
         .await?;
 
-        if !is_network {
+        if !is_vault {
             print_error_message("Provided address is not a valid Symbiotic vault.");
             return Ok(());
         }

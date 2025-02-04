@@ -67,14 +67,14 @@ impl RegisterCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_operator_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
 
         let operator_registry = get_operator_registry(chain_id)?;
 
         let is_registered = print_loading_until_async(
             "Checking registration status",
-            is_operator(network_config.address, operator_registry, &provider),
+            is_operator(operator_config.address, operator_registry, &provider),
         )
         .await?;
 
