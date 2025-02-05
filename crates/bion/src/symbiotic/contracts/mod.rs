@@ -1,9 +1,11 @@
+pub mod delegator;
 pub mod erc20;
 pub mod hyve_network_middleware;
 pub mod network_registry;
 pub mod operator_registry;
 pub mod opt_in_service;
 pub mod vault;
+pub mod vault_configurator;
 pub mod vault_factory;
 
 pub use self::hyve_network_middleware::HyveNetworkMiddleware;

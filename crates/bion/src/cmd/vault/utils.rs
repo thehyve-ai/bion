@@ -13,7 +13,7 @@ use super::{
     consts::{VAULT_CONFIG_FILE, VAULT_DEFINITIONS_FILE, VAULT_DIRECTORY},
 };
 
-pub fn get_or_create_vault_definitions(
+pub fn get_or_create_vault_admin_definitions(
     chain_id: u64,
     dirs: &DirsCliArgs,
 ) -> eyre::Result<ImportedVaultAdmins> {
@@ -38,7 +38,7 @@ pub fn get_or_create_vault_definitions(
     };
 }
 
-pub fn get_or_create_vault_config(
+pub fn get_or_create_vault_admin_config(
     chain_id: u64,
     address: Address,
     alias: String,
@@ -66,14 +66,14 @@ pub fn get_or_create_vault_config(
     };
 }
 
-pub fn get_vault_config(
+pub fn get_vault_admin_config(
     chain_id: u64,
     alias: String,
     dirs: &DirsCliArgs,
 ) -> eyre::Result<VaultAdminConfig> {
-    let vault_definitions = get_or_create_vault_definitions(chain_id, dirs)?;
+    let vault_definitions = get_or_create_vault_admin_definitions(chain_id, dirs)?;
     if let Some((_, address)) = vault_definitions.get_key_value(&alias) {
-        let vault_config = get_or_create_vault_config(chain_id, *address, alias, dirs)?;
+        let vault_config = get_or_create_vault_admin_config(chain_id, *address, alias, dirs)?;
         Ok(vault_config)
     } else {
         print_error_message("Vault admin with the provided alias is not imported.");

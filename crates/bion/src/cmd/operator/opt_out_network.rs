@@ -24,6 +24,10 @@ use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct OptOutNetworkCommand {
+    #[arg(
+        value_name = "ADDRESS",
+        help = "The address of the network to opt-out of."
+    )]
     address: Address,
 
     #[arg(skip)]

@@ -26,7 +26,7 @@ use super::utils::{get_network_config, set_foundry_signing_method};
 pub struct OptOutVaultCommand {
     #[arg(
         value_name = "ADDRESS",
-        help = "The address of the vault to opt-in to."
+        help = "The address of the vault to opt-out of."
     )]
     pub address: Address,
 
