@@ -1,7 +1,8 @@
 use std::str::FromStr;
 
-use alloy_primitives::{aliases::U48, Address, U256};
+use alloy_primitives::{aliases::U48, hex::ToHexExt, Address, U256};
 use alloy_sol_types::SolCall;
+use cast::Cast;
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{
@@ -154,7 +155,7 @@ impl CreateCommand {
                 hex::encode(IVaultConfigurator::createCall::SELECTOR)
             )),
             args: vec![vault_configurator_params],
-            cast_async: false,
+            cast_async: true,
             confirmations,
             command: None,
             unlocked,
@@ -164,11 +165,12 @@ impl CreateCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
+        if let Ok(tx_hash) = arg.run().await {
             print_success_message("✅ Successfully created vault.");
         } else {
             print_error_message("❌ Failed to create vault, please try again.");
         }
+
         Ok(())
     }
 }

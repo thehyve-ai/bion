@@ -77,6 +77,7 @@ impl RegisterOperatorCommand {
             eth,
             path: None,
         };
-        arg.run().await
+        arg.run().await?;
+        Ok(())
     }
 }

@@ -70,6 +70,7 @@ impl UnpauseOperatorCommand {
             eth,
             path: None,
         };
-        arg.run().await
+        arg.run().await?;
+        Ok(())
     }
 }

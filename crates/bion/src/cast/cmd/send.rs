@@ -1,5 +1,6 @@
 use crate::cast::tx::{self, CastTxBuilder};
 use alloy_network::{AnyNetwork, EthereumWallet};
+use alloy_primitives::B256;
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -85,7 +86,7 @@ pub enum SendTxSubcommands {
 
 impl SendTxArgs {
     #[allow(unknown_lints, dependency_on_unit_never_type_fallback)]
-    pub async fn run(self) -> eyre::Result<()> {
+    pub async fn run(self) -> eyre::Result<B256> {
         let Self {
             eth,
             to,
@@ -188,20 +189,25 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
     cast_async: bool,
     confs: u64,
     timeout: u64,
-) -> Result<()> {
+) -> Result<B256> {
     let cast = Cast::new(provider);
     let pending_tx = cast.send(tx).await?;
 
     let tx_hash = pending_tx.inner().tx_hash();
 
+    // Log the transaction hash
     if cast_async {
+        // Log: Transaction sent. Etherscan link https://etherscan.io/tx/{tx_hash}
         sh_println!("{tx_hash:#x}")?;
     } else {
+        // Log: Transaction send, Etherscan link https://etherscan.io/tx/{tx_hash}. Waiting for {confs} confirmation...
         let receipt = cast
             .receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false)
             .await?;
+        // Log: Transaction confirmed in {block_number}. Etherscan link https://etherscan.io/tx/{tx_hash}
+        // log receipt
         sh_println!("{receipt}")?;
     }
 
-    Ok(())
+    Ok(*tx_hash)
 }
