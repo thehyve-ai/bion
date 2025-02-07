@@ -18,7 +18,7 @@ use super::contracts::{
 pub fn get_encoded_vault_configurator_params(
     version: u64,
     collateral: Address,
-    burner: Address,
+    burner: Option<Address>,
     epoch_duration: U48,
     deposit_whitelist: bool,
     is_deposit_limit: bool,
@@ -34,6 +34,7 @@ pub fn get_encoded_vault_configurator_params(
     let network_limit_set_role_holders = vec![vault_admin_config.address];
     let operator_network_shares_set_role_holders = vec![vault_admin_config.address];
 
+    let burner = burner.unwrap_or(Address::ZERO);
     let vault_params = IVault::InitParams {
         collateral,
         burner,
@@ -106,13 +107,17 @@ pub fn get_encoded_vault_configurator_params(
         slasher_params = match slasher_index {
             // Slasher (type 0)
             0 => ISlasher::InitParams {
-                baseParams: IBaseSlasher::BaseParams { isBurnerHook: true },
+                baseParams: IBaseSlasher::BaseParams {
+                    isBurnerHook: !burner.is_zero(),
+                },
             }
             .abi_encode(),
 
             // VetoSlasher (type 1)
             1 => IVetoSlasher::InitParams {
-                baseParams: IBaseSlasher::BaseParams { isBurnerHook: true },
+                baseParams: IBaseSlasher::BaseParams {
+                    isBurnerHook: !burner.is_zero(),
+                },
                 vetoDuration: veto_duration,
                 resolverSetEpochsDelay: resolver_set_epochs_delay,
             }

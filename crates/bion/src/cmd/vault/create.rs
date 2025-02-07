@@ -118,11 +118,13 @@ impl CreateCommand {
         );
         table.add_row(row![Fcb -> "Collateral",   collateral_link]);
 
-        let burner_link = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault.burner, vault.burner
-        );
-        table.add_row(row![Fcb -> "Burner",  burner_link]);
+        if let Some(burner) = vault.burner {
+            let burner_link = format!(
+                "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
+                burner, burner
+            );
+            table.add_row(row![Fcb -> "Burner",  burner_link]);
+        }
 
         let deposit_limit = format_deposit_limit(vault.deposit_limit, collateral_decimals).unwrap();
         table.add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
@@ -192,7 +194,7 @@ struct CreateVaultCliArgs {
         value_name = "BURNER",
         help = "Address of the deployed burner router."
     )]
-    burner: Address,
+    burner: Option<Address>,
 
     #[arg(
         long,
