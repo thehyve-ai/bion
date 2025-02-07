@@ -80,6 +80,10 @@ impl SetMaxNetworkLimitCommand {
 
         validate_cli_args(&eth)?;
 
+        // Limit needs to be a normal number like 1600, which then converts to the approriate decimals.
+        // Get decimals from collateral of the vault.
+        // limit * 10**decimals
+
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
 
@@ -131,6 +135,34 @@ impl SetMaxNetworkLimitCommand {
             eth,
             path: None,
         };
+
+        // Log:
+        // Increasing max network limit from {x} to {y ({y_normalized})} on vault {beautify} for subnet {z}
+
+        // Network:  0xabc (Network Name | UNVERIFIED)
+        // Subnet:
+        // Vault: 0xabc (Vault Name | UNVERIFIED)
+        // Old limit: 100000000000000 (1000 wstETH)
+        // New limit: 160000000000000 (1600 wstETH)
+        // Vault Network Limit: 80000000000000 (800 wstETH)
+
+        // Prompt: do you wish to continue? (y/n)
+
+        // Todo: in vault commands: add set-network-limit network-address subnet new-limit (normalized)
+        // also prompt to continue
+
+        // network vault-parameters {subnet} 0xabc
+        // Vault name
+        // network name
+        // Max Network Limit:
+        // Network Limit:
+
+        // vault network-parameters 0xabc {subnet}
+        // Vault name
+        // Network name
+        // Max Network Limit:
+        // Network Limit:
+
         if let Ok(..) = arg.run().await {
             print_success_message("✅ Successfully set max network limit.");
         } else {
