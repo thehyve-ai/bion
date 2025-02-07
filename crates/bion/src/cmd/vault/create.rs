@@ -1,6 +1,7 @@
 use std::str::FromStr;
 
 use alloy_primitives::{aliases::U48, Address, U256};
+use alloy_sol_types::SolCall;
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{
@@ -19,6 +20,7 @@ use crate::{
     symbiotic::{
         calls::{get_token_decimals, get_token_symbol},
         consts::get_vault_configurator,
+        contracts::vault_configurator::IVaultConfigurator,
         vault_utils::get_encoded_vault_configurator_params,
     },
     utils::{
@@ -147,7 +149,10 @@ impl CreateCommand {
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("create()".to_string()),
+            sig: Some(format!(
+                "0x{}",
+                hex::encode(IVaultConfigurator::createCall::SELECTOR)
+            )),
             args: vec![vault_configurator_params],
             cast_async: false,
             confirmations,

@@ -135,7 +135,7 @@ pub fn get_encoded_vault_configurator_params(
         slasherParams: slasher_params.into(),
     };
 
-    let configurator_params_bytes: Bytes = configurator_init_params.abi_encode().into();
+    let configurator_params_bytes: Bytes = configurator_init_params.abi_encode_params().into();
     let encoded = format!("0x{}", configurator_params_bytes.encode_hex());
     Ok(encoded)
 }
