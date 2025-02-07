@@ -18,7 +18,10 @@ use std::str::FromStr;
 use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
 use super::contracts::{
-    erc20, vault, INetworkRegistry, IOperatorRegistry,
+    delegator_factory::DelegatorFactory,
+    erc20,
+    slasher_factory::SlasherFactory,
+    INetworkRegistry, IOperatorRegistry,
     IOptInService::{self, isOptedInCall, isOptedInReturn},
     IVault::{self, totalStakeCall, totalStakeReturn},
 };
@@ -488,6 +491,25 @@ where
     Ok(total_stake)
 }
 
+pub async fn is_delegator<A: TryInto<Address>>(
+    delegator: A,
+    delegator_factory: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let delegator = delegator.try_into()?;
+    let delegator_factory = delegator_factory.try_into()?;
+
+    let call = DelegatorFactory::isEntityCall::new((delegator,));
+
+    let DelegatorFactory::isEntityReturn { _0: is_entity } =
+        call_and_decode(call, delegator_factory, provider).await?;
+
+    Ok(is_entity)
+}
+
 /// Checks if an operator is registered in Symbiotic
 ///
 /// # Arguments
@@ -599,6 +621,25 @@ where
 
     let INetworkRegistry::isEntityReturn { _0: is_entity } =
         call_and_decode(call, network_registry, provider).await?;
+
+    Ok(is_entity)
+}
+
+pub async fn is_slasher<A: TryInto<Address>>(
+    slasher: A,
+    slasher_factory: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let slasher = slasher.try_into()?;
+    let slasher_factory = slasher_factory.try_into()?;
+
+    let call = SlasherFactory::isEntityCall::new((slasher,));
+
+    let SlasherFactory::isEntityReturn { _0: is_entity } =
+        call_and_decode(call, slasher_factory, provider).await?;
 
     Ok(is_entity)
 }

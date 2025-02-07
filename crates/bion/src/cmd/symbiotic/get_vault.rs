@@ -18,7 +18,7 @@ use crate::{
             VaultData,
         },
     },
-    utils::validate_cli_args,
+    utils::{parse_duration_secs, parse_epoch_ts, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -150,38 +150,5 @@ impl GetVaultCommand {
         table.printstd();
 
         Ok(())
-    }
-}
-
-fn parse_duration_secs(secs: U256) -> String {
-    let secs = secs.to_string().as_str().parse::<i64>().unwrap();
-
-    // also add days, hours, minutes, seconds
-    let days = secs / 86400;
-    let hours = (secs % 86400) / 3600;
-    let minutes = (secs % 3600) / 60;
-    let seconds = secs % 60;
-
-    let formatted = if days > 0 {
-        format!("{}d {}h {}m {}s", days, hours, minutes, seconds)
-    } else if hours > 0 {
-        format!("{}h {}m {}s", hours, minutes, seconds)
-    } else if minutes > 0 {
-        format!("{}m {}s", minutes, seconds)
-    } else {
-        format!("{}s", seconds)
-    };
-
-    format!("{} ({})", secs, formatted)
-}
-
-fn parse_epoch_ts(ts: U256) -> String {
-    let ts = ts.to_string().as_str().parse::<i64>().unwrap();
-    match DateTime::<Utc>::from_timestamp(ts, 0) {
-        Some(datetime) => {
-            let dt = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
-            format!("{} ({} UTC)", ts, dt)
-        }
-        None => ts.to_string(),
     }
 }

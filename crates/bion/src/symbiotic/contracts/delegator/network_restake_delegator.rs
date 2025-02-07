@@ -1,5 +1,7 @@
 use alloy_sol_types::sol;
 
+use super::base_delegator::IBaseDelegator;
+
 sol! {
     #[derive(Debug, PartialEq, Eq)]
     #[sol(rpc, abi)]

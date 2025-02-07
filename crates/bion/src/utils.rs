@@ -1,6 +1,7 @@
 use account_utils::{helpers::random_password_string, ZeroizeString};
 use alloy_network::TxSigner;
-use alloy_primitives::Address;
+use alloy_primitives::{aliases::U48, Address, U256};
+use chrono::{DateTime, Utc};
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use foundry_cli::opts::{EthereumOpts, RpcOpts};
@@ -300,4 +301,59 @@ pub fn load_from_json_file<P: AsRef<Path>, T: DeserializeOwned>(path: P) -> Resu
 /// Parses a `T` from a string using [`serde_json::from_str`].
 pub fn parse_json<T: DeserializeOwned>(value: &str) -> serde_json::Result<T> {
     serde_json::from_str(value)
+}
+
+pub fn parse_duration_secs(secs: U256) -> String {
+    let secs = secs.to_string().as_str().parse::<i64>().unwrap();
+
+    // also add days, hours, minutes, seconds
+    let days = secs / 86400;
+    let hours = (secs % 86400) / 3600;
+    let minutes = (secs % 3600) / 60;
+    let seconds = secs % 60;
+
+    let formatted = if days > 0 {
+        format!("{}d {}h {}m {}s", days, hours, minutes, seconds)
+    } else if hours > 0 {
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    } else if minutes > 0 {
+        format!("{}m {}s", minutes, seconds)
+    } else {
+        format!("{}s", seconds)
+    };
+
+    format!("{} ({})", secs, formatted)
+}
+
+pub fn parse_duration_secs_u48(secs: U48) -> String {
+    let secs = secs.to_string().as_str().parse::<i64>().unwrap();
+
+    // also add days, hours, minutes, seconds
+    let days = secs / 86400;
+    let hours = (secs % 86400) / 3600;
+    let minutes = (secs % 3600) / 60;
+    let seconds = secs % 60;
+
+    let formatted = if days > 0 {
+        format!("{}d {}h {}m {}s", days, hours, minutes, seconds)
+    } else if hours > 0 {
+        format!("{}h {}m {}s", hours, minutes, seconds)
+    } else if minutes > 0 {
+        format!("{}m {}s", minutes, seconds)
+    } else {
+        format!("{}s", seconds)
+    };
+
+    format!("{} ({})", secs, formatted)
+}
+
+pub fn parse_epoch_ts(ts: U256) -> String {
+    let ts = ts.to_string().as_str().parse::<i64>().unwrap();
+    match DateTime::<Utc>::from_timestamp(ts, 0) {
+        Some(datetime) => {
+            let dt = datetime.format("%Y-%m-%d %H:%M:%S").to_string();
+            format!("{} ({} UTC)", ts, dt)
+        }
+        None => ts.to_string(),
+    }
 }

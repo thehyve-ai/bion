@@ -1,4 +1,4 @@
-use alloy_primitives::Address;
+use alloy_primitives::{aliases::U48, Address};
 use foundry_cli::opts::EthereumOpts;
 
 use std::fs::create_dir_all;

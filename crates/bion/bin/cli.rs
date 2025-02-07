@@ -1,7 +1,9 @@
 use bion::cmd::{
     hyve::{bls::BLSCommands, HyveCommands},
-    network::{NetworkCommand, NetworkSubcommands},
+    network::NetworkCommand,
+    operator::OperatorCommand,
     symbiotic::SymbioticCommands,
+    vault::VaultCommand,
 };
 use clap::{
     builder::{styling::AnsiColor, Styles},
@@ -126,6 +128,10 @@ impl Cli {
                 }
             },
             Commands::Network(network) => runner.run_command_until_exit(|ctx| network.execute(ctx)),
+            Commands::Operator(operator) => {
+                runner.run_command_until_exit(|ctx| operator.execute(ctx))
+            }
+            Commands::Vault(vault) => runner.run_command_until_exit(|ctx| vault.execute(ctx)),
         }
     }
 }
@@ -140,6 +146,12 @@ pub enum Commands {
 
     #[command(name = "network")]
     Network(NetworkCommand),
+
+    #[command(name = "operator")]
+    Operator(OperatorCommand),
+
+    #[command(name = "vault")]
+    Vault(VaultCommand),
 }
 
 fn get_color_style() -> Styles {
