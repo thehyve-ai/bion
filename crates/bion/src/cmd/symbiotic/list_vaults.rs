@@ -33,6 +33,9 @@ pub struct ListVaultsCommand {
     #[arg(long, help = "Only show verified vaults.", default_value = "false")]
     verified_only: bool,
 
+    #[arg(long, help = "Only show vaults with this collateral token.")]
+    collateral: Option<String>,
+
     #[clap(flatten)]
     eth: EthereumOpts,
 }
@@ -43,6 +46,7 @@ impl ListVaultsCommand {
             limit,
             verified_only,
             eth,
+            collateral,
         } = self;
 
         validate_cli_args(None, &eth).await?;
@@ -115,6 +119,12 @@ impl ListVaultsCommand {
                 vault.collateral.unwrap(),
                 vault.symbol.as_ref().unwrap()
             );
+
+            if collateral.clone().is_some() {
+                if vault.symbol.clone().unwrap() != collateral.clone().unwrap() {
+                    continue;
+                }
+            }
 
             let row = row![
                 i + 1,
