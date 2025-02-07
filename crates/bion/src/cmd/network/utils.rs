@@ -1,19 +1,20 @@
 use alloy_primitives::Address;
+use foundry_cli::opts::EthereumOpts;
 use serde::Deserialize;
 
 use std::fs::create_dir_all;
 
 use crate::{
-    common::DirsCliArgs,
+    common::{DirsCliArgs, SigningMethod},
     utils::{load_from_json_file, print_error_message, write_to_json_file},
 };
 
 use super::{
+    config::{ImportedNetworks, NetworkConfig},
     consts::{
-        NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY, NETWORK_FILE_NAME,
-        SYMBIOTIC_GITHUB_URL,
+        NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY, SYMBIOTIC_GITHUB_URL,
+        SYMBIOTIC_NETWORK_FILE_NAME,
     },
-    ImportedNetworks, NetworkConfig,
 };
 
 #[derive(Debug, Deserialize)]
@@ -34,7 +35,7 @@ pub struct NetworkInfo {
 /// * If the response cannot be parsed as JSON
 /// * If the JSON cannot be deserialized into `VaultInfo`
 pub async fn get_network_metadata(network_address: Address) -> eyre::Result<Option<NetworkInfo>> {
-    let url = format!("{SYMBIOTIC_GITHUB_URL}/{network_address}/{NETWORK_FILE_NAME}",);
+    let url = format!("{SYMBIOTIC_GITHUB_URL}/{network_address}/{SYMBIOTIC_NETWORK_FILE_NAME}",);
     let res = reqwest::get(&url).await?;
     let vault_info: Option<NetworkInfo> = serde_json::from_str(&res.text().await?).ok();
     Ok(vault_info)
@@ -76,7 +77,7 @@ pub fn get_or_create_network_config(
     let network_config_dir = networks_dir.join(address.to_string());
     let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
     return match load_from_json_file(&network_config_path) {
-        Ok(network) => Ok(network),
+        Ok(network_config) => Ok(network_config),
         Err(..) => {
             create_dir_all(&network_config_dir).map_err(|e| {
                 eyre::eyre!(format!(
@@ -85,9 +86,10 @@ pub fn get_or_create_network_config(
                 ))
             })?;
 
-            let network = NetworkConfig::new(address, alias);
-            write_to_json_file(&network_config_path, &network, true).map_err(|e| eyre::eyre!(e))?;
-            Ok(network)
+            let network_config = NetworkConfig::new(address, chain_id, alias);
+            write_to_json_file(&network_config_path, &network_config, true)
+                .map_err(|e| eyre::eyre!(e))?;
+            Ok(network_config)
         }
     };
 }
@@ -105,4 +107,33 @@ pub fn get_network_config(
         print_error_message("Network with the provided alias is not imported.");
         Err(eyre::eyre!(""))
     }
+}
+
+pub fn set_foundry_signing_method(
+    network_config: &NetworkConfig,
+    eth: &mut EthereumOpts,
+) -> eyre::Result<()> {
+    if let Some(signing_method) = network_config.signing_method.clone() {
+        match signing_method {
+            SigningMethod::Keystore => {
+                let password = rpassword::prompt_password_stdout("\nEnter keystore password")?;
+                eth.wallet.keystore_path = Some(
+                    network_config
+                        .keystore_file
+                        .clone()
+                        .unwrap()
+                        .to_string_lossy()
+                        .to_string(),
+                );
+                eth.wallet.keystore_password = Some(password);
+            }
+            SigningMethod::Ledger => {
+                eth.wallet.ledger = true;
+            }
+            SigningMethod::Trezor => {
+                eth.wallet.trezor = true;
+            }
+        }
+    }
+    Ok(())
 }

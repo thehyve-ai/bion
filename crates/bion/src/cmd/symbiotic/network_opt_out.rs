@@ -50,7 +50,7 @@ impl NetworkOptOutCommand {
             confirmations,
         } = self;
 
-        validate_cli_args(Some(address), &eth).await?;
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

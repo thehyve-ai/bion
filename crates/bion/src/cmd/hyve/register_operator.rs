@@ -93,7 +93,7 @@ impl RegisterOperatorCommand {
             confirmations,
         } = self;
 
-        validate_cli_args(Some(address), &eth).await?;
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
 

@@ -1,62 +1,55 @@
-use std::{collections::HashMap, path::PathBuf};
-
-use add::AddCommand;
-use alloy_primitives::Address;
+use add_vault_admin::AddVaultAdminCommand;
 use clap::{Parser, Subcommand};
-use serde::{Deserialize, Serialize};
+use create::CreateCommand;
+use create_burner_router::CreateBurnerRouterCommand;
+use hyve_cli_runner::CliContext;
+use remove_vault_admin::RemoveVaultAdminCommand;
 
-use crate::common::SigningMethod;
-
-mod add;
+mod add_vault_admin;
+mod config;
+mod consts;
+mod create;
+mod create_burner_router;
+mod remove_vault_admin;
+mod utils;
 
 #[derive(Debug, Parser)]
-pub struct VaultCommand {}
+#[clap(about = "Commands related to creating and managing Vaults on Symbiotic.")]
+pub struct VaultCommand {
+    #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
+    pub alias: String,
+
+    #[command(subcommand)]
+    pub command: VaultSubcommands,
+}
 
 #[derive(Debug, Subcommand)]
 pub enum VaultSubcommands {
+    #[command(name = "create")]
+    Create(CreateCommand),
+
+    #[command(name = "create-burner-router")]
+    CreateBurnerRouter(CreateBurnerRouterCommand),
+
     // Import vault management
-    Add(AddCommand),
+    #[command(name = "add-vault-admin")]
+    AddVaultAdmin(AddVaultAdminCommand),
+
+    #[command(name = "remove-vault-admin")]
+    RemoveVaultAdmin(RemoveVaultAdminCommand),
 }
 
-pub type ImportedVaults = HashMap<String, Address>;
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct VaultConfig {
-    pub address: Address,
-    alias: String,
-    signing_method: Option<SigningMethod>,
-    password_enabled: bool,
-    date_created: i64,
-    date_updated: i64,
-    keystore_file: Option<PathBuf>,
-}
-
-impl VaultConfig {
-    pub fn new(address: Address, alias: String) -> Self {
-        Self {
-            address,
-            alias,
-            signing_method: None,
-            password_enabled: false,
-            date_created: chrono::Utc::now().timestamp(),
-            date_updated: chrono::Utc::now().timestamp(),
-            keystore_file: None,
+impl VaultCommand {
+    pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
+        match self.command {
+            VaultSubcommands::Create(create) => create.with_alias(self.alias).execute(ctx).await,
+            VaultSubcommands::CreateBurnerRouter(opt_in_network) => {
+                opt_in_network.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::AddVaultAdmin(add) => add.with_alias(self.alias).execute(ctx).await,
+            VaultSubcommands::RemoveVaultAdmin(remove) => {
+                remove.with_alias(self.alias).execute(ctx).await
+            }
         }
-    }
-
-    pub fn set_alias(&mut self, alias: String) {
-        self.alias = alias;
-    }
-
-    pub fn set_signing_method(&mut self, signing_method: Option<SigningMethod>) {
-        self.signing_method = signing_method;
-    }
-
-    pub fn set_password_enabled(&mut self, password_enabled: bool) {
-        self.password_enabled = password_enabled;
-    }
-
-    pub fn set_keystore_file(&mut self, keystore_file: Option<PathBuf>) {
-        self.keystore_file = keystore_file;
     }
 }

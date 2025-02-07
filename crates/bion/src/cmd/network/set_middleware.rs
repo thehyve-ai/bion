@@ -1,3 +1,4 @@
+use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -10,7 +11,10 @@ use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
-    symbiotic::{calls::is_network, consts::get_network_registry},
+    symbiotic::{
+        calls::is_network,
+        consts::{get_network_middleware_service, get_network_registry},
+    },
     utils::{
         print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
     },
@@ -19,7 +23,13 @@ use crate::{
 use super::utils::{get_network_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
-pub struct RegisterCommand {
+pub struct SetMiddlewareCommand {
+    #[arg(
+        value_name = "MIDDLEWARE_ADDRESS",
+        help = "The address of the network middleware."
+    )]
+    middleware_address: Address,
+
     #[arg(skip)]
     alias: String,
 
@@ -45,13 +55,14 @@ pub struct RegisterCommand {
     confirmations: u64,
 }
 
-impl RegisterCommand {
+impl SetMiddlewareCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }
 
-    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
+            middleware_address,
             alias,
             dirs,
             mut eth,
@@ -71,6 +82,7 @@ impl RegisterCommand {
         set_foundry_signing_method(&network_config, &mut eth)?;
 
         let network_registry = get_network_registry(chain_id)?;
+        let network_middleware_service = get_network_middleware_service(chain_id)?;
 
         let is_network = print_loading_until_async(
             "Checking network registration status",
@@ -78,17 +90,17 @@ impl RegisterCommand {
         )
         .await?;
 
-        if is_network {
-            print_error_message("Network is already registered");
+        if !is_network {
+            print_error_message("Network is not registered");
             return Ok(());
         }
 
-        let to = NameOrAddress::Address(network_registry);
+        let to = NameOrAddress::Address(network_middleware_service);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("registerNetwork()".to_string()),
-            args: vec![],
+            sig: Some("setMiddleware(address middleware_".to_string()),
+            args: vec![middleware_address.to_string()],
             cast_async: false,
             confirmations,
             command: None,
@@ -99,9 +111,9 @@ impl RegisterCommand {
             path: None,
         };
         if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully registered network.");
+            print_success_message("✅ Successfully set network middleware.");
         } else {
-            print_error_message("❌ Failed to register network, please try again.");
+            print_error_message("❌ Failed to set network middleware, please try again.");
         }
         Ok(())
     }

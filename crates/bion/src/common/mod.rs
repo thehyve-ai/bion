@@ -273,7 +273,7 @@ pub struct KeystoreCliArgs {
     keystore_path: PathBuf,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub enum SigningMethod {
     Keystore,
     Ledger,

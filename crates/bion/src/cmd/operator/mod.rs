@@ -1,19 +1,23 @@
-use std::{collections::HashMap, path::PathBuf};
-
 use add::AddCommand;
-use alloy_primitives::Address;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
+use opt_in_network::OptInNetworkCommand;
+use opt_in_vault::OptInVaultCommand;
+use opt_out_network::OptOutNetworkCommand;
+use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
 use remove::RemoveCommand;
-use serde::{Deserialize, Serialize};
-
-use crate::common::SigningMethod;
 
 mod add;
-pub(crate) mod consts;
+mod config;
+mod consts;
+mod opt_in_network;
+mod opt_in_vault;
+mod opt_out_network;
+mod opt_out_vault;
 mod register;
 mod remove;
+mod utils;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your operator.")]
@@ -27,6 +31,18 @@ pub struct OperatorCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum OperatorSubcommands {
+    #[command(name = "opt-in-network")]
+    OptInNetwork(OptInNetworkCommand),
+
+    #[command(name = "opt-in_vault")]
+    OptInVault(OptInVaultCommand),
+
+    #[command(name = "opt-out-network")]
+    OptOutNetwork(OptOutNetworkCommand),
+
+    #[command(name = "opt-out-vault")]
+    OptOutVault(OptOutVaultCommand),
+
     #[command(name = "register")]
     Register(RegisterCommand),
 
@@ -41,54 +57,23 @@ pub enum OperatorSubcommands {
 impl OperatorCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
+            OperatorSubcommands::OptInNetwork(opt_in_network) => {
+                opt_in_network.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptInVault(opt_in_vault) => {
+                opt_in_vault.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptOutNetwork(opt_out_network) => {
+                opt_out_network.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptOutVault(opt_out_vault) => {
+                opt_out_vault.with_alias(self.alias).execute(ctx).await
+            }
             OperatorSubcommands::Register(register) => {
                 register.with_alias(self.alias).execute(ctx).await
             }
             OperatorSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
             OperatorSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,
         }
-    }
-}
-
-pub type ImportedOperators = HashMap<String, Address>;
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct OperatorConfig {
-    pub address: Address,
-    alias: String,
-    signing_method: Option<SigningMethod>,
-    password_enabled: bool,
-    date_created: i64,
-    date_updated: i64,
-    keystore_file: Option<PathBuf>,
-}
-
-impl OperatorConfig {
-    pub fn new(address: Address, alias: String) -> Self {
-        Self {
-            address,
-            alias,
-            signing_method: None,
-            password_enabled: false,
-            date_created: chrono::Utc::now().timestamp(),
-            date_updated: chrono::Utc::now().timestamp(),
-            keystore_file: None,
-        }
-    }
-
-    pub fn set_alias(&mut self, alias: String) {
-        self.alias = alias;
-    }
-
-    pub fn set_signing_method(&mut self, signing_method: Option<SigningMethod>) {
-        self.signing_method = signing_method;
-    }
-
-    pub fn set_password_enabled(&mut self, password_enabled: bool) {
-        self.password_enabled = password_enabled;
-    }
-
-    pub fn set_keystore_file(&mut self, keystore_file: Option<PathBuf>) {
-        self.keystore_file = keystore_file;
     }
 }

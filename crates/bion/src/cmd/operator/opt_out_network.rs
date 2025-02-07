@@ -1,3 +1,4 @@
+use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -10,16 +11,25 @@ use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
-    symbiotic::{calls::is_network, consts::get_network_registry},
+    symbiotic::{
+        calls::{is_network, is_opted_in_network},
+        consts::{get_network_opt_in_service, get_network_registry},
+    },
     utils::{
         print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
     },
 };
 
-use super::utils::{get_network_config, set_foundry_signing_method};
+use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
-pub struct RegisterCommand {
+pub struct OptOutNetworkCommand {
+    #[arg(
+        value_name = "ADDRESS",
+        help = "The address of the network to opt-out of."
+    )]
+    address: Address,
+
     #[arg(skip)]
     alias: String,
 
@@ -45,13 +55,14 @@ pub struct RegisterCommand {
     confirmations: u64,
 }
 
-impl RegisterCommand {
+impl OptOutNetworkCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }
 
-    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
+            address,
             alias,
             dirs,
             mut eth,
@@ -67,28 +78,38 @@ impl RegisterCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
-
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
         let network_registry = get_network_registry(chain_id)?;
+        let opt_in_service = get_network_opt_in_service(chain_id)?;
 
         let is_network = print_loading_until_async(
-            "Checking network registration status",
-            is_network(network_config.address, network_registry, &provider),
+            "Checking network status",
+            is_network(address, network_registry, &provider),
         )
         .await?;
 
-        if is_network {
-            print_error_message("Network is already registered");
+        if !is_network {
+            print_error_message("Provided address is not a valid Symbiotic network.");
             return Ok(());
         }
 
-        let to = NameOrAddress::Address(network_registry);
+        let is_opted_in = print_loading_until_async(
+            "Checking opted in status",
+            is_opted_in_network(address, address, opt_in_service, &provider),
+        )
+        .await?;
+
+        if !is_opted_in {
+            return Err(eyre::eyre!("Operator is not opted in."));
+        }
+
+        let to = NameOrAddress::Address(opt_in_service);
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("registerNetwork()".to_string()),
-            args: vec![],
+            sig: Some("optOut(address where)".to_string()),
+            args: vec![address.to_string()],
             cast_async: false,
             confirmations,
             command: None,
@@ -98,10 +119,11 @@ impl RegisterCommand {
             eth,
             path: None,
         };
+
         if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully registered network.");
+            print_success_message("✅ Successfully opted out of network.");
         } else {
-            print_error_message("❌ Failed to register network, please try again.");
+            print_error_message("❌ Failed to opt-out of network, please try again.");
         }
         Ok(())
     }

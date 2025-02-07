@@ -35,7 +35,7 @@ impl GetVaultCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self { vault_address, eth } = self;
 
-        validate_cli_args(None, &eth).await?;
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
