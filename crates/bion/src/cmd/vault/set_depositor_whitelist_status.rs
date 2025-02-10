@@ -12,9 +12,7 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{calls::is_vault, consts::get_vault_factory},
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
-    },
+    utils::{print_error_message, print_loading_until_async, validate_cli_args},
 };
 
 use super::utils::{get_vault_admin_config, set_foundry_signing_method};
@@ -115,13 +113,7 @@ impl SetDepositorWhitelistStatusCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully set vault depositor whitelist status.");
-        } else {
-            print_error_message(
-                "❌ Failed to set vault depositor whitelist status, please try again.",
-            );
-        }
+        let _ = arg.run().await?;
         Ok(())
     }
 }

@@ -1,6 +1,5 @@
 use alloy_primitives::Address;
 use foundry_cli::opts::EthereumOpts;
-use serde::Deserialize;
 
 use std::fs::create_dir_all;
 
@@ -11,35 +10,8 @@ use crate::{
 
 use super::{
     config::{ImportedNetworks, NetworkConfig},
-    consts::{
-        NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY, SYMBIOTIC_GITHUB_URL,
-        SYMBIOTIC_NETWORK_FILE_NAME,
-    },
+    consts::{NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY},
 };
-
-#[derive(Debug, Deserialize)]
-pub struct NetworkInfo {
-    pub name: String,
-}
-
-/// Fetches metadata for a Symbiotic network from the official GitHub repository
-///
-/// # Arguments
-/// * `network_address` - The address of the network to fetch metadata for
-///
-/// # Returns
-/// * `NetworkInfo` containing the network's metadata
-///
-/// # Errors
-/// * If the HTTP request fails
-/// * If the response cannot be parsed as JSON
-/// * If the JSON cannot be deserialized into `VaultInfo`
-pub async fn get_network_metadata(network_address: Address) -> eyre::Result<Option<NetworkInfo>> {
-    let url = format!("{SYMBIOTIC_GITHUB_URL}/{network_address}/{SYMBIOTIC_NETWORK_FILE_NAME}",);
-    let res = reqwest::get(&url).await?;
-    let vault_info: Option<NetworkInfo> = serde_json::from_str(&res.text().await?).ok();
-    Ok(vault_info)
-}
 
 pub fn get_or_create_network_definitions(
     chain_id: u64,

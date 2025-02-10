@@ -5,12 +5,12 @@ use hyve_cli_runner::CliContext;
 use itertools::Itertools;
 use prettytable::{row, Table};
 
-use std::{str::FromStr, time::Instant};
+use std::time::Instant;
 
 use crate::{
-    cmd::utils::{format_number_with_decimals, get_chain_id},
-    symbiotic::utils::{
-        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, get_vault_metadata, VaultInfo,
+    cmd::utils::get_chain_id,
+    symbiotic::vault_utils::{
+        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, get_vault_metadata,
     },
     utils::validate_cli_args,
 };

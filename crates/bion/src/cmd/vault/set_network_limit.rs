@@ -1,4 +1,5 @@
-use alloy_primitives::{aliases::U96, Address, U256};
+use alloy_primitives::{aliases::U96, hex::ToHexExt, Address, U256};
+use alloy_sol_types::SolValue;
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{
@@ -11,7 +12,10 @@ use prettytable::{row, Table};
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::{format_number_with_decimals, get_chain_id},
+    cmd::{
+        utils::{format_number_with_decimals, get_chain_id},
+        vault::utils::{get_vault_admin_config, set_foundry_signing_method},
+    },
     common::DirsCliArgs,
     symbiotic::{
         calls::{
@@ -20,6 +24,7 @@ use crate::{
         },
         consts::{get_network_registry, get_vault_factory, get_vault_opt_in_service},
         network_utils::get_network_metadata,
+        utils::get_subnetwork,
         vault_utils::{fetch_token_data, get_vault_metadata},
         DelegatorType,
     },
@@ -28,22 +33,22 @@ use crate::{
     },
 };
 
-use super::utils::{get_network_config, set_foundry_signing_method};
-
 #[derive(Debug, Parser)]
-#[clap(about = "Set a max network limit on specific vault for your network.")]
-pub struct SetMaxNetworkLimitCommand {
-    #[arg(value_name = "VAULT", help = "The address of the vault.")]
-    pub vault: Address,
+pub struct SetNetworkLimitCommand {
+    #[arg(value_name = "ADDRESS", help = "The address of the network.")]
+    network: Address,
 
     #[arg(
         value_name = "SUBNETWORK",
         help = "The subnetwork to set the limit for."
     )]
-    pub subnetwork: U96,
+    subnetwork: U96,
+
+    #[arg(value_name = "VAULT", help = "The address of the vault.")]
+    vault: Address,
 
     #[arg(value_name = "LIMIT", help = "The limit to set.")]
-    pub limit: U256,
+    limit: U256,
 
     #[arg(skip)]
     alias: String,
@@ -70,15 +75,16 @@ pub struct SetMaxNetworkLimitCommand {
     confirmations: u64,
 }
 
-impl SetMaxNetworkLimitCommand {
+impl SetNetworkLimitCommand {
     pub fn with_alias(self, alias: String) -> Self {
         Self { alias, ..self }
     }
 
-    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
-            vault,
+            network,
             subnetwork,
+            vault,
             limit,
             alias,
             dirs,
@@ -95,8 +101,10 @@ impl SetMaxNetworkLimitCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
+        let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&vault_admin_config, &mut eth)?;
+
+        let subnetwork_address = get_subnetwork(network, subnetwork)?;
 
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
@@ -104,7 +112,7 @@ impl SetMaxNetworkLimitCommand {
 
         let is_network = print_loading_until_async(
             "Checking network registration status",
-            is_network(network_config.address, network_registry, &provider),
+            is_network(network, network_registry, &provider),
         )
         .await?;
 
@@ -126,12 +134,7 @@ impl SetMaxNetworkLimitCommand {
 
         let is_opted_in = print_loading_until_async(
             "Checking network opt in status in vault",
-            is_opted_in_vault(
-                network_config.address,
-                vault,
-                vault_opt_in_service,
-                &provider,
-            ),
+            is_opted_in_vault(network, vault, vault_opt_in_service, &provider),
         )
         .await?;
 
@@ -159,8 +162,13 @@ impl SetMaxNetworkLimitCommand {
 
         let arg = SendTxArgs {
             to: Some(to),
-            sig: Some("setMaxNetworkLimit(uint96 identifier, uint256 amount)".to_string()),
-            args: vec![subnetwork.to_string(), limit.to_string()],
+            sig: Some("setNetworkLimit(bytes32 subnetwork, uint256 amount)".to_string()),
+            args: vec![
+                subnetwork_address
+                    .abi_encode()
+                    .encode_hex_upper_with_prefix(),
+                limit.to_string(),
+            ],
             cast_async: false,
             confirmations,
             command: None,
@@ -171,29 +179,15 @@ impl SetMaxNetworkLimitCommand {
             path: None,
         };
 
-        // Log:
-        // Increasing max network limit from {x} to {y ({y_normalized})} on vault {beautify} for subnet {z}
-
-        // Network:  0xabc (Network Name | UNVERIFIED)
-        // Subnet:
-        // Vault: 0xabc (Vault Name | UNVERIFIED)
-        // Old limit: 100000000000000 (1000 wstETH)
-        // New limit: 160000000000000 (1600 wstETH)
-        // Vault Network Limit: 80000000000000 (800 wstETH)
-
-        println!("\n{}", "Increasing max network limit".bright_cyan());
+        println!("\n{}", "Increasing network limit".bright_cyan());
 
         let mut table = Table::new();
 
         // load network metadata
-        let network_metadata = print_loading_until_async(
-            "Fetching network metadata",
-            get_network_metadata(network_config.address),
-        )
-        .await?;
+        let network_metadata = get_network_metadata(network).await?;
         let network_link = format!(
             "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
-            network_config.address,
+            network,
             network_metadata
                 .map(|v| v.name)
                 .unwrap_or("UNVERIFIED".to_string())
@@ -202,8 +196,7 @@ impl SetMaxNetworkLimitCommand {
         table.add_row(row![Fcb -> "Subnetwork", subnetwork]);
 
         // load vault metadata
-        let vault_metadata =
-            print_loading_until_async("Fetching vault metadata", get_vault_metadata(vault)).await?;
+        let vault_metadata = get_vault_metadata(vault).await?;
         let vault_link = format!(
             "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
             vault,
@@ -216,27 +209,36 @@ impl SetMaxNetworkLimitCommand {
             vault_link
         ]);
 
-        let old_limit =
-            get_max_network_limit(network_config.address, subnetwork, delegator, &provider).await?;
-        let mut old_limit_formatted = format_number_with_decimals(old_limit, collateral.decimals)?;
-        if old_limit_formatted == "0.000" {
-            old_limit_formatted = "-".to_string();
+        let max_network_limit =
+            get_max_network_limit(network, subnetwork, delegator, &provider).await?;
+        let mut max_network_limit_formatted =
+            format_number_with_decimals(max_network_limit, collateral.decimals)?;
+        if max_network_limit_formatted == "0.000" {
+            max_network_limit_formatted = "-".to_string();
         }
-        table.add_row(row![Fcb -> "Old limit", format!("{} ({} {})", old_limit.to_string(), old_limit_formatted, collateral.symbol)]);
-        table.add_row(row![Fcb -> "New limit", format!("{} ({} {})", limit.to_string(), normalized_limit, collateral.symbol)]);
+        table.add_row(row![Fcb -> "Max network limit", format!("{} ({} {})", max_network_limit.to_string(), max_network_limit_formatted, collateral.symbol)]);
 
         let delegator_type = get_delegator_type(delegator, &provider).await?;
         if delegator_type == DelegatorType::OperatorNetworkSpecificDelegator {
-            table.add_row(row![Fcb -> "Vault Network Limit", format!("{} ({} {})", old_limit.to_string(), old_limit_formatted, collateral.symbol)]);
+            print_error_message(
+                "Unable to set network limit for operator network specific delegator.",
+            );
+            return Ok(());
         } else {
-            let network_limit =
-                get_network_limit(network_config.address, subnetwork, delegator, &provider).await?;
-            let mut network_limit_formatted =
-                format_number_with_decimals(network_limit, collateral.decimals)?;
-            if network_limit_formatted == "0.000" {
-                network_limit_formatted = "-".to_string();
+            let old_network_limit =
+                get_network_limit(network, subnetwork, delegator, &provider).await?;
+            if old_network_limit == limit {
+                print_error_message("New limit is the same as the old limit.");
+                return Ok(());
             }
-            table.add_row(row![Fcb -> "Vault Network Limit", format!("{} ({} {})", network_limit.to_string(), network_limit_formatted, collateral.symbol)]);
+
+            let mut old_network_limit_formatted =
+                format_number_with_decimals(old_network_limit, collateral.decimals)?;
+            if old_network_limit_formatted == "0.000" {
+                old_network_limit_formatted = "-".to_string();
+            }
+            table.add_row(row![Fcb -> "Old Network Limit", format!("{} ({} {})", old_network_limit.to_string(), old_network_limit_formatted, collateral.symbol)]);
+            table.add_row(row![Fcb -> "New Network Limit", format!("{} ({} {})", limit.to_string(), normalized_limit, collateral.symbol)]);
         }
         table.printstd();
 
@@ -249,21 +251,6 @@ impl SetMaxNetworkLimitCommand {
             print_error_message("Exiting...");
             return Ok(());
         }
-
-        // Todo: in vault commands: add set-network-limit network-address subnet new-limit (normalized)
-        // also prompt to continue
-
-        // network vault-parameters {subnet} 0xabc
-        // Vault name
-        // network name
-        // Max Network Limit:
-        // Network Limit:
-
-        // vault network-parameters 0xabc {subnet}
-        // Vault name
-        // Network name
-        // Max Network Limit:
-        // Network Limit:
 
         let _ = arg.run().await?;
         Ok(())

@@ -2,7 +2,10 @@
 
 use alloy_dyn_abi::DynSolValue;
 use alloy_network::{Network, TransactionBuilder};
-use alloy_primitives::{aliases::U48, Address, Bytes, U256};
+use alloy_primitives::{
+    aliases::{U48, U96},
+    Address, Bytes, U256,
+};
 use alloy_provider::Provider;
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -17,14 +20,80 @@ use std::str::FromStr;
 
 use crate::symbiotic::contracts::vault_factory::VaultFactory;
 
-use super::contracts::{
-    delegator_factory::DelegatorFactory,
-    erc20,
-    slasher_factory::SlasherFactory,
-    INetworkRegistry, IOperatorRegistry,
-    IOptInService::{self, isOptedInCall, isOptedInReturn},
-    IVault::{self, totalStakeCall, totalStakeReturn},
+use super::{
+    contracts::{
+        delegator::{
+            base_delegator::IBaseDelegator, network_restake_delegator::INetworkRestakeDelegator,
+        },
+        delegator_factory::DelegatorFactory,
+        erc20,
+        slasher_factory::SlasherFactory,
+        INetworkRegistry, IOperatorRegistry,
+        IOptInService::{self, isOptedInCall, isOptedInReturn},
+        IVault::{self, totalStakeCall, totalStakeReturn},
+    },
+    utils::get_subnetwork,
+    DelegatorType,
 };
+
+pub async fn get_delegator_type<A: TryInto<Address>>(
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<DelegatorType>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let delegator = delegator.try_into()?;
+    let call = IBaseDelegator::TYPECall::new(());
+
+    let IBaseDelegator::TYPEReturn { _0: delegator_type } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(delegator_type.into())
+}
+
+pub async fn get_max_network_limit<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let delegator = delegator.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+
+    let call = IBaseDelegator::maxNetworkLimitCall::new((subnetwork,));
+
+    let IBaseDelegator::maxNetworkLimitReturn {
+        _0: max_network_limit,
+    } = call_and_decode(call, delegator, provider).await?;
+
+    Ok(max_network_limit)
+}
+
+pub async fn get_network_limit<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let delegator = delegator.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+
+    let call = INetworkRestakeDelegator::networkLimitCall::new((subnetwork,));
+
+    let INetworkRestakeDelegator::networkLimitReturn { _0: network_limit } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(network_limit)
+}
 
 pub async fn get_token_decimals<A: TryInto<Address>>(
     token: A,
@@ -66,12 +135,10 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let vault = vault.try_into()?;
-    let vault_contract = vault.try_into()?;
 
     let call = totalStakeCall {};
 
-    let totalStakeReturn { _0: active_stake } =
-        call_and_decode(call, vault_contract, provider).await?;
+    let totalStakeReturn { _0: active_stake } = call_and_decode(call, vault, provider).await?;
 
     Ok(active_stake)
 }
@@ -355,12 +422,12 @@ pub async fn get_vault_entity<A: TryInto<Address>>(
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let factory = vault_factory.try_into()?;
+    let vault_factory = vault_factory.try_into()?;
 
     let call = VaultFactory::entityCall::new((index,));
 
     let VaultFactory::entityReturn { _0: entity } =
-        call_and_decode(call, factory, provider).await?;
+        call_and_decode(call, vault_factory, provider).await?;
 
     Ok(entity)
 }
@@ -463,12 +530,12 @@ pub async fn get_vault_total_entities<A: TryInto<Address>>(
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let factory = vault_factory.try_into()?;
+    let vault_factory = vault_factory.try_into()?;
 
     let call = VaultFactory::totalEntitiesCall::new(());
 
     let VaultFactory::totalEntitiesReturn { _0: total_entities } =
-        call_and_decode(call, factory, provider).await?;
+        call_and_decode(call, vault_factory, provider).await?;
 
     Ok(total_entities)
 }
@@ -481,28 +548,26 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let vault: Address = vault.try_into()?;
-    let vault_contract: Address = vault.try_into()?;
 
     let call = totalStakeCall {};
 
-    let totalStakeReturn { _0: total_stake } =
-        call_and_decode(call, vault_contract, provider).await?;
+    let totalStakeReturn { _0: total_stake } = call_and_decode(call, vault, provider).await?;
 
     Ok(total_stake)
 }
 
 pub async fn is_delegator<A: TryInto<Address>>(
-    delegator: A,
+    address: A,
     delegator_factory: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let delegator = delegator.try_into()?;
+    let address = address.try_into()?;
     let delegator_factory = delegator_factory.try_into()?;
 
-    let call = DelegatorFactory::isEntityCall::new((delegator,));
+    let call = DelegatorFactory::isEntityCall::new((address,));
 
     let DelegatorFactory::isEntityReturn { _0: is_entity } =
         call_and_decode(call, delegator_factory, provider).await?;
@@ -538,7 +603,7 @@ where
     let address: Address = address.try_into()?;
     let operator_registry: Address = operator_registry.try_into()?;
 
-    let call = IOperatorRegistry::isEntityCall { account: address };
+    let call = IOperatorRegistry::isEntityCall::new((address,));
 
     let IOperatorRegistry::isEntityReturn { _0: is_entity } =
         call_and_decode(call, operator_registry, provider).await?;
@@ -607,17 +672,17 @@ where
 }
 
 pub async fn is_network<A: TryInto<Address>>(
-    network: A,
+    address: A,
     network_registry: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let network = network.try_into()?;
+    let address = address.try_into()?;
     let network_registry = network_registry.try_into()?;
 
-    let call = INetworkRegistry::isEntityCall { account: network };
+    let call = INetworkRegistry::isEntityCall::new((address,));
 
     let INetworkRegistry::isEntityReturn { _0: is_entity } =
         call_and_decode(call, network_registry, provider).await?;
@@ -626,17 +691,17 @@ where
 }
 
 pub async fn is_slasher<A: TryInto<Address>>(
-    slasher: A,
+    address: A,
     slasher_factory: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let slasher = slasher.try_into()?;
+    let address = address.try_into()?;
     let slasher_factory = slasher_factory.try_into()?;
 
-    let call = SlasherFactory::isEntityCall::new((slasher,));
+    let call = SlasherFactory::isEntityCall::new((address,));
 
     let SlasherFactory::isEntityReturn { _0: is_entity } =
         call_and_decode(call, slasher_factory, provider).await?;
@@ -645,17 +710,17 @@ where
 }
 
 pub async fn is_vault<A: TryInto<Address>>(
-    vault: A,
+    address: A,
     vault_factory: A,
     provider: &RetryProvider,
 ) -> Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let vault = vault.try_into()?;
+    let address = address.try_into()?;
     let vault_factory = vault_factory.try_into()?;
 
-    let call = VaultFactory::isEntityCall::new((vault,));
+    let call = VaultFactory::isEntityCall::new((address,));
 
     let VaultFactory::isEntityReturn { _0: is_entity } =
         call_and_decode(call, vault_factory, provider).await?;

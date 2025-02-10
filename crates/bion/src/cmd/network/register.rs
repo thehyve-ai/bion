@@ -98,11 +98,8 @@ impl RegisterCommand {
             eth,
             path: None,
         };
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully registered network.");
-        } else {
-            print_error_message("❌ Failed to register network, please try again.");
-        }
+
+        let _ = arg.run().await?;
         Ok(())
     }
 }

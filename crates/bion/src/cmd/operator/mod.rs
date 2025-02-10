@@ -18,6 +18,7 @@ mod opt_out_vault;
 mod register;
 mod remove;
 mod utils;
+mod vault_parameters;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your operator.")]

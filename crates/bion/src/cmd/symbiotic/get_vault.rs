@@ -1,5 +1,4 @@
-use alloy_primitives::{Address, U256};
-use chrono::{DateTime, Utc};
+use alloy_primitives::Address;
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
@@ -13,7 +12,7 @@ use crate::{
     symbiotic::{
         calls::is_vault,
         consts::get_vault_factory,
-        utils::{
+        vault_utils::{
             fetch_token_datas, fetch_vault_datas, fetch_vault_extra_metadata, get_vault_metadata,
             VaultData,
         },

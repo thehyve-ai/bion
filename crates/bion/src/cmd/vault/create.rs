@@ -1,8 +1,5 @@
-use std::str::FromStr;
-
-use alloy_primitives::{aliases::U48, hex::ToHexExt, Address, U256};
+use alloy_primitives::{aliases::U48, Address, U256};
 use alloy_sol_types::SolCall;
-use cast::Cast;
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{
@@ -13,6 +10,8 @@ use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
 use prettytable::{row, Table};
 use serde::{Deserialize, Serialize};
+
+use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
@@ -25,8 +24,7 @@ use crate::{
         vault_utils::get_encoded_vault_configurator_params,
     },
     utils::{
-        parse_duration_secs_u48, print_error_message, print_success_message,
-        read_user_confirmation, validate_cli_args,
+        parse_duration_secs_u48, print_error_message, read_user_confirmation, validate_cli_args,
     },
 };
 
@@ -98,7 +96,7 @@ impl CreateCommand {
             vault.deposit_whitelist,
             vault.is_deposit_limit,
             vault.deposit_limit,
-            vault.delegator_index,
+            vault.delegator_index.try_into()?,
             vault.delegator_hook,
             vault.with_slasher,
             vault.slasher_index,
@@ -167,12 +165,7 @@ impl CreateCommand {
             path: None,
         };
 
-        if let Ok(tx_hash) = arg.run().await {
-            print_success_message("✅ Successfully created vault.");
-        } else {
-            print_error_message("❌ Failed to create vault, please try again.");
-        }
-
+        let _ = arg.run().await?;
         Ok(())
     }
 }

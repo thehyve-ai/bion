@@ -120,11 +120,7 @@ impl OptOutNetworkCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully opted out of network.");
-        } else {
-            print_error_message("❌ Failed to opt-out of network, please try again.");
-        }
+        let _ = arg.run().await?;
         Ok(())
     }
 }

@@ -120,11 +120,7 @@ impl OptInNetworkCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully opted in network.");
-        } else {
-            print_error_message("❌ Failed to opt-in to network, please try again.");
-        }
+        let _ = arg.run().await?;
         Ok(())
     }
 }

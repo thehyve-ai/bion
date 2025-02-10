@@ -120,11 +120,7 @@ impl OptOutVaultCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully opted out of vault.");
-        } else {
-            print_error_message("❌ Failed to opt-out of vault, please try again.");
-        }
+        let _ = arg.run().await?;
         Ok(())
     }
 }

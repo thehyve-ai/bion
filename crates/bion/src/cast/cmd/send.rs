@@ -1,4 +1,7 @@
-use crate::cast::tx::{self, CastTxBuilder};
+use crate::cast::{
+    tx::{self, CastTxBuilder},
+    utils::etherscan_tx_url,
+};
 use alloy_network::{AnyNetwork, EthereumWallet};
 use alloy_primitives::B256;
 use alloy_provider::{Provider, ProviderBuilder};
@@ -8,6 +11,7 @@ use alloy_signer::Signer;
 use alloy_transport::Transport;
 use cast::Cast;
 use clap::Parser;
+use colored::Colorize;
 use eyre::Result;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -193,20 +197,44 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
     let cast = Cast::new(provider);
     let pending_tx = cast.send(tx).await?;
 
+    let chain_id = cast.chain_id().await?;
     let tx_hash = pending_tx.inner().tx_hash();
 
     // Log the transaction hash
     if cast_async {
-        // Log: Transaction sent. Etherscan link https://etherscan.io/tx/{tx_hash}
-        sh_println!("{tx_hash:#x}")?;
+        println!(
+            "{}",
+            format!(
+                "Transaction sent. Etherscan link {}",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}"))
+            )
+            .bright_cyan()
+        );
     } else {
-        // Log: Transaction send, Etherscan link https://etherscan.io/tx/{tx_hash}. Waiting for {confs} confirmation...
+        println!(
+            "{}",
+            format!(
+                "Transaction sent. Etherscan link {}. Waiting for {} confirmations...",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}")),
+                confs
+            )
+            .bright_cyan()
+        );
         let receipt = cast
             .receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false)
             .await?;
-        // Log: Transaction confirmed in {block_number}. Etherscan link https://etherscan.io/tx/{tx_hash}
-        // log receipt
-        sh_println!("{receipt}")?;
+        println!(
+            "{}",
+            format!(
+                "Transaction confirmed. Etherscan link {}",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}"))
+            )
+            .bright_cyan()
+        );
+        println!(
+            "{}",
+            format!("Transaction receipt: {}", receipt).bright_cyan()
+        );
     }
 
     Ok(*tx_hash)

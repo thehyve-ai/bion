@@ -99,11 +99,7 @@ impl RegisterCommand {
             path: None,
         };
 
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully registered operator.");
-        } else {
-            print_error_message("❌ Failed to register operator, please try again.");
-        }
+        let _ = arg.run().await?;
         Ok(())
     }
 }

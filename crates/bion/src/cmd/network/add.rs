@@ -9,13 +9,12 @@ use itertools::Itertools;
 use crate::cmd::network::consts::{
     NETWORK_CONFIG_FILE, NETWORK_DEFINITIONS_FILE, NETWORK_DIRECTORY,
 };
-use crate::cmd::network::utils::{
-    get_network_metadata, get_or_create_network_config, get_or_create_network_definitions,
-};
+use crate::cmd::network::utils::{get_or_create_network_config, get_or_create_network_definitions};
 use crate::cmd::utils::{get_address_type, get_chain_id};
 use crate::common::DirsCliArgs;
 use crate::symbiotic::calls::is_network;
 use crate::symbiotic::consts::get_network_registry;
+use crate::symbiotic::network_utils::get_network_metadata;
 use crate::utils::{
     print_error_message, print_loading_until_async, print_success_message, read_user_confirmation,
     write_to_json_file,

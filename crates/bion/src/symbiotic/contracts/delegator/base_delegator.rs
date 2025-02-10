@@ -68,6 +68,12 @@ sol! {
         function NETWORK_REGISTRY() external view returns (address);
 
         /**
+         * @notice Get the delegator type.
+         * @return type of the delegator
+         */
+        function TYPE() external view returns (uint64);
+
+        /**
          * @notice Get the vault factory's address.
          * @return address of the vault factory
          */

@@ -7,6 +7,7 @@ use register::RegisterCommand;
 use remove::RemoveCommand;
 use set_max_network_limit::SetMaxNetworkLimitCommand;
 use set_middleware::SetMiddlewareCommand;
+use vault_parameters::VaultParametersCommand;
 
 mod add;
 mod config;
@@ -18,6 +19,7 @@ mod remove;
 mod set_max_network_limit;
 mod set_middleware;
 mod utils;
+mod vault_parameters;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your network.")]
@@ -45,6 +47,9 @@ pub enum NetworkSubcommands {
 
     #[command(name = "set-middleware")]
     SetMiddleware(SetMiddlewareCommand),
+
+    #[command(name = "vault-parameters")]
+    VaultParameters(VaultParametersCommand),
 
     // Import network management
     #[command(name = "add")]
@@ -74,6 +79,9 @@ impl NetworkCommand {
             }
             NetworkSubcommands::SetMiddleware(set_middleware) => {
                 set_middleware.with_alias(self.alias).execute(ctx).await
+            }
+            NetworkSubcommands::VaultParameters(vault_parameters) => {
+                vault_parameters.with_alias(self.alias).execute(ctx).await
             }
             NetworkSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
             NetworkSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,

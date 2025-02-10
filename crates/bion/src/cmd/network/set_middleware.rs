@@ -110,11 +110,8 @@ impl SetMiddlewareCommand {
             eth,
             path: None,
         };
-        if let Ok(..) = arg.run().await {
-            print_success_message("✅ Successfully set network middleware.");
-        } else {
-            print_error_message("❌ Failed to set network middleware, please try again.");
-        }
+
+        let _ = arg.run().await?;
         Ok(())
     }
 }
