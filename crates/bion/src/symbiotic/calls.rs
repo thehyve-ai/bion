@@ -210,6 +210,23 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+pub fn get_vault_version_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    vault: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IVault::abi::functions();
+    // can safely unwrap
+    let function = abi.get("version").unwrap().first().unwrap();
+
+    multicall.add_call(vault, function, &[], allow_failure)
+}
+
 pub async fn get_vault_current_epoch<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,

@@ -24,6 +24,7 @@ pub struct NetworkInfo {
 /// * If the response cannot be parsed as JSON
 /// * If the JSON cannot be deserialized into `VaultInfo`
 pub async fn get_network_metadata(network_address: Address) -> eyre::Result<Option<NetworkInfo>> {
+    let network_address = network_address.to_string().to_lowercase();
     let url = format!("{SYMBIOTIC_GITHUB_URL}/{network_address}/{SYMBIOTIC_NETWORK_FILE_NAME}",);
     let res = reqwest::get(&url).await?;
     let vault_info: Option<NetworkInfo> = serde_json::from_str(&res.text().await?).ok();

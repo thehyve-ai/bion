@@ -53,6 +53,13 @@ pub async fn validate_address_with_signer(
     }
 }
 
+pub fn get_etherscan_address_link(address: Address, text: String) -> String {
+    format!(
+        "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
+        address, text
+    )
+}
+
 pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
     match rpc.url.is_some() {
         true => Ok(()),
@@ -305,7 +312,12 @@ pub fn parse_json<T: DeserializeOwned>(value: &str) -> serde_json::Result<T> {
 
 pub fn parse_duration_secs(secs: U256) -> String {
     let secs = secs.to_string().as_str().parse::<i64>().unwrap();
+    let formatted = parse_ts(secs);
 
+    format!("{} ({})", secs, formatted)
+}
+
+pub fn parse_ts(secs: i64) -> String {
     // also add days, hours, minutes, seconds
     let days = secs / 86400;
     let hours = (secs % 86400) / 3600;
@@ -322,7 +334,7 @@ pub fn parse_duration_secs(secs: U256) -> String {
         format!("{}s", seconds)
     };
 
-    format!("{} ({})", secs, formatted)
+    formatted
 }
 
 pub fn parse_duration_secs_u48(secs: U48) -> String {

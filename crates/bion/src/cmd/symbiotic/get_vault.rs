@@ -12,9 +12,10 @@ use crate::{
     symbiotic::{
         calls::is_vault,
         consts::get_vault_factory,
+        utils::get_vault_link,
         vault_utils::{
             fetch_token_datas, fetch_vault_datas, fetch_vault_extra_metadata, get_vault_metadata,
-            VaultData,
+            VaultData, VaultDataTableBuilder,
         },
     },
     utils::{parse_duration_secs, parse_epoch_ts, validate_cli_args},
@@ -53,99 +54,17 @@ impl GetVaultCommand {
         }
 
         let t1 = Instant::now();
-        let vaults = fetch_vault_datas(&provider, chain_id, vec![vault_address]).await?;
-        let vaults = fetch_vault_extra_metadata(&provider, chain_id, vaults).await?;
-        let vaults = fetch_token_datas(&provider, chain_id, vaults).await?;
 
-        if vaults.is_empty() {
-            println!(
-                "{}",
-                "🤔 what did you mess up in your vault config? Couldn't find it.".bright_red()
-            );
-            return Ok(());
-        }
+        let vault = VaultData::load(vault_address, &provider, chain_id).await?;
 
         {
             let txt = format!("Loaded vault in {}ms", t1.elapsed().as_millis());
             println!("{}", txt.as_str().bright_green());
         }
 
-        let vault: VaultData = vaults.first().unwrap().clone();
-        let vault_metadata = get_vault_metadata(vault.address).await?;
-        let mut table = Table::new();
-
-        let symbiotic_link = format!(
-            "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault_address,
-            vault_metadata
-                .map(|v| v.name)
-                .unwrap_or("Unverified vault".to_string())
-        );
-        table.add_row(row![
-            Fcb -> "Name",
-            symbiotic_link
-        ]);
-
-        let vault_link: String = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault_address, vault_address
-        );
-        table.add_row(row![Fcb ->"Address",  vault_link]);
-
-        let collateral_link = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault.collateral.unwrap(),
-            vault.symbol.clone().unwrap()
-        );
-        table.add_row(row![Fcb -> "Collateral",   collateral_link]);
-        let delegator_link = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault.delegator.unwrap(),
-            vault.delegator.unwrap()
-        );
-        table.add_row(row![Fcb -> "Delegator", delegator_link]);
-
-        let slasher_link = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault.slasher.unwrap(),
-            vault.slasher.unwrap()
-        );
-        table.add_row(row![Fcb -> "Slasher",  slasher_link]);
-
-        let burner_link = format!(
-            "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-            vault.burner.unwrap(),
-            vault.burner.unwrap()
-        );
-        table.add_row(row![Fcb -> "Burner",  burner_link]);
-
-        let mut deposit_limit = vault.deposit_limit_formatted().unwrap();
-        if deposit_limit == "0.000" {
-            deposit_limit = "-".to_string();
-        }
-        table.add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
-
-        let deposit_whitelist = match vault.deposit_whitelist.unwrap() {
-            true => "✅",
-            false => "❌",
-        };
-        table.add_row(row![Fcb -> "Deposit whitelist",  deposit_whitelist]);
-        table.add_row(row![Fcb -> "Total Stake",  vault.total_stake_formatted().unwrap()]);
-        table.add_row(row![
-            Fcb -> "Active Stake",
-             vault.active_stake_formatted_with_percentage().unwrap()
-        ]);
-        table.add_row(row![Fcb -> "Current epoch",  vault.current_epoch.unwrap()]);
-        table.add_row(
-            row![Fcb -> "Current epoch start", parse_epoch_ts(vault.current_epoch_start.unwrap())],
-        );
-        table.add_row(
-            row![Fcb -> "Epoch duration",  parse_duration_secs(vault.epoch_duration.unwrap())],
-        );
-        table.add_row(
-            row![Fcb -> "Next epoch start", parse_epoch_ts(vault.next_epoch_start.unwrap())],
-        );
-
+        let table_builder = VaultDataTableBuilder::from_vault_data(vault);
+        let table_builder = table_builder.with_all().await?;
+        let table = table_builder.build();
         table.printstd();
 
         Ok(())

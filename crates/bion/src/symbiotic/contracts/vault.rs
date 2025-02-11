@@ -340,6 +340,10 @@ sol! {
          */
         function setDepositorWhitelistStatus(address account, bool status) external;
 
+        function version() external view returns (uint64);
+
+
+
         /**
          * @notice Enable/disable deposit limit.
          * @param status if enabling deposit limit

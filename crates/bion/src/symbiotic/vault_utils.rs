@@ -1,9 +1,11 @@
 use alloy_primitives::{aliases::U48, hex::ToHexExt, Address, Bytes, U256};
 use alloy_sol_types::SolValue;
+use chrono::{DateTime, Utc};
 use colored::Colorize;
 use foundry_common::provider::RetryProvider;
 use itertools::Itertools;
 use multicall::{Multicall, MulticallVersion};
+use prettytable::{row, Table};
 use serde::Deserialize;
 
 use crate::{
@@ -11,7 +13,10 @@ use crate::{
         utils::{format_number_with_decimals, parse_currency},
         vault::config::VaultAdminConfig,
     },
-    utils::print_error_message,
+    utils::{
+        get_etherscan_address_link, parse_duration_secs, parse_epoch_ts, parse_ts,
+        print_error_message,
+    },
 };
 
 use super::{
@@ -23,6 +28,7 @@ use super::{
         get_vault_deposit_whitelist_multicall, get_vault_entity_multicall,
         get_vault_epoch_duration_multicall, get_vault_next_epoch_start_multicall,
         get_vault_slasher_multicall, get_vault_total_entities, get_vault_total_stake_multicall,
+        get_vault_version_multicall,
     },
     consts::get_vault_factory,
     contracts::{
@@ -36,6 +42,7 @@ use super::{
         vault_configurator::IVaultConfigurator,
         IVault,
     },
+    utils::get_vault_link,
     DelegatorType,
 };
 
@@ -43,9 +50,212 @@ const SYMBIOTIC_GITHUB_URL: &str =
     "https://raw.githubusercontent.com/symbioticfi/metadata-mainnet/refs/heads/main/vaults";
 const VAULT_FILE_NAME: &str = "info.json";
 
+pub struct VaultDataTableBuilder {
+    data: VaultData,
+    table: Table,
+    vault_info: Option<VaultInfo>,
+}
+
+impl VaultDataTableBuilder {
+    pub fn from_vault_data(data: VaultData) -> Self {
+        Self {
+            data,
+            table: Table::new(),
+            vault_info: None,
+        }
+    }
+
+    pub fn with_table(mut self, table: Table) -> Self {
+        self.table = table;
+        self
+    }
+
+    pub async fn with_name(mut self) -> eyre::Result<Self> {
+        let vault_info = self.vault_info().await?;
+        let name = vault_info
+            .map(|v| v.name)
+            .unwrap_or("Unverified vault".to_string());
+        self.table.add_row(row![
+            Fcb -> "Name",
+            get_vault_link(self.data.address, name)
+        ]);
+
+        Ok(self)
+    }
+
+    pub fn with_address(mut self) -> Self {
+        let link = get_etherscan_address_link(self.data.address, self.data.address.to_string());
+        self.table.add_row(row![Fcb ->"Address",  link]);
+        self
+    }
+
+    pub fn with_version(mut self) -> Self {
+        self.table
+            .add_row(row![Fcb -> "Version",  self.data.version.clone().unwrap()]);
+        self
+    }
+
+    pub fn with_collateral(mut self) -> Self {
+        let txt = format!(
+            "{} ({})",
+            self.data.symbol.clone().unwrap(),
+            self.data.collateral.clone().unwrap().to_string()
+        );
+        let link = get_etherscan_address_link(self.data.collateral.unwrap(), txt);
+        self.table.add_row(row![Fcb -> "Collateral",  link]);
+        self
+    }
+
+    pub fn with_delegator(mut self) -> Self {
+        let link = get_etherscan_address_link(
+            self.data.delegator.clone().unwrap(),
+            self.data.delegator.clone().unwrap().to_string(),
+        );
+        self.table.add_row(row![Fcb -> "Delegator",  link]);
+        self
+    }
+
+    pub fn with_slasher(mut self) -> Self {
+        let link = get_etherscan_address_link(
+            self.data.slasher.clone().unwrap(),
+            self.data.slasher.clone().unwrap().to_string(),
+        );
+        self.table.add_row(row![Fcb -> "Slasher",  link]);
+        self
+    }
+
+    pub fn with_burner(mut self) -> Self {
+        let link = get_etherscan_address_link(
+            self.data.burner.clone().unwrap(),
+            self.data.burner.clone().unwrap().to_string(),
+        );
+        self.table.add_row(row![Fcb -> "Burner",  link]);
+        self
+    }
+
+    pub fn with_deposit_limit(mut self) -> Self {
+        let mut deposit_limit = self.data.deposit_limit_formatted().unwrap();
+        if deposit_limit == "0.000" {
+            deposit_limit = "-".to_string();
+        }
+        self.table
+            .add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
+
+        self
+    }
+
+    pub fn with_deposit_whitelist(mut self) -> Self {
+        let deposit_whitelist = match self.data.deposit_whitelist.unwrap() {
+            true => "✅",
+            false => "❌",
+        };
+        self.table
+            .add_row(row![Fcb -> "Deposit whitelist",  deposit_whitelist]);
+        self
+    }
+
+    pub fn with_total_stake(mut self) -> Self {
+        self.table
+            .add_row(row![Fcb -> "Total stake",  self.data.total_stake_formatted().unwrap()]);
+        self
+    }
+
+    pub fn with_active_stake(mut self) -> Self {
+        self.table.add_row(row![
+            Fcb -> "Active stake",
+            self.data.active_stake_formatted_with_percentage().unwrap()
+        ]);
+        self
+    }
+
+    pub fn with_current_epoch(mut self) -> Self {
+        self.table
+            .add_row(row![Fcb -> "Current epoch",  self.data.current_epoch.clone().unwrap()]);
+        self
+    }
+
+    pub fn with_current_epoch_start(mut self) -> Self {
+        self.table.add_row(row![
+            Fcb -> "Current epoch start",
+            parse_epoch_ts(self.data.current_epoch_start.clone().unwrap())
+        ]);
+        self
+    }
+
+    pub fn with_epoch_duration(mut self) -> Self {
+        self.table.add_row(row![
+            Fcb -> "Epoch duration",
+            parse_duration_secs(self.data.epoch_duration.clone().unwrap())
+        ]);
+        self
+    }
+
+    pub fn with_next_epoch_start(mut self) -> Self {
+        self.table.add_row(row![
+            Fcb -> "Next epoch start",
+            parse_epoch_ts(self.data.next_epoch_start.clone().unwrap())
+        ]);
+        self
+    }
+
+    pub fn with_time_till_next_epoch(mut self) -> Self {
+        let now = Utc::now();
+        let next_epoch_start = DateTime::<Utc>::from_timestamp(
+            self.data.next_epoch_start.clone().unwrap().to::<i64>(),
+            0,
+        )
+        .unwrap();
+
+        let time_till_next_epoch = next_epoch_start.signed_duration_since(now);
+        let time_till_next_epoch_str = parse_ts(time_till_next_epoch.num_seconds());
+
+        self.table.add_row(row![
+            Fcb -> "Time till next epoch",
+            time_till_next_epoch_str
+        ]);
+        self
+    }
+
+    pub async fn with_all(mut self) -> eyre::Result<Self> {
+        Ok(self
+            .with_name()
+            .await?
+            .with_address()
+            .with_version()
+            .with_collateral()
+            .with_delegator()
+            .with_slasher()
+            .with_burner()
+            .with_deposit_limit()
+            .with_deposit_whitelist()
+            .with_total_stake()
+            .with_active_stake()
+            .with_current_epoch()
+            .with_current_epoch_start()
+            .with_epoch_duration()
+            .with_next_epoch_start())
+    }
+
+    pub fn build(self) -> Table {
+        self.table
+    }
+
+    async fn vault_info(&mut self) -> eyre::Result<Option<VaultInfo>> {
+        match &self.vault_info {
+            Some(vault_info) => Ok(Some(vault_info.clone())),
+            None => {
+                let info = get_vault_metadata(self.data.address).await?;
+                self.vault_info = info;
+                Ok(self.vault_info.clone())
+            }
+        }
+    }
+}
+
 #[derive(Clone)]
 pub struct VaultData {
     pub address: Address,
+    pub version: Option<u64>,
     pub collateral: Option<Address>,
     pub delegator: Option<Address>,
     pub total_stake: Option<U256>,
@@ -66,6 +276,7 @@ impl VaultData {
     pub fn new(address: Address) -> Self {
         Self {
             address,
+            version: None,
             collateral: None,
             delegator: None,
             total_stake: None,
@@ -81,6 +292,18 @@ impl VaultData {
             epoch_duration: None,
             next_epoch_start: None,
         }
+    }
+
+    pub async fn load(
+        address: Address,
+        provider: &RetryProvider,
+        chain_id: u64,
+    ) -> eyre::Result<Self> {
+        let vaults = fetch_vault_datas(provider, chain_id, vec![address]).await?;
+        let vaults = fetch_vault_extra_metadata(provider, chain_id, vaults).await?;
+        let vaults = fetch_token_datas(provider, chain_id, vaults).await?;
+        let vault = vaults.first().ok_or(eyre::eyre!("Vault not found"))?;
+        Ok(vault.clone())
     }
 
     pub fn set_collateral(&mut self, collateral: Address) {
@@ -117,6 +340,10 @@ impl VaultData {
 
     pub fn set_deposit_limit(&mut self, deposit_limit: U256) {
         self.deposit_limit = Some(deposit_limit);
+    }
+
+    pub fn set_version(&mut self, version: U256) {
+        self.version = Some(version.to::<u64>());
     }
 
     pub fn set_deposit_whitelist(&mut self, deposit_whitelist: bool) {
@@ -180,7 +407,7 @@ impl VaultData {
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Clone)]
 pub struct VaultInfo {
     pub name: String,
 }
@@ -348,9 +575,10 @@ pub async fn fetch_vault_datas(
         get_vault_delegator_multicall(&mut multicall, *vault, true);
         get_vault_total_stake_multicall(&mut multicall, *vault, true);
         get_vault_active_stake_multicall(&mut multicall, *vault, true);
+        get_vault_version_multicall(&mut multicall, *vault, true);
     }
 
-    let vault_datas = multicall.call().await?.into_iter().chunks(4);
+    let vault_datas = multicall.call().await?.into_iter().chunks(5);
 
     let mut vaults = Vec::with_capacity(vaults_addresses.len());
     for (vault_data, vault) in vault_datas.into_iter().zip(vaults_addresses) {
@@ -375,12 +603,18 @@ pub async fn fetch_vault_datas(
             .map(|data| data.as_uint())
             .ok()
             .flatten();
+        let version = vault_data[4]
+            .as_ref()
+            .map(|data| data.as_uint())
+            .ok()
+            .flatten();
 
         // Skip if any of the vault data is missing/errored
         if collateral.is_none()
             || delegator.is_none()
             || total_stake.is_none()
             || active_stake.is_none()
+            || version.is_none()
         {
             println!("{} {}", "Skipping vault: ".bright_yellow(), vault);
             continue;
@@ -390,12 +624,14 @@ pub async fn fetch_vault_datas(
         let delegator = delegator.unwrap();
         let total_stake = total_stake.unwrap();
         let active_stake = active_stake.unwrap();
+        let version = version.unwrap();
 
         let mut vault_data = VaultData::new(vault);
         vault_data.set_collateral(collateral);
         vault_data.set_delegator(delegator);
         vault_data.set_total_stake(total_stake.0);
         vault_data.set_active_stake(active_stake.0);
+        vault_data.set_version(version.0);
 
         vaults.push(vault_data);
     }
