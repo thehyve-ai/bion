@@ -14,7 +14,7 @@ use crate::{
             consts::{OPERATOR_CONFIG_FILE, OPERATOR_DEFINITIONS_FILE, OPERATOR_DIRECTORY},
             utils::{get_or_create_operator_config, get_or_create_operator_definitions},
         },
-        utils::{get_address_type, get_chain_id, AddressType},
+        utils::{get_address_type, get_chain_id},
     },
     common::DirsCliArgs,
     symbiotic::{calls::is_operator, consts::get_operator_registry},

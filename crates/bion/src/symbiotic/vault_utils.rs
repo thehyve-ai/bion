@@ -10,12 +10,13 @@ use serde::Deserialize;
 
 use crate::{
     cmd::{
+        operator,
         utils::{format_number_with_decimals, parse_currency},
         vault::config::VaultAdminConfig,
     },
     utils::{
         get_etherscan_address_link, parse_duration_secs, parse_epoch_ts, parse_ts,
-        print_error_message,
+        print_error_message, print_loading_until_async,
     },
 };
 
@@ -28,7 +29,7 @@ use super::{
         get_vault_deposit_whitelist_multicall, get_vault_entity_multicall,
         get_vault_epoch_duration_multicall, get_vault_next_epoch_start_multicall,
         get_vault_slasher_multicall, get_vault_total_entities, get_vault_total_stake_multicall,
-        get_vault_version_multicall,
+        get_vault_version_multicall, is_delegator, is_opted_in_vault, is_slasher, is_vault,
     },
     consts::get_vault_factory,
     contracts::{
@@ -886,4 +887,89 @@ pub async fn get_vault_metadata(vault_address: Address) -> eyre::Result<Option<V
     let res = reqwest::get(&url).await?;
     let vault_info: Option<VaultInfo> = serde_json::from_str(&res.text().await?).ok();
     Ok(vault_info)
+}
+
+pub async fn validate_vault_status<A: TryInto<Address>>(
+    vault: A,
+    vault_factory: A,
+    provider: &RetryProvider,
+) -> eyre::Result<()>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let is_vault = print_loading_until_async(
+        "Validating vault status",
+        is_vault(vault, vault_factory, provider),
+    )
+    .await?;
+
+    if !is_vault {
+        eyre::bail!("Provided address is not a valid Symbiotic vault.");
+    }
+
+    Ok(())
+}
+
+pub async fn validate_delegator_status<A: TryInto<Address>>(
+    delegator: A,
+    delegator_factory: A,
+    provider: &RetryProvider,
+) -> eyre::Result<()>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let is_delegator = print_loading_until_async(
+        "Checking delegator status",
+        is_delegator(delegator, delegator_factory, &provider),
+    )
+    .await?;
+
+    if !is_delegator {
+        eyre::bail!("Provided address is not a valid Symbiotic delegator.");
+    }
+
+    Ok(())
+}
+
+pub async fn validate_slasher_status<A: TryInto<Address>>(
+    slasher: A,
+    slasher_factory: A,
+    provider: &RetryProvider,
+) -> eyre::Result<()>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let is_slasher = print_loading_until_async(
+        "Checking slasher status",
+        is_slasher(slasher, slasher_factory, &provider),
+    )
+    .await?;
+
+    if !is_slasher {
+        eyre::bail!("Provided address is not a valid Symbiotic slasher.");
+    }
+
+    Ok(())
+}
+
+pub async fn validate_operator_vault_opt_in_status<A: TryInto<Address>>(
+    operator: A,
+    vault: A,
+    opt_in_service: A,
+    provider: &RetryProvider,
+) -> eyre::Result<()>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let is_opted_in = print_loading_until_async(
+        "Checking opted in status",
+        is_opted_in_vault(operator, vault, opt_in_service, &provider),
+    )
+    .await?;
+
+    if !is_opted_in {
+        return Err(eyre::eyre!("Operator is not opted in vault."));
+    }
+
+    Ok(())
 }

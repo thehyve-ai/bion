@@ -82,7 +82,6 @@ impl CreateCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
         let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;

@@ -11,6 +11,7 @@ use set_deposit_whitelist::SetDepositWhitelistCommand;
 use set_depositor_whitelist_status::SetDepositorWhitelistStatusCommand;
 use set_is_deposit_limit::SetIsDepositLimitCommand;
 use set_network_limit::SetNetworkLimitCommand;
+use set_operator_network_limit::SetOperatorNetworkLimitCommand;
 use set_operator_network_shares::SetOperatorNetworkSharesCommand;
 use set_slasher::SetSlasherCommand;
 
@@ -27,6 +28,7 @@ mod set_deposit_whitelist;
 mod set_depositor_whitelist_status;
 mod set_is_deposit_limit;
 mod set_network_limit;
+mod set_operator_network_limit;
 mod set_operator_network_shares;
 mod set_slasher;
 mod utils;
@@ -69,6 +71,9 @@ pub enum VaultSubcommands {
 
     #[command(name = "set-network-limit")]
     SetNetworkLimit(SetNetworkLimitCommand),
+
+    #[command(name = "set-operator-network-limit")]
+    SetOperatorNetworkLimit(SetOperatorNetworkLimitCommand),
 
     #[command(name = "set-operator-network-shares")]
     SetOperatorNetworkShares(SetOperatorNetworkSharesCommand),
@@ -120,6 +125,12 @@ impl VaultCommand {
             }
             VaultSubcommands::SetNetworkLimit(set_network_limit) => {
                 set_network_limit.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetOperatorNetworkLimit(set_operator_network_limit) => {
+                set_operator_network_limit
+                    .with_alias(self.alias)
+                    .execute(ctx)
+                    .await
             }
             VaultSubcommands::SetOperatorNetworkShares(set_operator_network_shares) => {
                 set_operator_network_shares

@@ -12,23 +12,19 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{
-        calls::{is_network, is_opted_in_network},
+        calls::is_opted_in_network,
         consts::{get_network_opt_in_service, get_network_registry},
+        network_utils::validate_network_status,
     },
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
-    },
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct OptInNetworkCommand {
-    #[arg(
-        value_name = "ADDRESS",
-        help = "The address of the network to opt-in to."
-    )]
-    pub address: Address,
+    #[arg(value_name = "NETWORK", help = "The address of the network.")]
+    network: Address,
 
     #[arg(skip)]
     alias: String,
@@ -62,7 +58,7 @@ impl OptInNetworkCommand {
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
-            address,
+            network,
             alias,
             dirs,
             mut eth,
@@ -76,27 +72,17 @@ impl OptInNetworkCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
-        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&operator_config, &mut eth)?;
         let network_registry = get_network_registry(chain_id)?;
         let opt_in_service = get_network_opt_in_service(chain_id)?;
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        let is_network = print_loading_until_async(
-            "Checking network status",
-            is_network(address, network_registry, &provider),
-        )
-        .await?;
-
-        if !is_network {
-            print_error_message("Provided address is not a valid Symbiotic network.");
-            return Ok(());
-        }
+        validate_network_status(network, network_registry, &provider).await?;
 
         let is_opted_in = print_loading_until_async(
             "Checking opted in status",
-            is_opted_in_network(address, address, opt_in_service, &provider),
+            is_opted_in_network(operator_config.address, network, opt_in_service, &provider),
         )
         .await?;
 
@@ -109,7 +95,7 @@ impl OptInNetworkCommand {
         let arg = SendTxArgs {
             to: Some(to),
             sig: Some("optIn(address where)".to_string()),
-            args: vec![address.to_string()],
+            args: vec![network.to_string()],
             cast_async: false,
             confirmations,
             command: None,

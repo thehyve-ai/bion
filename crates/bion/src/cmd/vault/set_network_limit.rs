@@ -147,6 +147,19 @@ impl SetNetworkLimitCommand {
             print_loading_until_async("Fetching delegator", get_vault_delegator(vault, &provider))
                 .await?;
 
+        let delegator_type = print_loading_until_async(
+            "Fetching delgator type",
+            get_delegator_type(delegator, &provider),
+        )
+        .await?;
+
+        if delegator_type == DelegatorType::OperatorNetworkSpecificDelegator {
+            print_error_message(
+                "Network limit cannot be set for vaults with an OperatorNetworkSpecificDelegator.",
+            );
+            return Ok(());
+        }
+
         let collateral_address = get_vault_collateral(vault, &provider).await?;
         let collateral = fetch_token_data(chain_id, collateral_address, &provider).await?;
         if collateral.is_none() {
@@ -211,6 +224,11 @@ impl SetNetworkLimitCommand {
 
         let max_network_limit =
             get_max_network_limit(network, subnetwork, delegator, &provider).await?;
+        if max_network_limit > U256::ZERO && max_network_limit < limit {
+            print_error_message("New limit is greater than the max network limit.");
+            return Ok(());
+        }
+
         let mut max_network_limit_formatted =
             format_number_with_decimals(max_network_limit, collateral.decimals)?;
         if max_network_limit_formatted == "0.000" {

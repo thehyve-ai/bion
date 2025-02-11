@@ -11,7 +11,7 @@ use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
-    symbiotic::{calls::is_vault, consts::get_vault_factory},
+    symbiotic::{calls::is_vault, consts::get_vault_factory, vault_utils::validate_vault_status},
     utils::{print_error_message, print_loading_until_async, validate_cli_args},
 };
 
@@ -72,23 +72,12 @@ impl SetIsDepositLimitCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
+        let vault_factory = get_vault_factory(chain_id)?;
         let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
-        let vault_factory = get_vault_factory(chain_id)?;
-
-        let is_vault = print_loading_until_async(
-            "Checking vault status",
-            is_vault(vault, vault_factory, &provider),
-        )
-        .await?;
-
-        if !is_vault {
-            print_error_message("Provided address is not a valid Symbiotic vault.");
-            return Ok(());
-        }
+        validate_vault_status(vault, vault_factory, &provider).await?;
 
         let to = NameOrAddress::Address(vault);
 

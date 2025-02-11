@@ -64,8 +64,7 @@ pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
     match rpc.url.is_some() {
         true => Ok(()),
         false => {
-            print_error_message("RPC URL is required!");
-            eyre::bail!("")
+            eyre::bail!("RPC URL is required!")
         }
     }
 }

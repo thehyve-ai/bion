@@ -12,12 +12,10 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{
-        calls::is_network,
         consts::{get_network_middleware_service, get_network_registry},
+        network_utils::validate_network_status,
     },
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
-    },
+    utils::validate_cli_args,
 };
 
 use super::utils::{get_network_config, set_foundry_signing_method};
@@ -76,24 +74,13 @@ impl SetMiddlewareCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
+        let network_registry = get_network_registry(chain_id)?;
+        let network_middleware_service = get_network_middleware_service(chain_id)?;
         let network_config = get_network_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
-        let network_registry = get_network_registry(chain_id)?;
-        let network_middleware_service = get_network_middleware_service(chain_id)?;
-
-        let is_network = print_loading_until_async(
-            "Checking network registration status",
-            is_network(network_config.address, network_registry, &provider),
-        )
-        .await?;
-
-        if !is_network {
-            print_error_message("Network is not registered");
-            return Ok(());
-        }
+        validate_network_status(network_config.address, network_registry, &provider).await?;
 
         let to = NameOrAddress::Address(network_middleware_service);
 

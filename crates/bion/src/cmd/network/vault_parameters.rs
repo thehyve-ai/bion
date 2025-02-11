@@ -13,18 +13,15 @@ use crate::{
     common::DirsCliArgs,
     symbiotic::{
         calls::{
-            get_delegator_type, get_max_network_limit, get_network_limit, get_vault_collateral,
-            get_vault_delegator, is_network, is_vault,
+            get_delegator_type, get_max_network_limit, get_network_limit, is_network, is_vault,
         },
         consts::{get_network_registry, get_vault_factory},
         network_utils::{get_network_metadata, NetworkInfo},
         utils::{get_network_link, get_subnetwork, get_vault_link},
-        vault_utils::{
-            fetch_token_data, get_vault_metadata, VaultData, VaultDataTableBuilder, VaultInfo,
-        },
+        vault_utils::{get_vault_metadata, VaultData, VaultDataTableBuilder, VaultInfo},
         DelegatorType,
     },
-    utils::{print_error_message, print_loading_until_async, validate_cli_args},
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 use super::utils::get_network_config;
@@ -148,8 +145,7 @@ async fn validate_network_and_vault(
     .await?;
 
     if !is_network {
-        print_error_message("Network is not registered");
-        return Ok(());
+        eyre::bail!("Network is not registered");
     }
 
     let is_vault = print_loading_until_async(
@@ -159,8 +155,7 @@ async fn validate_network_and_vault(
     .await?;
 
     if !is_vault {
-        print_error_message("Provided address is not a valid Symbiotic vault.");
-        return Ok(());
+        eyre::bail!("Provided address is not a valid Symbiotic vault.");
     }
 
     Ok(())

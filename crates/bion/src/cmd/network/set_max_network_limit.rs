@@ -16,11 +16,11 @@ use crate::{
     symbiotic::{
         calls::{
             get_delegator_type, get_max_network_limit, get_network_limit, get_vault_collateral,
-            get_vault_delegator, is_network, is_opted_in_vault, is_vault,
+            get_vault_delegator, is_opted_in_vault,
         },
         consts::{get_network_registry, get_vault_factory, get_vault_opt_in_service},
-        network_utils::get_network_metadata,
-        vault_utils::{fetch_token_data, get_vault_metadata},
+        network_utils::{get_network_metadata, validate_network_status},
+        vault_utils::{fetch_token_data, get_vault_metadata, validate_vault_status},
         DelegatorType,
     },
     utils::{
@@ -93,36 +93,15 @@ impl SetMaxNetworkLimitCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
-
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
         let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let network_config = get_network_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&network_config, &mut eth)?;
 
-        let is_network = print_loading_until_async(
-            "Checking network registration status",
-            is_network(network_config.address, network_registry, &provider),
-        )
-        .await?;
-
-        if !is_network {
-            print_error_message("Network is not registered");
-            return Ok(());
-        }
-
-        let is_vault = print_loading_until_async(
-            "Checking vault status",
-            is_vault(vault, vault_factory, &provider),
-        )
-        .await?;
-
-        if !is_vault {
-            print_error_message("Provided address is not a valid Symbiotic vault.");
-            return Ok(());
-        }
+        validate_network_status(network_config.address, network_registry, &provider).await?;
+        validate_vault_status(vault, vault_factory, &provider).await?;
 
         let is_opted_in = print_loading_until_async(
             "Checking network opt in status in vault",

@@ -12,10 +12,10 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{
-        calls::{is_delegator, is_vault},
         consts::{get_delegator_factory, get_vault_factory},
+        vault_utils::{validate_delegator_status, validate_vault_status},
     },
-    utils::{print_error_message, print_loading_until_async, validate_cli_args},
+    utils::validate_cli_args,
 };
 
 use super::utils::{get_vault_admin_config, set_foundry_signing_method};
@@ -77,33 +77,13 @@ impl SetDelegatorCommand {
         let provider = utils::get_provider(&config)?;
 
         let chain_id = get_chain_id(&provider).await?;
+        let delegator_factory = get_delegator_factory(chain_id)?;
+        let vault_factory = get_vault_factory(chain_id)?;
         let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
-        let delegator_factory = get_delegator_factory(chain_id)?;
-        let vault_factory = get_vault_factory(chain_id)?;
-
-        let is_vault = print_loading_until_async(
-            "Checking vault status",
-            is_vault(vault, vault_factory, &provider),
-        )
-        .await?;
-
-        if !is_vault {
-            print_error_message("Provided address is not a valid Symbiotic vault.");
-            return Ok(());
-        }
-
-        let is_delegator = print_loading_until_async(
-            "Checking delegator status",
-            is_delegator(delegator, delegator_factory, &provider),
-        )
-        .await?;
-
-        if !is_delegator {
-            print_error_message("Provided address is not a valid Symbiotic delegator.");
-            return Ok(());
-        }
+        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_delegator_status(delegator, delegator_factory, &provider).await?;
 
         let to = NameOrAddress::Address(vault);
 

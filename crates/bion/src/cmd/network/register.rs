@@ -65,12 +65,10 @@ impl RegisterCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
+        let network_registry = get_network_registry(chain_id)?;
         let network_config = get_network_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
-
-        let network_registry = get_network_registry(chain_id)?;
 
         let is_network = print_loading_until_async(
             "Checking network registration status",

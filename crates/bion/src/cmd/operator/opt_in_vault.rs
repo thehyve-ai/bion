@@ -12,23 +12,19 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{
-        calls::{is_opted_in_vault, is_vault},
+        calls::is_opted_in_vault,
         consts::{get_vault_factory, get_vault_opt_in_service},
+        vault_utils::validate_vault_status,
     },
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
-    },
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct OptInVaultCommand {
-    #[arg(
-        value_name = "ADDRESS",
-        help = "The address of the vault to opt-in to."
-    )]
-    pub address: Address,
+    #[arg(value_name = "VAULT", help = "The address of the vault.")]
+    vault: Address,
 
     #[arg(skip)]
     alias: String,
@@ -62,7 +58,7 @@ impl OptInVaultCommand {
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
-            address,
+            vault,
             alias,
             dirs,
             mut eth,
@@ -76,27 +72,17 @@ impl OptInVaultCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
-        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
-        set_foundry_signing_method(&operator_config, &mut eth)?;
         let vault_factory = get_vault_factory(chain_id)?;
         let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        let is_vault = print_loading_until_async(
-            "Checking vault status",
-            is_vault(address, vault_factory, &provider),
-        )
-        .await?;
-
-        if !is_vault {
-            print_error_message("Provided address is not a valid Symbiotic vault.");
-            return Ok(());
-        }
+        validate_vault_status(vault, vault_factory, &provider).await?;
 
         let is_opted_in = print_loading_until_async(
             "Checking opted in status",
-            is_opted_in_vault(address, address, opt_in_service, &provider),
+            is_opted_in_vault(operator_config.address, vault, opt_in_service, &provider),
         )
         .await?;
 
@@ -109,7 +95,7 @@ impl OptInVaultCommand {
         let arg = SendTxArgs {
             to: Some(to),
             sig: Some("optIn(address where)".to_string()),
-            args: vec![address.to_string()],
+            args: vec![vault.to_string()],
             cast_async: false,
             confirmations,
             command: None,

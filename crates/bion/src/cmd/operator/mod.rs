@@ -7,6 +7,7 @@ use opt_out_network::OptOutNetworkCommand;
 use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
 use remove::RemoveCommand;
+use vault_parameters::VaultParametersCommand;
 
 mod add;
 mod config;
@@ -47,6 +48,9 @@ pub enum OperatorSubcommands {
     #[command(name = "register")]
     Register(RegisterCommand),
 
+    #[command(name = "vault-parameters")]
+    VaultParameters(VaultParametersCommand),
+
     // Import operator management
     #[command(name = "add")]
     Add(AddCommand),
@@ -72,6 +76,9 @@ impl OperatorCommand {
             }
             OperatorSubcommands::Register(register) => {
                 register.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::VaultParameters(vault_parameters) => {
+                vault_parameters.with_alias(self.alias).execute(ctx).await
             }
             OperatorSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
             OperatorSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,
