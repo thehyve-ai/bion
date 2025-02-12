@@ -3,7 +3,6 @@ use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
 use hyve_cli_runner::CliContext;
-use prettytable::{row, Table};
 
 use std::time::Instant;
 
@@ -12,13 +11,9 @@ use crate::{
     symbiotic::{
         calls::is_vault,
         consts::get_vault_factory,
-        utils::get_vault_link,
-        vault_utils::{
-            fetch_token_datas, fetch_vault_datas, fetch_vault_extra_metadata, get_vault_metadata,
-            VaultData, VaultDataTableBuilder,
-        },
+        vault_utils::{VaultData, VaultDataTableBuilder},
     },
-    utils::{parse_duration_secs, parse_epoch_ts, validate_cli_args},
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
@@ -55,7 +50,7 @@ impl GetVaultCommand {
 
         let t1 = Instant::now();
 
-        let vault = VaultData::load(vault_address, &provider, chain_id).await?;
+        let vault = VaultData::load(chain_id, vault_address, true, &provider).await?;
 
         {
             let txt = format!("Loaded vault in {}ms", t1.elapsed().as_millis());

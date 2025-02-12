@@ -1,84 +1,82 @@
 use clap::Parser;
-use colored::Colorize;
-use foundry_cli::{opts::EthereumOpts, utils, utils::LoadConfig};
+use foundry_cli::{
+    opts::EthereumOpts,
+    utils::{self, LoadConfig},
+};
 use hyve_cli_runner::CliContext;
 use itertools::Itertools;
 use prettytable::{row, Table};
 
-use std::time::Instant;
-
 use crate::{
     cmd::utils::get_chain_id,
-    symbiotic::vault_utils::{
-        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, fetch_vault_symbiotic_metadata,
+    common::DirsCliArgs,
+    symbiotic::{
+        calls::is_opted_in_vault,
+        consts::{get_network_registry, get_vault_opt_in_service},
+        network_utils::validate_network_status,
+        vault_utils::{
+            fetch_token_datas, fetch_vault_addresses, fetch_vault_datas,
+            fetch_vault_symbiotic_metadata,
+        },
     },
     utils::validate_cli_args,
 };
 
-#[derive(Debug, Parser)]
-#[clap(about = "Get information for all Symbiotic vaults.")]
-pub struct ListVaultsCommand {
-    #[arg(
-        long,
-        value_name = "LIMIT",
-        default_value = "10",
-        help = "The number of vaults to list."
-    )]
-    limit: u8,
+use super::utils::get_network_config;
 
+#[derive(Debug, Parser)]
+pub struct ListVaultsCommand {
     #[arg(long, help = "Only show verified vaults.", default_value = "false")]
     verified_only: bool,
 
-    #[arg(long, help = "Only show vaults with this collateral token.")]
-    collateral: Option<String>,
+    #[arg(skip)]
+    alias: String,
+
+    #[clap(flatten)]
+    dirs: DirsCliArgs,
 
     #[clap(flatten)]
     eth: EthereumOpts,
 }
 
 impl ListVaultsCommand {
-    pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
+    pub fn with_alias(self, alias: String) -> Self {
+        Self { alias, ..self }
+    }
+
+    pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
-            limit,
             verified_only,
+            alias,
+            dirs,
             eth,
-            collateral,
         } = self;
 
         validate_cli_args(&eth)?;
-
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
-        {
-            let txt = format!(
-                "Loading vaults on chain {} with a limit of {}.",
-                chain_id, limit
-            );
-            println!("{}", txt.as_str().bright_cyan());
-            println!(
-                "{}",
-                "You can change this limit using --limit".bright_green()
-            )
+        let network_registry = get_network_registry(chain_id)?;
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let network_config = get_network_config(chain_id, alias, &dirs)?;
+
+        validate_network_status(network_config.address, network_registry, &provider).await?;
+
+        let vault_addresses = fetch_vault_addresses(&provider, chain_id).await?;
+        let mut valid_vault_addresses = Vec::new();
+        for vault in vault_addresses {
+            if is_opted_in_vault(network_config.address, vault, opt_in_service, &provider).await? {
+                valid_vault_addresses.push(vault);
+            }
         }
 
-        let t1 = Instant::now();
-        let vault_addresses = fetch_vault_addresses(&provider, chain_id).await?;
-        let total_vaults = vault_addresses.len();
-        let vaults = fetch_vault_datas(&provider, chain_id, vault_addresses).await?;
+        if valid_vault_addresses.is_empty() {
+            eyre::bail!("No vaults found for the network");
+        }
+
+        let vaults = fetch_vault_datas(&provider, chain_id, valid_vault_addresses).await?;
         let vaults = fetch_vault_symbiotic_metadata(vaults).await?;
         let vaults = fetch_token_datas(&provider, chain_id, vaults).await?;
-
-        {
-            let txt = format!(
-                "Loaded {} vaults out of {} in {}ms",
-                vaults.len(),
-                total_vaults,
-                t1.elapsed().as_millis()
-            );
-            println!("{}", txt.as_str().bright_green());
-        }
 
         let mut table = Table::new();
 
@@ -119,12 +117,6 @@ impl ListVaultsCommand {
                 vault.symbol.as_ref().unwrap()
             );
 
-            if collateral.clone().is_some() {
-                if vault.symbol.clone().unwrap() != collateral.clone().unwrap() {
-                    continue;
-                }
-            }
-
             let row = row![
                 i + 1,
                 symbiotic_link,
@@ -135,11 +127,7 @@ impl ListVaultsCommand {
             ];
 
             table.add_row(row);
-
             i += 1;
-            if i >= limit {
-                break;
-            }
         }
 
         table.printstd();

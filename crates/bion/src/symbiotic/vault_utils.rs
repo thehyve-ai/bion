@@ -1,4 +1,8 @@
-use alloy_primitives::{aliases::U48, hex::ToHexExt, Address, Bytes, U256};
+use alloy_primitives::{
+    aliases::{U48, U96},
+    hex::ToHexExt,
+    Address, Bytes, U256,
+};
 use alloy_sol_types::SolValue;
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -10,7 +14,6 @@ use serde::Deserialize;
 
 use crate::{
     cmd::{
-        operator,
         utils::{format_number_with_decimals, parse_currency},
         vault::config::VaultAdminConfig,
     },
@@ -22,14 +25,15 @@ use crate::{
 
 use super::{
     calls::{
-        get_token_decimals_multicall, get_token_symbol_multicall, get_vault_active_stake_multicall,
-        get_vault_burner_multicall, get_vault_collateral_multicall,
-        get_vault_current_epoch_multicall, get_vault_current_epoch_start_multicall,
-        get_vault_delegator_multicall, get_vault_deposit_limit_multicall,
-        get_vault_deposit_whitelist_multicall, get_vault_entity_multicall,
-        get_vault_epoch_duration_multicall, get_vault_next_epoch_start_multicall,
-        get_vault_slasher_multicall, get_vault_total_entities, get_vault_total_stake_multicall,
-        get_vault_version_multicall, is_delegator, is_opted_in_vault, is_slasher, is_vault,
+        get_network_limit, get_token_decimals_multicall, get_token_symbol_multicall,
+        get_vault_active_stake_multicall, get_vault_burner_multicall,
+        get_vault_collateral_multicall, get_vault_current_epoch_multicall,
+        get_vault_current_epoch_start_multicall, get_vault_delegator_multicall,
+        get_vault_deposit_limit_multicall, get_vault_deposit_whitelist_multicall,
+        get_vault_entity_multicall, get_vault_epoch_duration_multicall,
+        get_vault_next_epoch_start_multicall, get_vault_slasher_multicall,
+        get_vault_total_entities, get_vault_total_stake_multicall, get_vault_version_multicall,
+        is_delegator, is_opted_in_vault, is_slasher, is_vault,
     },
     consts::get_vault_factory,
     contracts::{
@@ -43,7 +47,8 @@ use super::{
         vault_configurator::IVaultConfigurator,
         IVault,
     },
-    utils::get_vault_link,
+    network_utils::NetworkInfo,
+    utils::{get_network_link, get_subnetwork, get_vault_link},
     DelegatorType,
 };
 
@@ -51,10 +56,26 @@ const SYMBIOTIC_GITHUB_URL: &str =
     "https://raw.githubusercontent.com/symbioticfi/metadata-mainnet/refs/heads/main/vaults";
 const VAULT_FILE_NAME: &str = "info.json";
 
+#[derive(Debug)]
+pub enum RowPrefix {
+    Default,
+    New,
+    Old,
+}
+
+impl RowPrefix {
+    pub fn row_name(self, name: &str) -> String {
+        match self {
+            RowPrefix::Default => return name.to_string(),
+            RowPrefix::New => return format!("New {}", name),
+            RowPrefix::Old => return format!("Old {}", name),
+        }
+    }
+}
+
 pub struct VaultDataTableBuilder {
     data: VaultData,
     table: Table,
-    vault_info: Option<VaultInfo>,
 }
 
 impl VaultDataTableBuilder {
@@ -62,7 +83,6 @@ impl VaultDataTableBuilder {
         Self {
             data,
             table: Table::new(),
-            vault_info: None,
         }
     }
 
@@ -71,16 +91,43 @@ impl VaultDataTableBuilder {
         self
     }
 
-    pub async fn with_name(mut self) -> eyre::Result<Self> {
-        let vault_info = self.vault_info().await?;
-        let name = vault_info
+    pub fn with_name(mut self) -> Self {
+        let name = self
+            .data
+            .symbiotic_metadata
+            .clone()
             .map(|v| v.name)
             .unwrap_or("Unverified vault".to_string());
         self.table.add_row(row![
             Fcb -> "Name",
             get_vault_link(self.data.address, name)
         ]);
+        self
+    }
 
+    pub fn with_network(
+        mut self,
+        network_address: Address,
+        network_metadata: Option<NetworkInfo>,
+    ) -> Self {
+        let network_link = get_network_link(
+            network_address,
+            network_metadata
+                .map(|v| v.name)
+                .unwrap_or("UNVERIFIED".to_string()),
+        );
+        self.table.add_row(row![Fcb -> "Network", network_link]);
+        self
+    }
+
+    pub fn with_subnetwork_identifier(
+        mut self,
+        network_address: Address,
+        subnetwork: U96,
+    ) -> eyre::Result<Self> {
+        self.table.add_row(row![Fcb -> "Subnetwork Identifier",
+            get_subnetwork(network_address, subnetwork)?.to_string()
+        ]);
         Ok(self)
     }
 
@@ -217,10 +264,94 @@ impl VaultDataTableBuilder {
         self
     }
 
-    pub async fn with_all(mut self) -> eyre::Result<Self> {
+    pub fn with_max_network_limit(
+        mut self,
+        max_network_limit: U256,
+        row_prefix: RowPrefix,
+    ) -> eyre::Result<Self> {
+        let mut max_network_limit_formatted =
+            format_number_with_decimals(max_network_limit, self.data.decimals.clone().unwrap())?;
+        if max_network_limit_formatted == "0.000" {
+            max_network_limit_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> row_prefix.row_name("Max Network Limit"), format!("{} ({} {})", max_network_limit.to_string(), max_network_limit_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub fn with_network_limit(
+        mut self,
+        network_limit: U256,
+        row_prefix: RowPrefix,
+    ) -> eyre::Result<Self> {
+        let mut network_limit_formatted =
+            format_number_with_decimals(network_limit, self.data.decimals.clone().unwrap())?;
+        if network_limit_formatted == "0.000" {
+            network_limit_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> row_prefix.row_name("Network Limit"), format!("{} ({} {})", network_limit.to_string(), network_limit_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub fn with_operator_network_limit(
+        mut self,
+        operator_network_limit: U256,
+        row_prefix: RowPrefix,
+    ) -> eyre::Result<Self> {
+        let mut operator_network_limit_formatted = format_number_with_decimals(
+            operator_network_limit,
+            self.data.decimals.clone().unwrap(),
+        )?;
+        if operator_network_limit_formatted == "0.000" {
+            operator_network_limit_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> row_prefix.row_name("Operator Network Limit"), format!("{} ({} {})", operator_network_limit.to_string(), operator_network_limit_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub fn with_operator_network_shares(
+        mut self,
+        operator_network_shares: U256,
+        row_prefix: RowPrefix,
+    ) -> eyre::Result<Self> {
+        let mut operator_network_shares_formatted = format_number_with_decimals(
+            operator_network_shares,
+            self.data.decimals.clone().unwrap(),
+        )?;
+        if operator_network_shares_formatted == "0.000" {
+            operator_network_shares_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> row_prefix.row_name("Operator Network Shares"), format!("{} ({} {})", operator_network_shares.to_string(), operator_network_shares_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub fn with_operator_stake(mut self, operator_stake: U256) -> eyre::Result<Self> {
+        let mut operator_stake_formatted =
+            format_number_with_decimals(operator_stake, self.data.decimals.clone().unwrap())?;
+        if operator_stake_formatted == "0.000" {
+            operator_stake_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> "Operator Stake", format!("{} ({} {})", operator_stake.to_string(), operator_stake_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub fn with_total_operator_network_shares(
+        mut self,
+        total_operator_network_shares: U256,
+    ) -> eyre::Result<Self> {
+        let mut total_operator_network_shares_formatted = format_number_with_decimals(
+            total_operator_network_shares,
+            self.data.decimals.clone().unwrap(),
+        )?;
+        if total_operator_network_shares_formatted == "0.000" {
+            total_operator_network_shares_formatted = "-".to_string();
+        }
+        self.table.add_row(row![Fcb -> "Total Operator Network Shares", format!("{} ({} {})", total_operator_network_shares.to_string(), total_operator_network_shares_formatted, self.data.symbol.clone().unwrap())]);
+        Ok(self)
+    }
+
+    pub async fn with_all(self) -> eyre::Result<Self> {
         Ok(self
             .with_name()
-            .await?
             .with_address()
             .with_version()
             .with_collateral()
@@ -239,17 +370,6 @@ impl VaultDataTableBuilder {
 
     pub fn build(self) -> Table {
         self.table
-    }
-
-    async fn vault_info(&mut self) -> eyre::Result<Option<VaultInfo>> {
-        match &self.vault_info {
-            Some(vault_info) => Ok(Some(vault_info.clone())),
-            None => {
-                let info = get_vault_metadata(self.data.address).await?;
-                self.vault_info = info;
-                Ok(self.vault_info.clone())
-            }
-        }
     }
 }
 
@@ -271,6 +391,7 @@ pub struct VaultData {
     pub current_epoch_start: Option<U256>,
     pub epoch_duration: Option<U256>,
     pub next_epoch_start: Option<U256>,
+    pub symbiotic_metadata: Option<VaultInfo>,
 }
 
 impl VaultData {
@@ -292,19 +413,28 @@ impl VaultData {
             current_epoch_start: None,
             epoch_duration: None,
             next_epoch_start: None,
+            symbiotic_metadata: None,
         }
     }
 
     pub async fn load(
-        address: Address,
-        provider: &RetryProvider,
         chain_id: u64,
+        address: Address,
+        include_extra_metadata: bool,
+        provider: &RetryProvider,
     ) -> eyre::Result<Self> {
-        let vaults = fetch_vault_datas(provider, chain_id, vec![address]).await?;
-        let vaults = fetch_vault_extra_metadata(provider, chain_id, vaults).await?;
+        let mut vaults = fetch_vault_datas(provider, chain_id, vec![address]).await?;
+        if include_extra_metadata {
+            vaults = fetch_vault_extra_metadata(provider, chain_id, vaults).await?;
+        }
         let vaults = fetch_token_datas(provider, chain_id, vaults).await?;
-        let vault = vaults.first().ok_or(eyre::eyre!("Vault not found"))?;
-        Ok(vault.clone())
+        let vault = vaults
+            .first()
+            .ok_or(eyre::eyre!("Vault not found"))?
+            .clone()
+            .with_symbiotic_metadata()
+            .await?;
+        Ok(vault)
     }
 
     pub fn set_collateral(&mut self, collateral: Address) {
@@ -367,6 +497,10 @@ impl VaultData {
         self.next_epoch_start = Some(next_epoch_start);
     }
 
+    pub fn set_symbiotic_metadata(&mut self, symbiotic_metadata: VaultInfo) {
+        self.symbiotic_metadata = Some(symbiotic_metadata);
+    }
+
     pub fn total_stake_formatted(&self) -> Option<String> {
         if self.total_stake.is_none() || self.decimals.is_none() {
             return None;
@@ -405,6 +539,26 @@ impl VaultData {
             return None;
         }
         format_number_with_decimals(self.deposit_limit.unwrap(), self.decimals.unwrap()).ok()
+    }
+
+    /// Loads metadata for a Symbiotic vault from the official GitHub repository
+    ///
+    /// # Arguments
+    /// * `vault` - Struct holding the Vault's data
+    ///
+    /// # Returns
+    /// * Empty Ok result on success
+    ///
+    /// # Errors
+    /// * If the HTTP request fails
+    /// * If the response cannot be parsed as JSON
+    /// * If the JSON cannot be deserialized into `VaultInfo`
+    pub async fn with_symbiotic_metadata(mut self) -> eyre::Result<Self> {
+        let url = format!("{SYMBIOTIC_GITHUB_URL}/{}/{VAULT_FILE_NAME}", self.address);
+        let res = reqwest::get(&url).await?;
+        let vault_info: Option<VaultInfo> = serde_json::from_str(&res.text().await?).ok();
+        self.symbiotic_metadata = vault_info;
+        Ok(self)
     }
 }
 
@@ -870,23 +1024,51 @@ pub async fn fetch_vault_extra_metadata(
     Ok(out)
 }
 
-/// Fetches metadata for a Symbiotic vault from the official GitHub repository
-///
-/// # Arguments
-/// * `vault_address` - The address of the vault to fetch metadata for
-///
-/// # Returns
-/// * `VaultInfo` containing the vault's name and tags
-///
-/// # Errors
-/// * If the HTTP request fails
-/// * If the response cannot be parsed as JSON
-/// * If the JSON cannot be deserialized into `VaultInfo`
-pub async fn get_vault_metadata(vault_address: Address) -> eyre::Result<Option<VaultInfo>> {
-    let url = format!("{SYMBIOTIC_GITHUB_URL}/{vault_address}/{VAULT_FILE_NAME}",);
-    let res = reqwest::get(&url).await?;
-    let vault_info: Option<VaultInfo> = serde_json::from_str(&res.text().await?).ok();
-    Ok(vault_info)
+pub async fn fetch_vault_symbiotic_metadata(
+    vaults: Vec<VaultData>,
+) -> eyre::Result<Vec<VaultData>> {
+    let mut out = Vec::with_capacity(vaults.len());
+    for vault in vaults {
+        out.push(vault.with_symbiotic_metadata().await?);
+    }
+
+    Ok(out)
+}
+
+pub async fn get_vault_network_limit_formatted<A: TryInto<Address>>(
+    provider: &RetryProvider,
+    network: A,
+    subnetwork: U96,
+    vault: &VaultData,
+    delegator: A,
+    delegator_type: DelegatorType,
+    max_network_limit: String,
+) -> eyre::Result<String>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let vault_limit_display = if delegator_type == DelegatorType::OperatorNetworkSpecificDelegator {
+        max_network_limit
+    } else {
+        let network_limit = get_network_limit(network, subnetwork, delegator, provider).await?;
+        let network_limit_formatted =
+            format_number_with_decimals(network_limit, vault.decimals.clone().unwrap())?;
+        if network_limit_formatted == "0.000" {
+            format!(
+                "{} (- {})",
+                network_limit.to_string(),
+                vault.symbol.clone().unwrap()
+            )
+        } else {
+            format!(
+                "{} ({} {})",
+                network_limit.to_string(),
+                network_limit_formatted,
+                vault.symbol.clone().unwrap()
+            )
+        }
+    };
+    Ok(vault_limit_display)
 }
 
 pub async fn validate_vault_status<A: TryInto<Address>>(
@@ -968,7 +1150,7 @@ where
     .await?;
 
     if !is_opted_in {
-        return Err(eyre::eyre!("Operator is not opted in vault."));
+        eyre::bail!("Operator is not opted in vault.");
     }
 
     Ok(())

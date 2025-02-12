@@ -18,9 +18,7 @@ use crate::{
     },
     common::DirsCliArgs,
     symbiotic::{calls::is_operator, consts::get_operator_registry},
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, write_to_json_file,
-    },
+    utils::{print_loading_until_async, print_success_message, write_to_json_file},
 };
 
 #[derive(Debug, Parser)]
@@ -95,10 +93,7 @@ impl AddCommand {
                 .map(|a| a.to_string().to_lowercase())
                 .contains(&address.to_string().to_lowercase())
         {
-            print_error_message(
-                format!("\nOperator with alias {} already exists.", alias).as_str(),
-            );
-            return Ok(());
+            eyre::bail!(format!("\nOperator with alias {} already exists.", alias));
         }
 
         let is_operator = print_loading_until_async(

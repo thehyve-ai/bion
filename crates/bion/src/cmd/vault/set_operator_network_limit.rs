@@ -8,7 +8,6 @@ use foundry_cli::{
 };
 use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
-use prettytable::{row, Table};
 
 use crate::{
     cast::cmd::send::SendTxArgs,
@@ -16,16 +15,25 @@ use crate::{
     common::DirsCliArgs,
     symbiotic::{
         calls::{
-            get_delegator_type, get_vault_collateral, get_vault_delegator, is_network,
-            is_opted_in_vault,
+            get_delegator_type, get_max_network_limit, get_network_limit,
+            get_operator_network_limit,
         },
-        consts::{get_network_registry, get_vault_factory, get_vault_opt_in_service},
-        network_utils::{get_network_metadata, validate_network_status},
+        consts::{
+            get_network_opt_in_service, get_network_registry, get_operator_registry,
+            get_vault_factory, get_vault_opt_in_service,
+        },
+        network_utils::{
+            get_network_metadata, validate_network_opt_in_status, validate_network_status,
+        },
+        operator_utils::validate_operator_status,
         utils::get_subnetwork,
-        vault_utils::{fetch_token_data, validate_vault_status},
+        vault_utils::{
+            validate_operator_vault_opt_in_status, validate_vault_status, RowPrefix, VaultData,
+            VaultDataTableBuilder,
+        },
         DelegatorType,
     },
-    utils::{print_error_message, print_loading_until_async, validate_cli_args},
+    utils::{print_loading_until_async, read_user_confirmation, validate_cli_args},
 };
 
 use super::utils::{get_vault_admin_config, set_foundry_signing_method};
@@ -101,65 +109,51 @@ impl SetOperatorNetworkLimitCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let network_opt_in_service = get_network_opt_in_service(chain_id)?;
         let network_registry = get_network_registry(chain_id)?;
+        let operator_registry = get_operator_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
         let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
         let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
+        validate_operator_status(operator, operator_registry, &provider).await?;
         validate_network_status(network, network_registry, &provider).await?;
         validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_network_opt_in_status(operator, network, network_opt_in_service, &provider)
+            .await?;
+        validate_operator_vault_opt_in_status(operator, vault, vault_opt_in_service, &provider)
+            .await?;
 
-        let is_opted_in = print_loading_until_async(
-            "Checking network opt in status in vault",
-            is_opted_in_vault(operator, vault, vault_opt_in_service, &provider),
+        let vault = print_loading_until_async(
+            "Fetching vault data",
+            VaultData::load(chain_id, vault, false, &provider),
         )
         .await?;
 
-        if !is_opted_in {
-            print_error_message("Operator is not opted in vault.");
-            return Ok(());
-        }
+        let Some(collateral_decimals) = vault.decimals else {
+            eyre::bail!("Invalid vault collateral.");
+        };
 
-        let delegator =
-            print_loading_until_async("Fetching delegator", get_vault_delegator(vault, &provider))
-                .await?;
+        let Some(delegator) = vault.delegator else {
+            eyre::bail!("Invalid vault delegator.");
+        };
 
         let delegator_type = print_loading_until_async(
-            "Fetching delegator type",
+            "Fetching delgator type",
             get_delegator_type(delegator, &provider),
         )
         .await?;
 
         if delegator_type != DelegatorType::FullRestakeDelegator {
-            print_error_message(
+            eyre::bail!(
                 "Operator Network limit can only be set for vaults with FullRestakeDelegator.",
             );
-            return Ok(());
         }
 
-        let collateral_address = print_loading_until_async(
-            "Fetching vault collateral",
-            get_vault_collateral(vault, &provider),
-        )
-        .await?;
-
-        let collateral = print_loading_until_async(
-            "Fetching collateral data",
-            fetch_token_data(chain_id, collateral_address, &provider),
-        )
-        .await?;
-
-        if collateral.is_none() {
-            print_error_message("Invalid vault collateral.");
-            return Ok(());
-        }
-
-        let collateral = collateral.unwrap();
-        let normalized_limit = limit;
-        let limit = limit * U256::from(10).pow(U256::from(collateral.decimals));
-
+        let limit = limit * U256::from(10).pow(U256::from(collateral_decimals));
         let subnetwork_address = get_subnetwork(network, subnetwork)?;
+
         let to = NameOrAddress::Address(delegator);
 
         let arg = SendTxArgs {
@@ -185,86 +179,56 @@ impl SetOperatorNetworkLimitCommand {
             path: None,
         };
 
-        println!("\n{}", "Increasing network limit".bright_cyan());
+        println!("\n{}", "Setting operator network limit".bright_cyan());
 
-        let mut table = Table::new();
+        let max_network_limit = print_loading_until_async(
+            "Fetching max network limit",
+            get_max_network_limit(network, subnetwork, delegator, &provider),
+        )
+        .await?;
 
-        // load network metadata
+        if max_network_limit > U256::ZERO && max_network_limit < limit {
+            eyre::bail!("Cannot set operator limit higher than the max network limit.");
+        }
+
+        let network_limit = print_loading_until_async(
+            "Fetching network limit",
+            get_network_limit(network, subnetwork, delegator, &provider),
+        )
+        .await?;
+
+        let old_operator_network_limit = print_loading_until_async(
+            "Fetching operator network limit",
+            get_operator_network_limit(network, subnetwork, operator, delegator, &provider),
+        )
+        .await?;
+
+        if old_operator_network_limit == limit {
+            eyre::bail!("New limit is the same as current limit.");
+        }
+
         let network_metadata =
             print_loading_until_async("Fetching network metadata", get_network_metadata(network))
                 .await?;
+        let table = VaultDataTableBuilder::from_vault_data(vault)
+            .with_name()
+            .with_network(network, network_metadata)
+            .with_subnetwork_identifier(network, subnetwork)?
+            .with_max_network_limit(max_network_limit, RowPrefix::Default)?
+            .with_network_limit(network_limit, RowPrefix::Default)?
+            .with_operator_network_limit(old_operator_network_limit, RowPrefix::Old)?
+            .with_operator_network_limit(limit, RowPrefix::New)?
+            .build();
+        table.printstd();
 
-        let network_link = format!(
-            "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
-            network,
-            network_metadata
-                .map(|v| v.name)
-                .unwrap_or("UNVERIFIED".to_string())
-        );
-        table.add_row(row![Fcb -> "Network", network_link]);
-        table.add_row(row![Fcb -> "Subnetwork", subnetwork]);
+        println!("\n{}", "Do you wish to continue? (y/n)".bright_cyan());
 
-        // load vault metadata
-        // let vault_metadata = get_vault_metadata(vault).await?;
-        // let vault_link = format!(
-        //     "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
-        //     vault,
-        //     vault_metadata
-        //         .map(|v| v.name)
-        //         .unwrap_or("UNVERIFIED".to_string())
-        // );
-        // table.add_row(row![
-        //     Fcb -> "Vault",
-        //     vault_link
-        // ]);
-
-        // let max_network_limit =
-        //     get_max_network_limit(network, subnetwork, delegator, &provider).await?;
-        // if max_network_limit > U256::ZERO && max_network_limit < limit {
-        //     print_error_message("New limit is greater than the max network limit.");
-        //     return Ok(());
-        // }
-
-        // let mut max_network_limit_formatted =
-        //     format_number_with_decimals(max_network_limit, collateral.decimals)?;
-        // if max_network_limit_formatted == "0.000" {
-        //     max_network_limit_formatted = "-".to_string();
-        // }
-        // table.add_row(row![Fcb -> "Max network limit", format!("{} ({} {})", max_network_limit.to_string(), max_network_limit_formatted, collateral.symbol)]);
-
-        // let delegator_type = get_delegator_type(delegator, &provider).await?;
-        // if delegator_type == DelegatorType::OperatorNetworkSpecificDelegator {
-        //     print_error_message(
-        //         "Unable to set network limit for operator network specific delegator.",
-        //     );
-        //     return Ok(());
-        // } else {
-        //     let old_network_limit =
-        //         get_network_limit(network, subnetwork, delegator, &provider).await?;
-        //     if old_network_limit == limit {
-        //         print_error_message("New limit is the same as the old limit.");
-        //         return Ok(());
-        //     }
-
-        //     let mut old_network_limit_formatted =
-        //         format_number_with_decimals(old_network_limit, collateral.decimals)?;
-        //     if old_network_limit_formatted == "0.000" {
-        //         old_network_limit_formatted = "-".to_string();
-        //     }
-        //     table.add_row(row![Fcb -> "Old Network Limit", format!("{} ({} {})", old_network_limit.to_string(), old_network_limit_formatted, collateral.symbol)]);
-        //     table.add_row(row![Fcb -> "New Network Limit", format!("{} ({} {})", limit.to_string(), normalized_limit, collateral.symbol)]);
-        // }
-        // table.printstd();
-
-        // println!("\n{}", "Do you wish to continue? (y/n)".bright_cyan());
-
-        // let confirmation: String = read_user_confirmation()?;
-        // if confirmation.trim().to_lowercase().as_str() == "n"
-        //     || confirmation.trim().to_lowercase().as_str() == "no"
-        // {
-        //     print_error_message("Exiting...");
-        //     return Ok(());
-        // }
+        let confirmation: String = read_user_confirmation()?;
+        if confirmation.trim().to_lowercase().as_str() == "n"
+            || confirmation.trim().to_lowercase().as_str() == "no"
+        {
+            eyre::bail!("Exiting...");
+        }
 
         let _ = arg.run().await?;
         Ok(())

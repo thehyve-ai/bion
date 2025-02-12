@@ -5,7 +5,7 @@ use std::fs::create_dir_all;
 
 use crate::{
     common::{DirsCliArgs, SigningMethod},
-    utils::{load_from_json_file, print_error_message, write_to_json_file},
+    utils::{load_from_json_file, write_to_json_file},
 };
 
 use super::{
@@ -48,6 +48,7 @@ pub fn get_or_create_network_config(
     let networks_dir = data_dir.join(NETWORK_DIRECTORY);
     let network_config_dir = networks_dir.join(address.to_string());
     let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
+    println!("Network config path: {:?}", network_config_path);
     return match load_from_json_file(&network_config_path) {
         Ok(network_config) => Ok(network_config),
         Err(..) => {
@@ -73,11 +74,11 @@ pub fn get_network_config(
 ) -> eyre::Result<NetworkConfig> {
     let network_definitions = get_or_create_network_definitions(chain_id, dirs)?;
     if let Some((_, address)) = network_definitions.get_key_value(&alias) {
+        println!("Loading config with: {}", address);
         let network_config = get_or_create_network_config(chain_id, *address, alias, dirs)?;
         Ok(network_config)
     } else {
-        print_error_message("Network with the provided alias is not imported.");
-        Err(eyre::eyre!(""))
+        eyre::bail!("Network with the provided alias is not imported.");
     }
 }
 

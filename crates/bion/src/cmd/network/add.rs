@@ -24,7 +24,7 @@ use crate::utils::{
 #[clap(about = "Add a network to your bion config.")]
 pub struct AddCommand {
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
-    pub address: Address,
+    address: Address,
 
     #[arg(skip)]
     alias: String,

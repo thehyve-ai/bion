@@ -1,5 +1,3 @@
-use std::fs::remove_dir_all;
-
 use clap::Parser;
 use colored::Colorize;
 use foundry_cli::{
@@ -7,6 +5,8 @@ use foundry_cli::{
     utils::{self, LoadConfig},
 };
 use hyve_cli_runner::CliContext;
+
+use std::fs::remove_dir_all;
 
 use crate::{
     cmd::{
@@ -17,7 +17,7 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    utils::{print_error_message, print_success_message, write_to_json_file},
+    utils::{print_success_message, write_to_json_file},
 };
 
 #[derive(Debug, Parser)]
@@ -70,7 +70,7 @@ impl RemoveCommand {
 
             print_success_message(format!("✅ Successfully removed operator: {}", alias).as_str());
         } else {
-            print_error_message("Operator with the provided alias is not imported.");
+            eyre::bail!("Operator with the provided alias is not imported.");
         }
 
         Ok(())

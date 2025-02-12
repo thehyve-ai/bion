@@ -72,7 +72,6 @@ impl SetDepositLimitCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
         let vault_factory = get_vault_factory(chain_id)?;
         let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;

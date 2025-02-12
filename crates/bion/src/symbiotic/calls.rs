@@ -23,7 +23,8 @@ use crate::symbiotic::contracts::vault_factory::VaultFactory;
 use super::{
     contracts::{
         delegator::{
-            base_delegator::IBaseDelegator, network_restake_delegator::INetworkRestakeDelegator,
+            base_delegator::IBaseDelegator, full_restake_delegator::IFullRestakeDelegator,
+            network_restake_delegator::INetworkRestakeDelegator,
         },
         delegator_factory::DelegatorFactory,
         erc20,
@@ -62,8 +63,8 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let network = network.try_into()?;
-    let delegator = delegator.try_into()?;
     let subnetwork = get_subnetwork(network, subnetwork)?;
+    let delegator = delegator.try_into()?;
 
     let call = IBaseDelegator::maxNetworkLimitCall::new((subnetwork,));
 
@@ -84,8 +85,8 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let network = network.try_into()?;
-    let delegator = delegator.try_into()?;
     let subnetwork = get_subnetwork(network, subnetwork)?;
+    let delegator = delegator.try_into()?;
 
     let call = INetworkRestakeDelegator::networkLimitCall::new((subnetwork,));
 
@@ -93,6 +94,96 @@ where
         call_and_decode(call, delegator, provider).await?;
 
     Ok(network_limit)
+}
+
+pub async fn get_operator_network_limit<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    operator: A,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+    let operator = operator.try_into()?;
+    let delegator = delegator.try_into()?;
+
+    let call = IFullRestakeDelegator::operatorNetworkLimitCall::new((subnetwork, operator));
+
+    let IFullRestakeDelegator::operatorNetworkLimitReturn { _0: limit } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(limit)
+}
+
+pub async fn get_operator_network_shares<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    operator: A,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+    let operator = operator.try_into()?;
+    let delegator = delegator.try_into()?;
+
+    let call = INetworkRestakeDelegator::operatorNetworkSharesCall::new((subnetwork, operator));
+
+    let INetworkRestakeDelegator::operatorNetworkSharesReturn { _0: shares } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(shares)
+}
+
+pub async fn get_operator_stake<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    operator: A,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+    let operator = operator.try_into()?;
+    let delegator = delegator.try_into()?;
+
+    let call = IBaseDelegator::stakeCall::new((subnetwork, operator));
+
+    let IBaseDelegator::stakeReturn { _0: stake } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(stake)
+}
+
+pub async fn get_total_operator_network_shares<A: TryInto<Address>>(
+    network: A,
+    subnetwork: U96,
+    delegator: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let subnetwork = get_subnetwork(network, subnetwork)?;
+    let delegator = delegator.try_into()?;
+
+    let call = INetworkRestakeDelegator::totalOperatorNetworkSharesCall::new((subnetwork,));
+
+    let INetworkRestakeDelegator::totalOperatorNetworkSharesReturn { _0: shares } =
+        call_and_decode(call, delegator, provider).await?;
+
+    Ok(shares)
 }
 
 pub async fn get_token_decimals<A: TryInto<Address>>(

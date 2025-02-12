@@ -1,6 +1,7 @@
 use add::AddCommand;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
+use list_vaults::ListVaultsCommand;
 use opt_in_vault::OptInVaultCommand;
 use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
@@ -12,6 +13,7 @@ use vault_parameters::VaultParametersCommand;
 mod add;
 mod config;
 mod consts;
+mod list_vaults;
 mod opt_in_vault;
 mod opt_out_vault;
 mod register;
@@ -33,6 +35,9 @@ pub struct NetworkCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum NetworkSubcommands {
+    #[command(name = "list-vaults")]
+    ListVaults(ListVaultsCommand),
+
     #[command(name = "opt-in-vault")]
     OptInVault(OptInVaultCommand),
 
@@ -62,6 +67,9 @@ pub enum NetworkSubcommands {
 impl NetworkCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
+            NetworkSubcommands::ListVaults(list_vaults) => {
+                list_vaults.with_alias(self.alias).execute(ctx).await
+            }
             NetworkSubcommands::OptInVault(opt_in_vault) => {
                 opt_in_vault.with_alias(self.alias).execute(ctx).await
             }

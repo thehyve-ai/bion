@@ -1,5 +1,6 @@
 use alloy_primitives::Address;
 use foundry_cli::opts::EthereumOpts;
+use prettytable::Table;
 
 use std::fs::create_dir_all;
 

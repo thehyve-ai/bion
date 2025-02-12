@@ -12,13 +12,10 @@ use crate::{
     cmd::utils::{format_number_with_decimals, get_chain_id},
     common::DirsCliArgs,
     symbiotic::{
-        calls::{
-            get_delegator_type, get_max_network_limit, get_network_limit, is_network, is_vault,
-        },
+        calls::{get_delegator_type, get_max_network_limit, is_network, is_vault},
         consts::{get_network_registry, get_vault_factory},
         network_utils::{get_network_metadata, NetworkInfo},
-        utils::{get_network_link, get_subnetwork, get_vault_link},
-        vault_utils::{get_vault_metadata, VaultData, VaultDataTableBuilder, VaultInfo},
+        vault_utils::{get_vault_network_limit_formatted, VaultData, VaultDataTableBuilder},
         DelegatorType,
     },
     utils::{print_loading_until_async, validate_cli_args},
@@ -35,7 +32,7 @@ pub struct VaultParametersCommand {
         value_name = "SUBNETWORK",
         help = "The subnetwork to set the limit for."
     )]
-    pub subnetwork: U96,
+    subnetwork: U96,
 
     #[arg(skip)]
     alias: String,
@@ -84,22 +81,15 @@ impl VaultParametersCommand {
         // Fetch vault and network data
         let vault_data = print_loading_until_async(
             "Fetching vault info",
-            VaultData::load(vault, &provider, chain_id),
+            VaultData::load(chain_id, vault, true, &provider),
         )
         .await?;
 
-        let (vault_metadata, network_metadata) = tokio::join!(
-            print_loading_until_async(
-                "Fetching vault metadata",
-                get_vault_metadata(vault_data.address)
-            ),
-            print_loading_until_async(
-                "Fetching network metadata",
-                get_network_metadata(network_config.address)
-            )
-        );
-        let vault_metadata = vault_metadata?;
-        let network_metadata = network_metadata?;
+        let network_metadata = print_loading_until_async(
+            "Fetching network metadata",
+            get_network_metadata(network_config.address),
+        )
+        .await?;
 
         // Get delegator information
         let delegator = vault_data.delegator.clone().unwrap();
@@ -116,7 +106,6 @@ impl VaultParametersCommand {
             vault_data,
             network_address,
             subnetwork,
-            vault_metadata,
             network_metadata,
             max_network_limit,
             delegator_type,
@@ -165,38 +154,17 @@ async fn build_table(
     vault: VaultData,
     network_address: Address,
     subnetwork: U96,
-    vault_metadata: Option<VaultInfo>,
     network_metadata: Option<NetworkInfo>,
     max_network_limit: U256,
     delegator_type: DelegatorType,
     delegator: Address,
     provider: &RetryProvider,
 ) -> eyre::Result<Table> {
-    let mut table = Table::new();
-
-    // Add vault and network information
-    let vault_link = get_vault_link(
-        vault.address,
-        vault_metadata
-            .map(|v| v.name)
-            .unwrap_or("UNVERIFIED".to_string()),
-    );
-    let network_link = get_network_link(
-        network_address,
-        network_metadata
-            .map(|v| v.name)
-            .unwrap_or("UNVERIFIED".to_string()),
-    );
-
-    table.add_row(row![Fcb -> "Vault", vault_link]);
-    table.add_row(row![Fcb -> "Network", network_link]);
-    table.add_row(row![Fcb -> "Subnetwork Identifier",
-        get_subnetwork(network_address, subnetwork)?.to_string()
-    ]);
-
     // Add vault data
-    table = VaultDataTableBuilder::from_vault_data(vault.clone())
-        .with_table(table)
+    let mut table = VaultDataTableBuilder::from_vault_data(vault.clone())
+        .with_name()
+        .with_network(network_address, network_metadata)
+        .with_subnetwork_identifier(network_address, subnetwork)?
         .with_delegator()
         .with_slasher()
         .with_current_epoch()
@@ -219,11 +187,11 @@ async fn build_table(
         )
     };
     let vault_network_limit_display = get_vault_network_limit_formatted(
+        provider,
         network_address,
         subnetwork,
-        delegator,
-        provider,
         &vault,
+        delegator,
         delegator_type,
         max_limit_display.clone(),
     )
@@ -232,38 +200,4 @@ async fn build_table(
     table.add_row(row![Fcb -> "Max Network Limit", max_limit_display]);
     table.add_row(row![Fcb -> "Vault Network Limit", vault_network_limit_display]);
     Ok(table)
-}
-
-async fn get_vault_network_limit_formatted(
-    network: Address,
-    subnetwork: U96,
-    delegator: Address,
-    provider: &RetryProvider,
-    vault: &VaultData,
-    delegator_type: DelegatorType,
-    max_network_limit: String,
-) -> eyre::Result<String> {
-    // Add vault network limit based on delegator type
-    let vault_limit_display = if delegator_type == DelegatorType::OperatorNetworkSpecificDelegator {
-        max_network_limit
-    } else {
-        let network_limit = get_network_limit(network, subnetwork, delegator, provider).await?;
-        let network_limit_formatted =
-            format_number_with_decimals(network_limit, vault.decimals.clone().unwrap())?;
-        if network_limit_formatted == "0.000" {
-            format!(
-                "{} (- {})",
-                network_limit.to_string(),
-                vault.symbol.clone().unwrap()
-            )
-        } else {
-            format!(
-                "{} ({} {})",
-                network_limit.to_string(),
-                network_limit_formatted,
-                vault.symbol.clone().unwrap()
-            )
-        }
-    };
-    Ok(vault_limit_display)
 }

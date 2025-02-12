@@ -248,12 +248,4 @@ impl NetworkConfig {
             _ => unreachable!(),
         }
     }
-
-    pub fn set_password_enabled(&mut self, password_enabled: bool) {
-        self.password_enabled = password_enabled;
-    }
-
-    pub fn set_keystore_file(&mut self, keystore_file: Option<PathBuf>) {
-        self.keystore_file = keystore_file;
-    }
 }

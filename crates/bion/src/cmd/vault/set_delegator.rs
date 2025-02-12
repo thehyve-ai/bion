@@ -75,7 +75,6 @@ impl SetDelegatorCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
         let delegator_factory = get_delegator_factory(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;

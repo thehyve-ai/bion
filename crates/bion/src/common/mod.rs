@@ -30,16 +30,6 @@ pub struct DirsCliArgs {
     #[arg(
         long,
         required = false,
-        value_enum,
-        value_name = "NETWORK",
-        help = "Name of the Ethereum chain HyveDA will sync and follow.",
-        default_value = "sepolia"
-    )]
-    pub network: Networks,
-
-    #[arg(
-        long,
-        required = false,
         value_name = "OPERATORS_DIR",
         conflicts_with = "data_dir",
         help = "The directory which contains the operator keystores and data. \
@@ -56,7 +46,7 @@ impl DirsCliArgs {
         let network = if let Some(chain_id) = chain_id {
             get_network(chain_id)?
         } else {
-            self.network.as_str().to_string()
+            Networks::Mainnet.as_str().to_string()
         };
         let data_dir = self.data_dir.get_data_dir().join(network);
         Ok(data_dir)

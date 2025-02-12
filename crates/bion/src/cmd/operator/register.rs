@@ -11,7 +11,7 @@ use crate::{
     cmd::utils::get_chain_id,
     common::DirsCliArgs,
     symbiotic::{calls::is_operator, consts::get_operator_registry},
-    utils::{print_error_message, print_loading_until_async, validate_cli_args},
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 use super::utils::{get_operator_config, set_foundry_signing_method};
@@ -75,8 +75,7 @@ impl RegisterCommand {
         .await?;
 
         if is_registered {
-            print_error_message("Operator is already registered");
-            return Ok(());
+            eyre::bail!("Operator is already registered");
         }
 
         let to = NameOrAddress::Address(operator_registry);
