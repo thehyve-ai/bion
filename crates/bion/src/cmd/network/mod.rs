@@ -2,24 +2,22 @@ use add::AddCommand;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
 use list_vaults::ListVaultsCommand;
-use opt_in_vault::OptInVaultCommand;
-use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
 use remove::RemoveCommand;
 use set_max_network_limit::SetMaxNetworkLimitCommand;
 use set_middleware::SetMiddlewareCommand;
+use set_resolver::SetResolverCommand;
 use vault_parameters::VaultParametersCommand;
 
 mod add;
 mod config;
 mod consts;
 mod list_vaults;
-mod opt_in_vault;
-mod opt_out_vault;
 mod register;
 mod remove;
 mod set_max_network_limit;
 mod set_middleware;
+mod set_resolver;
 mod utils;
 mod vault_parameters;
 
@@ -38,12 +36,6 @@ pub enum NetworkSubcommands {
     #[command(name = "list-vaults")]
     ListVaults(ListVaultsCommand),
 
-    #[command(name = "opt-in-vault")]
-    OptInVault(OptInVaultCommand),
-
-    #[command(name = "opt-out-vault")]
-    OptOutVault(OptOutVaultCommand),
-
     #[command(name = "register")]
     Register(RegisterCommand),
 
@@ -52,6 +44,9 @@ pub enum NetworkSubcommands {
 
     #[command(name = "set-middleware")]
     SetMiddleware(SetMiddlewareCommand),
+
+    #[command(name = "set-resolver")]
+    SetResolver(SetResolverCommand),
 
     #[command(name = "vault-parameters")]
     VaultParameters(VaultParametersCommand),
@@ -70,12 +65,6 @@ impl NetworkCommand {
             NetworkSubcommands::ListVaults(list_vaults) => {
                 list_vaults.with_alias(self.alias).execute(ctx).await
             }
-            NetworkSubcommands::OptInVault(opt_in_vault) => {
-                opt_in_vault.with_alias(self.alias).execute(ctx).await
-            }
-            NetworkSubcommands::OptOutVault(opt_out_vault) => {
-                opt_out_vault.with_alias(self.alias).execute(ctx).await
-            }
             NetworkSubcommands::Register(register) => {
                 register.with_alias(self.alias).execute(ctx).await
             }
@@ -87,6 +76,9 @@ impl NetworkCommand {
             }
             NetworkSubcommands::SetMiddleware(set_middleware) => {
                 set_middleware.with_alias(self.alias).execute(ctx).await
+            }
+            NetworkSubcommands::SetResolver(set_resolver) => {
+                set_resolver.with_alias(self.alias).execute(ctx).await
             }
             NetworkSubcommands::VaultParameters(vault_parameters) => {
                 vault_parameters.with_alias(self.alias).execute(ctx).await

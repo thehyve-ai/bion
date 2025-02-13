@@ -48,6 +48,12 @@ sol! {
         function BURNER_RESERVE() external view returns (uint256);
 
         /**
+         * @notice Get the type of the slasher.
+         * @return type of the slasher
+         */
+        function TYPE() external view returns (uint64);
+
+        /**
          * @notice Get the vault factory's address.
          * @return address of the vault factory
          */

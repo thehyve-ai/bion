@@ -25,3 +25,19 @@ impl From<u64> for DelegatorType {
         }
     }
 }
+
+#[derive(Debug, PartialEq)]
+pub enum SlasherType {
+    Slasher = 0,
+    VetoSlasher = 1,
+}
+
+impl From<u64> for SlasherType {
+    fn from(value: u64) -> Self {
+        match value {
+            0 => SlasherType::Slasher,
+            1 => SlasherType::VetoSlasher,
+            _ => panic!("Invalid SlasherType"),
+        }
+    }
+}

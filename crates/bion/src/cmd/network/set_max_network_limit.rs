@@ -30,10 +30,7 @@ pub struct SetMaxNetworkLimitCommand {
     #[arg(value_name = "VAULT", help = "The address of the vault.")]
     vault: Address,
 
-    #[arg(
-        value_name = "SUBNETWORK",
-        help = "The subnetwork to set the limit for."
-    )]
+    #[arg(value_name = "SUBNETWORK", help = "The index of the subnetwork.")]
     subnetwork: U96,
 
     #[arg(value_name = "LIMIT", help = "The limit to set.")]

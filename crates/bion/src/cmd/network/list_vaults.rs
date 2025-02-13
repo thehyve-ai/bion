@@ -52,6 +52,8 @@ impl ListVaultsCommand {
             eth,
         } = self;
 
+        // pass vault name
+
         validate_cli_args(&eth)?;
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

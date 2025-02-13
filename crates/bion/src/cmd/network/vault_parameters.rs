@@ -1,4 +1,4 @@
-use alloy_primitives::{aliases::U96, Address, U256};
+use alloy_primitives::{aliases::U96, Address};
 use clap::Parser;
 use foundry_cli::{
     opts::EthereumOpts,
@@ -6,17 +6,20 @@ use foundry_cli::{
 };
 use foundry_common::provider::RetryProvider;
 use hyve_cli_runner::CliContext;
-use prettytable::{row, Table};
+use prettytable::row;
 
 use crate::{
     cmd::utils::{format_number_with_decimals, get_chain_id},
     common::DirsCliArgs,
     symbiotic::{
-        calls::{get_delegator_type, get_max_network_limit, is_network, is_vault},
+        calls::{get_delegator_type, get_max_network_limit},
         consts::{get_network_registry, get_vault_factory},
-        network_utils::{get_network_metadata, NetworkInfo},
-        vault_utils::{get_vault_network_limit_formatted, VaultData, VaultDataTableBuilder},
-        DelegatorType,
+        network_utils::{get_network_metadata, validate_network_status},
+        vault_utils::{
+            fetch_vault_addresses, fetch_vault_datas, fetch_vault_symbiotic_metadata,
+            get_vault_network_limit_formatted, validate_vault_status, VaultData,
+            VaultDataTableBuilder,
+        },
     },
     utils::{print_loading_until_async, validate_cli_args},
 };
@@ -25,13 +28,10 @@ use super::utils::get_network_config;
 
 #[derive(Debug, Parser)]
 pub struct VaultParametersCommand {
-    #[arg(value_name = "ADDRESS", help = "Address of the vault.")]
-    vault: Address,
+    #[arg(value_name = "VAULT", help = "The name or address of the vault.")]
+    vault: String,
 
-    #[arg(
-        value_name = "SUBNETWORK",
-        help = "The subnetwork to set the limit for."
-    )]
+    #[arg(value_name = "SUBNETWORK", help = "The subnetwork index.")]
     subnetwork: U96,
 
     #[arg(skip)]
@@ -59,27 +59,19 @@ impl VaultParametersCommand {
         } = self;
 
         validate_cli_args(&eth)?;
+
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
-
-        // Get network config and addresses
         let network_config = get_network_config(chain_id, alias, &dirs)?;
-        let network_address = network_config.address;
+        let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
+        let vault = get_vault_address(vault, chain_id, vault_factory, &provider).await?;
 
-        validate_network_and_vault(
-            &provider,
-            network_address,
-            network_registry,
-            vault,
-            vault_factory,
-        )
-        .await?;
+        validate_network_status(network, network_registry, &provider).await?;
 
-        // Fetch vault and network data
-        let vault_data = print_loading_until_async(
+        let vault = print_loading_until_async(
             "Fetching vault info",
             VaultData::load(chain_id, vault, true, &provider),
         )
@@ -91,28 +83,51 @@ impl VaultParametersCommand {
         )
         .await?;
 
-        // Get delegator information
-        let delegator = vault_data.delegator.clone().unwrap();
+        let Some(delegator) = vault.delegator else {
+            eyre::bail!("Invalid vault delegator.");
+        };
         let delegator_type = get_delegator_type(delegator.clone(), &provider).await?;
-        let max_network_limit = get_max_network_limit(
-            network_config.address,
-            subnetwork,
-            delegator.clone(),
+
+        let max_network_limit =
+            get_max_network_limit(network_config.address, subnetwork, delegator, &provider).await?;
+
+        let mut table = VaultDataTableBuilder::from_vault_data(vault.clone())
+            .with_name()
+            .with_network(network, network_metadata)
+            .with_subnetwork_identifier(network, subnetwork)?
+            .with_delegator()
+            .with_slasher()
+            .with_current_epoch()
+            .with_epoch_duration()
+            .with_next_epoch_start()
+            .with_time_till_next_epoch()
+            .build();
+
+        let max_limit_formatted =
+            format_number_with_decimals(max_network_limit, vault.decimals.unwrap())?;
+        let max_limit_display = if max_limit_formatted == "0.000" {
+            "-".to_string()
+        } else {
+            format!(
+                "{} ({} {})",
+                max_network_limit.to_string(),
+                max_limit_formatted,
+                vault.symbol.clone().unwrap()
+            )
+        };
+        let vault_network_limit_display = get_vault_network_limit_formatted(
             &provider,
+            network,
+            subnetwork,
+            &vault,
+            delegator,
+            delegator_type,
+            max_limit_display.clone(),
         )
         .await?;
 
-        let table = build_table(
-            vault_data,
-            network_address,
-            subnetwork,
-            network_metadata,
-            max_network_limit,
-            delegator_type,
-            delegator,
-            &provider,
-        )
-        .await?;
+        table.add_row(row![Fcb -> "Max Network Limit", max_limit_display]);
+        table.add_row(row![Fcb -> "Vault Network Limit", vault_network_limit_display]);
 
         table.printstd();
 
@@ -120,84 +135,32 @@ impl VaultParametersCommand {
     }
 }
 
-async fn validate_network_and_vault(
-    provider: &RetryProvider,
-    network_address: Address,
-    network_registry: Address,
-    vault: Address,
+async fn get_vault_address(
+    address_or_name: String,
+    chain_id: u64,
     vault_factory: Address,
-) -> eyre::Result<()> {
-    let is_network = print_loading_until_async(
-        "Checking network registration status",
-        is_network(network_address, network_registry, provider),
-    )
-    .await?;
-
-    if !is_network {
-        eyre::bail!("Network is not registered");
-    }
-
-    let is_vault = print_loading_until_async(
-        "Checking vault status",
-        is_vault(vault, vault_factory, provider),
-    )
-    .await?;
-
-    if !is_vault {
-        eyre::bail!("Provided address is not a valid Symbiotic vault.");
-    }
-
-    Ok(())
-}
-
-async fn build_table(
-    vault: VaultData,
-    network_address: Address,
-    subnetwork: U96,
-    network_metadata: Option<NetworkInfo>,
-    max_network_limit: U256,
-    delegator_type: DelegatorType,
-    delegator: Address,
     provider: &RetryProvider,
-) -> eyre::Result<Table> {
-    // Add vault data
-    let mut table = VaultDataTableBuilder::from_vault_data(vault.clone())
-        .with_name()
-        .with_network(network_address, network_metadata)
-        .with_subnetwork_identifier(network_address, subnetwork)?
-        .with_delegator()
-        .with_slasher()
-        .with_current_epoch()
-        .with_epoch_duration()
-        .with_next_epoch_start()
-        .with_time_till_next_epoch()
-        .build();
+) -> eyre::Result<Address> {
+    if let Ok(vault) = Address::try_from(address_or_name.as_bytes()) {
+        validate_vault_status(vault, vault_factory, &provider).await?;
+        return Ok(vault);
+    }
 
-    // Add network limits
-    let max_limit_formatted =
-        format_number_with_decimals(max_network_limit, vault.decimals.unwrap())?;
-    let max_limit_display = if max_limit_formatted == "0.000" {
-        "-".to_string()
-    } else {
-        format!(
-            "{} ({} {})",
-            max_network_limit.to_string(),
-            max_limit_formatted,
-            vault.symbol.clone().unwrap()
-        )
-    };
-    let vault_network_limit_display = get_vault_network_limit_formatted(
-        provider,
-        network_address,
-        subnetwork,
-        &vault,
-        delegator,
-        delegator_type,
-        max_limit_display.clone(),
-    )
-    .await?;
+    let vault_addresses = fetch_vault_addresses(provider, chain_id).await?;
+    let vaults = fetch_vault_datas(provider, chain_id, vault_addresses).await?;
+    let vaults = fetch_vault_symbiotic_metadata(vaults).await?;
+    for v in vaults {
+        let Some(symbiotic_metadata) = v.symbiotic_metadata else {
+            continue;
+        };
 
-    table.add_row(row![Fcb -> "Max Network Limit", max_limit_display]);
-    table.add_row(row![Fcb -> "Vault Network Limit", vault_network_limit_display]);
-    Ok(table)
+        if symbiotic_metadata
+            .name
+            .to_lowercase()
+            .contains(address_or_name.to_lowercase().as_str())
+        {
+            return Ok(v.address);
+        }
+    }
+    eyre::bail!("Vault not found");
 }

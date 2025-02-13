@@ -28,13 +28,14 @@ use super::{
         },
         delegator_factory::DelegatorFactory,
         erc20,
+        slasher::base_slasher::IBaseSlasher,
         slasher_factory::SlasherFactory,
         INetworkRegistry, IOperatorRegistry,
         IOptInService::{self, isOptedInCall, isOptedInReturn},
         IVault::{self, totalStakeCall, totalStakeReturn},
     },
     utils::get_subnetwork,
-    DelegatorType,
+    DelegatorType, SlasherType,
 };
 
 pub async fn get_delegator_type<A: TryInto<Address>>(
@@ -163,6 +164,23 @@ where
         call_and_decode(call, delegator, provider).await?;
 
     Ok(stake)
+}
+
+pub async fn get_slasher_type<A: TryInto<Address>>(
+    slasher: A,
+    provider: &RetryProvider,
+) -> Result<SlasherType>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let slasher = slasher.try_into()?;
+
+    let call = IBaseSlasher::TYPECall::new(());
+
+    let IBaseSlasher::TYPEReturn { _0: slasher_type } =
+        call_and_decode(call, slasher, provider).await?;
+
+    Ok(slasher_type.into())
 }
 
 pub async fn get_total_operator_network_shares<A: TryInto<Address>>(
