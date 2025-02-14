@@ -43,15 +43,19 @@ pub fn get_or_create_network_config(
     address: Address,
     alias: String,
     dirs: &DirsCliArgs,
+    fail_on_error: bool,
 ) -> eyre::Result<NetworkConfig> {
     let data_dir = dirs.data_dir(Some(chain_id))?;
     let networks_dir = data_dir.join(NETWORK_DIRECTORY);
     let network_config_dir = networks_dir.join(address.to_string());
     let network_config_path = network_config_dir.join(NETWORK_CONFIG_FILE);
-    println!("Network config path: {:?}", network_config_path);
     return match load_from_json_file(&network_config_path) {
         Ok(network_config) => Ok(network_config),
-        Err(..) => {
+        Err(err) => {
+            if fail_on_error {
+                eyre::bail!(err);
+            }
+
             create_dir_all(&network_config_dir).map_err(|e| {
                 eyre::eyre!(format!(
                     "Unable to create network config directory: {:?}: {:?}",
@@ -74,8 +78,7 @@ pub fn get_network_config(
 ) -> eyre::Result<NetworkConfig> {
     let network_definitions = get_or_create_network_definitions(chain_id, dirs)?;
     if let Some((_, address)) = network_definitions.get_key_value(&alias) {
-        println!("Loading config with: {}", address);
-        let network_config = get_or_create_network_config(chain_id, *address, alias, dirs)?;
+        let network_config = get_or_create_network_config(chain_id, *address, alias, dirs, true)?;
         Ok(network_config)
     } else {
         eyre::bail!("Network with the provided alias is not imported.");

@@ -51,10 +51,10 @@ impl RemoveCommand {
         );
 
         let mut operators_map = get_or_create_operator_definitions(chain_id, &dirs)?;
-        if let Some((_, network_address)) = operators_map.get_key_value(&alias) {
+        if let Some((_, operator_address)) = operators_map.get_key_value(&alias) {
             let data_dir = dirs.data_dir(Some(chain_id))?;
             let operators_dir = data_dir.join(OPERATOR_DIRECTORY);
-            let operator_config_dir = operators_dir.join(network_address.to_string());
+            let operator_config_dir = operators_dir.join(operator_address.to_string());
             let operator_definitions_path = operator_config_dir.join(OPERATOR_DEFINITIONS_FILE);
 
             remove_dir_all(&operator_config_dir).map_err(|e| {

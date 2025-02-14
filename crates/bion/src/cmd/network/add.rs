@@ -68,7 +68,7 @@ impl AddCommand {
         let mut networks_map = get_or_create_network_definitions(chain_id, &dirs)?;
 
         let mut network_config =
-            get_or_create_network_config(chain_id, address, alias.clone(), &dirs)?;
+            get_or_create_network_config(chain_id, address, alias.clone(), &dirs, false)?;
 
         let address_type = print_loading_until_async(
             "Fetching address type",
