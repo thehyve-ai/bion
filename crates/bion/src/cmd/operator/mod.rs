@@ -5,6 +5,7 @@ use opt_in_vault::OptInVaultCommand;
 use opt_out_network::OptOutNetworkCommand;
 use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
+use status::StatusCommand;
 use vault_parameters::VaultParametersCommand;
 
 mod opt_in_network;
@@ -12,6 +13,7 @@ mod opt_in_vault;
 mod opt_out_network;
 mod opt_out_vault;
 mod register;
+mod status;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
@@ -41,6 +43,9 @@ pub enum OperatorSubcommands {
     #[command(name = "register")]
     Register(RegisterCommand),
 
+    #[command(name = "status")]
+    Status(StatusCommand),
+
     #[command(name = "vault-parameters")]
     VaultParameters(VaultParametersCommand),
 }
@@ -63,6 +68,7 @@ impl OperatorCommand {
             OperatorSubcommands::Register(register) => {
                 register.with_alias(self.alias).execute(ctx).await
             }
+            OperatorSubcommands::Status(status) => status.with_alias(self.alias).execute(ctx).await,
             OperatorSubcommands::VaultParameters(vault_parameters) => {
                 vault_parameters.with_alias(self.alias).execute(ctx).await
             }

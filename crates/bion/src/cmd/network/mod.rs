@@ -5,6 +5,7 @@ use register::RegisterCommand;
 use set_max_network_limit::SetMaxNetworkLimitCommand;
 use set_middleware::SetMiddlewareCommand;
 use set_resolver::SetResolverCommand;
+use status::StatusCommand;
 use vault_parameters::VaultParametersCommand;
 
 mod list_vaults;
@@ -12,13 +13,14 @@ mod register;
 mod set_max_network_limit;
 mod set_middleware;
 mod set_resolver;
+mod status;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your network.")]
 pub struct NetworkCommand {
     #[arg(value_name = "ALIAS", help = "The saved network alias.")]
-    pub alias: String,
+    alias: String,
 
     #[command(subcommand)]
     pub command: NetworkSubcommands,
@@ -40,6 +42,9 @@ pub enum NetworkSubcommands {
 
     #[command(name = "set-resolver")]
     SetResolver(SetResolverCommand),
+
+    #[command(name = "status")]
+    Status(StatusCommand),
 
     #[command(name = "vault-parameters")]
     VaultParameters(VaultParametersCommand),
@@ -66,6 +71,7 @@ impl NetworkCommand {
             NetworkSubcommands::SetResolver(set_resolver) => {
                 set_resolver.with_alias(self.alias).execute(ctx).await
             }
+            NetworkSubcommands::Status(status) => status.with_alias(self.alias).execute(ctx).await,
             NetworkSubcommands::VaultParameters(vault_parameters) => {
                 vault_parameters.with_alias(self.alias).execute(ctx).await
             }
