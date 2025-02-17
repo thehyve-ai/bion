@@ -12,8 +12,8 @@ use hyve_cli_runner::CliContext;
 use crate::{
     cast::cmd::send::SendTxArgs,
     cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
         utils::get_chain_id,
-        vault::utils::{get_vault_admin_config, set_foundry_signing_method},
     },
     common::DirsCliArgs,
     symbiotic::{
@@ -24,9 +24,7 @@ use crate::{
         vault_utils::{validate_vault_status, RowPrefix, VaultData, VaultDataTableBuilder},
         DelegatorType,
     },
-    utils::{
-        print_error_message, print_loading_until_async, read_user_confirmation, validate_cli_args,
-    },
+    utils::{print_loading_until_async, read_user_confirmation, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -98,14 +96,11 @@ impl SetNetworkLimitCommand {
         let chain_id = get_chain_id(&provider).await?;
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
-        let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
+        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
         validate_network_status(network, network_registry, &provider).await?;
         validate_vault_status(vault, vault_factory, &provider).await?;
-
-        // TODO Check if needed
-        // validate_vault_opt_in_status(network, vault, opt_in_service, &provider).await?;
 
         let vault = print_loading_until_async(
             "Fetching vault data",

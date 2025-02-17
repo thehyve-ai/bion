@@ -15,7 +15,7 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    utils::{print_success_message, write_to_json_file},
+    utils::{print_success_message, validate_cli_args, write_to_json_file},
 };
 
 #[derive(Debug, Parser)]
@@ -37,6 +37,8 @@ impl RemoveAliasCommand {
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self { alias, dirs, eth } = self;
+
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

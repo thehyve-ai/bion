@@ -9,7 +9,10 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{
         consts::{get_network_middleware_service, get_network_registry},
@@ -17,8 +20,6 @@ use crate::{
     },
     utils::validate_cli_args,
 };
-
-use super::utils::{get_network_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct SetMiddlewareCommand {
@@ -75,12 +76,13 @@ impl SetMiddlewareCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let network_config = get_alias_config(chain_id, alias, &dirs)?;
+        let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let network_middleware_service = get_network_middleware_service(chain_id)?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
-        validate_network_status(network_config.address, network_registry, &provider).await?;
+        validate_network_status(network, network_registry, &provider).await?;
 
         let to = NameOrAddress::Address(network_middleware_service);
 

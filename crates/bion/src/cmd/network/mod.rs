@@ -1,24 +1,17 @@
-use add::AddCommand;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
 use list_vaults::ListVaultsCommand;
 use register::RegisterCommand;
-use remove::RemoveCommand;
 use set_max_network_limit::SetMaxNetworkLimitCommand;
 use set_middleware::SetMiddlewareCommand;
 use set_resolver::SetResolverCommand;
 use vault_parameters::VaultParametersCommand;
 
-mod add;
-mod config;
-mod consts;
 mod list_vaults;
 mod register;
-mod remove;
 mod set_max_network_limit;
 mod set_middleware;
 mod set_resolver;
-mod utils;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
@@ -50,13 +43,6 @@ pub enum NetworkSubcommands {
 
     #[command(name = "vault-parameters")]
     VaultParameters(VaultParametersCommand),
-
-    // Import network management
-    #[command(name = "add")]
-    Add(AddCommand),
-
-    #[command(name = "remove")]
-    Remove(RemoveCommand),
 }
 
 impl NetworkCommand {
@@ -83,8 +69,6 @@ impl NetworkCommand {
             NetworkSubcommands::VaultParameters(vault_parameters) => {
                 vault_parameters.with_alias(self.alias).execute(ctx).await
             }
-            NetworkSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
-            NetworkSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,
         }
     }
 }

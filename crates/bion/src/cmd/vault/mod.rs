@@ -1,9 +1,7 @@
-use add_vault_admin::AddVaultAdminCommand;
 use clap::{Parser, Subcommand};
 use create::CreateCommand;
 use hyve_cli_runner::CliContext;
 use network_parameters::NetworkParametersCommand;
-use remove_vault_admin::RemoveVaultAdminCommand;
 use set_delegator::SetDelegatorCommand;
 use set_deposit_limit::SetDepositLimitCommand;
 use set_deposit_whitelist::SetDepositWhitelistCommand;
@@ -14,12 +12,8 @@ use set_operator_network_limit::SetOperatorNetworkLimitCommand;
 use set_operator_network_shares::SetOperatorNetworkSharesCommand;
 use set_slasher::SetSlasherCommand;
 
-mod add_vault_admin;
-pub mod config;
-mod consts;
 mod create;
 mod network_parameters;
-mod remove_vault_admin;
 mod set_delegator;
 mod set_deposit_limit;
 mod set_deposit_whitelist;
@@ -29,13 +23,12 @@ mod set_network_limit;
 mod set_operator_network_limit;
 mod set_operator_network_shares;
 mod set_slasher;
-mod utils;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Commands related to creating and managing Vaults on Symbiotic.")]
 pub struct VaultCommand {
     #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
-    pub alias: String,
+    alias: String,
 
     #[command(subcommand)]
     pub command: VaultSubcommands,
@@ -75,13 +68,6 @@ pub enum VaultSubcommands {
 
     #[command(name = "set-slasher")]
     SetSlasher(SetSlasherCommand),
-
-    // Import vault management
-    #[command(name = "add-vault-admin")]
-    AddVaultAdmin(AddVaultAdminCommand),
-
-    #[command(name = "remove-vault-admin")]
-    RemoveVaultAdmin(RemoveVaultAdminCommand),
 }
 
 impl VaultCommand {
@@ -132,11 +118,6 @@ impl VaultCommand {
             }
             VaultSubcommands::SetSlasher(set_slasher) => {
                 set_slasher.with_alias(self.alias).execute(ctx).await
-            }
-            // Vault admin config maintenance
-            VaultSubcommands::AddVaultAdmin(add) => add.with_alias(self.alias).execute(ctx).await,
-            VaultSubcommands::RemoveVaultAdmin(remove) => {
-                remove.with_alias(self.alias).execute(ctx).await
             }
         }
     }

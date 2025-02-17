@@ -1,4 +1,3 @@
-use add::AddCommand;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
 use opt_in_network::OptInNetworkCommand;
@@ -6,26 +5,20 @@ use opt_in_vault::OptInVaultCommand;
 use opt_out_network::OptOutNetworkCommand;
 use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
-use remove::RemoveCommand;
 use vault_parameters::VaultParametersCommand;
 
-mod add;
-mod config;
-mod consts;
 mod opt_in_network;
 mod opt_in_vault;
 mod opt_out_network;
 mod opt_out_vault;
 mod register;
-mod remove;
-mod utils;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
 #[clap(about = "Manage your operator.")]
 pub struct OperatorCommand {
     #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
-    pub alias: String,
+    alias: String,
 
     #[command(subcommand)]
     pub command: OperatorSubcommands,
@@ -50,13 +43,6 @@ pub enum OperatorSubcommands {
 
     #[command(name = "vault-parameters")]
     VaultParameters(VaultParametersCommand),
-
-    // Import operator management
-    #[command(name = "add")]
-    Add(AddCommand),
-
-    #[command(name = "remove")]
-    Remove(RemoveCommand),
 }
 
 impl OperatorCommand {
@@ -80,8 +66,6 @@ impl OperatorCommand {
             OperatorSubcommands::VaultParameters(vault_parameters) => {
                 vault_parameters.with_alias(self.alias).execute(ctx).await
             }
-            OperatorSubcommands::Add(add) => add.with_alias(self.alias).execute(ctx).await,
-            OperatorSubcommands::Remove(remove) => remove.with_alias(self.alias).execute(ctx).await,
         }
     }
 }

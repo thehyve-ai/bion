@@ -8,13 +8,14 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{calls::is_operator, consts::get_operator_registry},
     utils::{print_loading_until_async, validate_cli_args},
 };
-
-use super::utils::{get_operator_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct RegisterCommand {
@@ -64,13 +65,14 @@ impl RegisterCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let operator_config = get_alias_config(chain_id, alias, &dirs)?;
+        let operator = operator_config.address;
         let operator_registry = get_operator_registry(chain_id)?;
-        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&operator_config, &mut eth)?;
 
         let is_registered = print_loading_until_async(
             "Checking registration status",
-            is_operator(operator_config.address, operator_registry, &provider),
+            is_operator(operator, operator_registry, &provider),
         )
         .await?;
 

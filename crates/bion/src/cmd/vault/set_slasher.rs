@@ -9,7 +9,10 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{
         consts::{get_slasher_factory, get_vault_factory},
@@ -17,8 +20,6 @@ use crate::{
     },
     utils::validate_cli_args,
 };
-
-use super::utils::{get_vault_admin_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct SetSlasherCommand {
@@ -78,7 +79,7 @@ impl SetSlasherCommand {
         let chain_id = get_chain_id(&provider).await?;
         let slasher_factory = get_slasher_factory(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
-        let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
+        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
         validate_vault_status(vault, vault_factory, &provider).await?;

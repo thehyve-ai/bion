@@ -1,5 +1,5 @@
 pub mod add_alias;
-mod alias_config;
+pub mod alias_config;
 mod alias_utils;
 mod consts;
 pub mod hyve;

@@ -1,7 +1,10 @@
 use bion::cmd::{
+    add_alias::AddAliasCommand,
     hyve::{bls::BLSCommands, HyveCommands},
+    list_aliases::ListAliasesCommand,
     network::NetworkCommand,
     operator::OperatorCommand,
+    remove_alias::RemoveAliasCommand,
     symbiotic::SymbioticCommands,
     vault::VaultCommand,
 };
@@ -64,6 +67,15 @@ impl Cli {
     pub fn run(self) -> eyre::Result<()> {
         let runner = CliRunner::default();
         match self.command {
+            Commands::AddAlias(add_alias) => {
+                runner.run_command_until_exit(|ctx| add_alias.execute(ctx))
+            }
+            Commands::ListAliases(list_aliases) => {
+                runner.run_command_until_exit(|ctx| list_aliases.execute(ctx))
+            }
+            Commands::RemoveAlias(remove_alias) => {
+                runner.run_command_until_exit(|ctx| remove_alias.execute(ctx))
+            }
             Commands::Hyve(hyve) => match hyve {
                 HyveCommands::BLS(bls) => match bls {
                     BLSCommands::List(list) => {
@@ -138,6 +150,15 @@ impl Cli {
 
 #[derive(Debug, Subcommand)]
 pub enum Commands {
+    #[command(name = "add-alias")]
+    AddAlias(AddAliasCommand),
+
+    #[command(name = "list-aliases")]
+    ListAliases(ListAliasesCommand),
+
+    #[command(name = "remove-alias")]
+    RemoveAlias(RemoveAliasCommand),
+
     #[command(name = "hyve", subcommand)]
     Hyve(HyveCommands),
 

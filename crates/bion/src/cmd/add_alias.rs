@@ -15,16 +15,18 @@ use crate::{
         utils::{get_address_type, get_chain_id},
     },
     common::DirsCliArgs,
-    utils::{print_loading_until_async, print_success_message, write_to_json_file},
+    utils::{
+        print_loading_until_async, print_success_message, validate_cli_args, write_to_json_file,
+    },
 };
 
 #[derive(Debug, Parser)]
 pub struct AddAliasCommand {
+    #[arg(value_name = "ALIAS", help = "The operator alias.")]
+    alias: String,
+
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
     address: Address,
-
-    #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
-    alias: String,
 
     #[clap(flatten)]
     dirs: DirsCliArgs,
@@ -41,6 +43,8 @@ impl AddAliasCommand {
             dirs,
             eth,
         } = self;
+
+        validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;

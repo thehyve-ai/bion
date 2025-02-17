@@ -7,7 +7,7 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
-    cmd::utils::get_chain_id,
+    cmd::{alias_utils::get_alias_config, utils::get_chain_id},
     common::DirsCliArgs,
     symbiotic::{
         calls::{
@@ -23,8 +23,6 @@ use crate::{
     },
     utils::{print_loading_until_async, validate_cli_args},
 };
-
-use super::utils::get_operator_config;
 
 #[derive(Debug, Parser)]
 pub struct VaultParametersCommand {
@@ -67,11 +65,11 @@ impl VaultParametersCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let operator_config = get_alias_config(chain_id, alias, &dirs)?;
+        let operator = operator_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let operator_registry = get_operator_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
-        let operator_config = get_operator_config(chain_id, alias, &dirs)?;
-        let operator = operator_config.address;
 
         validate_operator_status(operator, operator_registry, &provider).await?;
         validate_network_status(network, network_registry, &provider).await?;

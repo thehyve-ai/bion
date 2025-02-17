@@ -8,7 +8,7 @@ use itertools::Itertools;
 use prettytable::{row, Table};
 
 use crate::{
-    cmd::utils::get_chain_id,
+    cmd::{alias_utils::get_alias_config, utils::get_chain_id},
     common::DirsCliArgs,
     symbiotic::{
         calls::is_opted_in_vault,
@@ -21,8 +21,6 @@ use crate::{
     },
     utils::validate_cli_args,
 };
-
-use super::utils::get_network_config;
 
 #[derive(Debug, Parser)]
 pub struct ListVaultsCommand {
@@ -58,16 +56,17 @@ impl ListVaultsCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let network_config = get_alias_config(chain_id, alias, &dirs)?;
+        let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let opt_in_service = get_vault_opt_in_service(chain_id)?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
 
-        validate_network_status(network_config.address, network_registry, &provider).await?;
+        validate_network_status(network, network_registry, &provider).await?;
 
         let vault_addresses = fetch_vault_addresses(&provider, chain_id).await?;
         let mut valid_vault_addresses = Vec::new();
         for vault in vault_addresses {
-            if is_opted_in_vault(network_config.address, vault, opt_in_service, &provider).await? {
+            if is_opted_in_vault(network, vault, opt_in_service, &provider).await? {
                 valid_vault_addresses.push(vault);
             }
         }

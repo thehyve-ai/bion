@@ -15,7 +15,10 @@ use std::str::FromStr;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::{format_number_with_decimals, get_chain_id},
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::{format_number_with_decimals, get_chain_id},
+    },
     common::DirsCliArgs,
     symbiotic::{
         calls::{get_token_decimals, get_token_symbol},
@@ -27,8 +30,6 @@ use crate::{
         parse_duration_secs_u48, print_error_message, read_user_confirmation, validate_cli_args,
     },
 };
-
-use super::utils::{get_vault_admin_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 #[clap(about = "Create a new vault with a delegator and a slasher.")]
@@ -83,7 +84,7 @@ impl CreateCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
-        let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
+        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
         let vault_configurator = get_vault_configurator(chain_id)?;

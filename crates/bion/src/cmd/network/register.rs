@@ -8,15 +8,14 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{calls::is_network, consts::get_network_registry},
-    utils::{
-        print_error_message, print_loading_until_async, print_success_message, validate_cli_args,
-    },
+    utils::{print_error_message, print_loading_until_async, validate_cli_args},
 };
-
-use super::utils::{get_network_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct RegisterCommand {
@@ -66,13 +65,14 @@ impl RegisterCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let network_config = get_alias_config(chain_id, alias, &dirs)?;
+        let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
         let is_network = print_loading_until_async(
             "Checking network registration status",
-            is_network(network_config.address, network_registry, &provider),
+            is_network(network, network_registry, &provider),
         )
         .await?;
 

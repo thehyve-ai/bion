@@ -11,7 +11,10 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{
         calls::{
@@ -35,8 +38,6 @@ use crate::{
     },
     utils::{print_loading_until_async, read_user_confirmation, validate_cli_args},
 };
-
-use super::utils::{get_vault_admin_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 pub struct SetOperatorNetworkSharesCommand {
@@ -114,7 +115,7 @@ impl SetOperatorNetworkSharesCommand {
         let operator_registry = get_operator_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
         let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
-        let vault_admin_config = get_vault_admin_config(chain_id, alias, &dirs)?;
+        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
         validate_operator_status(operator, operator_registry, &provider).await?;

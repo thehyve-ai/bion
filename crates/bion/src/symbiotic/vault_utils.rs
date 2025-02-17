@@ -14,8 +14,8 @@ use serde::Deserialize;
 
 use crate::{
     cmd::{
+        alias_config::AliasConfig,
         utils::{format_number_with_decimals, parse_currency},
-        vault::config::VaultAdminConfig,
     },
     utils::{
         get_etherscan_address_link, parse_duration_secs, parse_epoch_ts, parse_ts,
@@ -588,7 +588,7 @@ pub fn get_encoded_vault_configurator_params(
     slasher_index: u64,
     veto_duration: U48,
     resolver_set_epochs_delay: U256,
-    vault_admin_config: &VaultAdminConfig,
+    vault_admin_config: &AliasConfig,
 ) -> eyre::Result<String> {
     let network_limit_set_role_holders = vec![vault_admin_config.address];
     let operator_network_shares_set_role_holders = vec![vault_admin_config.address];

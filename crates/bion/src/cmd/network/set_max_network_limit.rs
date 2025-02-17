@@ -10,7 +10,10 @@ use hyve_cli_runner::CliContext;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     symbiotic::{
         calls::{get_delegator_type, get_max_network_limit, get_network_limit},
@@ -21,8 +24,6 @@ use crate::{
     },
     utils::{print_loading_until_async, read_user_confirmation, validate_cli_args},
 };
-
-use super::utils::{get_network_config, set_foundry_signing_method};
 
 #[derive(Debug, Parser)]
 #[clap(about = "Set a max network limit on specific vault for your network.")]
@@ -85,10 +86,10 @@ impl SetMaxNetworkLimitCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let network_config = get_alias_config(chain_id, alias, &dirs)?;
+        let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
-        let network_config = get_network_config(chain_id, alias, &dirs)?;
-        let network = network_config.address;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
         validate_network_status(network, network_registry, &provider).await?;
