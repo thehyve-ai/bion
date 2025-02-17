@@ -19,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set the deposit limit for your vault.")]
 pub struct SetDepositLimitCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,

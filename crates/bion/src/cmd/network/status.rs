@@ -15,6 +15,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Check the registration status of your network.")]
 pub struct StatusCommand {
     #[arg(skip)]
     alias: String,

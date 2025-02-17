@@ -31,6 +31,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Get detailed information for a vault and your network.")]
 pub struct VaultParametersCommand {
     #[arg(value_name = "VAULT", help = "The name or address of the vault.")]
     vault: String,

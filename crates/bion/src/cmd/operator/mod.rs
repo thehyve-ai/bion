@@ -17,7 +17,7 @@ mod status;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
-#[clap(about = "Manage your operator.")]
+#[clap(about = "Commands related to registering and managing Operators.")]
 pub struct OperatorCommand {
     #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
     alias: String,

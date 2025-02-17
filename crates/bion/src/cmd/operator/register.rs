@@ -18,6 +18,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Register your operator.")]
 pub struct RegisterCommand {
     #[arg(skip)]
     alias: String,

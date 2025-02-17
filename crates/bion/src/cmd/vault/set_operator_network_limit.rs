@@ -40,14 +40,12 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set a network limit for an operator within a network in your vault.")]
 pub struct SetOperatorNetworkLimitCommand {
     #[arg(value_name = "ADDRESS", help = "The address of the network.")]
     network: Address,
 
-    #[arg(
-        value_name = "SUBNETWORK",
-        help = "The subnetwork to set the limit for."
-    )]
+    #[arg(value_name = "SUBNETWORK", help = "The subnetwork index.")]
     subnetwork: U96,
 
     #[arg(value_name = "OPERATOR", help = "Address of the operator.")]

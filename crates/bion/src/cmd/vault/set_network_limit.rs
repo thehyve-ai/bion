@@ -28,6 +28,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set a network limit on specific network in your vault.")]
 pub struct SetNetworkLimitCommand {
     #[arg(value_name = "ADDRESS", help = "The address of the network.")]
     network: Address,

@@ -18,6 +18,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Register your network.")]
 pub struct RegisterCommand {
     #[arg(skip)]
     alias: String,

@@ -19,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Remove an alias.")]
 pub struct RemoveAliasCommand {
     #[arg(value_name = "ALIAS", help = "The saved alias.")]
     alias: String,

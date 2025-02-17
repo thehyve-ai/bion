@@ -21,6 +21,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Add an alias with an operator.")]
 pub struct AddAliasCommand {
     #[arg(value_name = "ALIAS", help = "The operator alias.")]
     alias: String,

@@ -22,6 +22,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set the middleware for your network.")]
 pub struct SetMiddlewareCommand {
     #[arg(
         value_name = "MIDDLEWARE_ADDRESS",

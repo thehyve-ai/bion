@@ -24,6 +24,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Opt in your operator to a network.")]
 pub struct OptInNetworkCommand {
     #[arg(value_name = "NETWORK", help = "The address of the network.")]
     network: Address,

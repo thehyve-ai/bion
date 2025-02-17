@@ -22,6 +22,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set the slasher for your vault.")]
 pub struct SetSlasherCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,

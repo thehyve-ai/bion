@@ -17,7 +17,7 @@ mod status;
 mod vault_parameters;
 
 #[derive(Debug, Parser)]
-#[clap(about = "Manage your network.")]
+#[clap(about = "Commands related to registering and managing Networks.")]
 pub struct NetworkCommand {
     #[arg(value_name = "ALIAS", help = "The saved network alias.")]
     alias: String,

@@ -25,6 +25,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Get detailed information for a vault and your operator.")]
 pub struct VaultParametersCommand {
     #[arg(value_name = "ADDRESS", help = "Address of the vault.")]
     vault: Address,

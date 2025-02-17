@@ -24,6 +24,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Opt in your operator to a vault.")]
 pub struct OptInVaultCommand {
     #[arg(value_name = "VAULT", help = "The address of the vault.")]
     vault: Address,

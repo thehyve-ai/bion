@@ -40,6 +40,9 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(
+    about = "Set operator operator network shares for an operator within a network in your vault."
+)]
 pub struct SetOperatorNetworkSharesCommand {
     #[arg(value_name = "ADDRESS", help = "The address of the network.")]
     network: Address,

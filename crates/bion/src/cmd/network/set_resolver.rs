@@ -25,6 +25,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set the resolver for your network.")]
 pub struct SetResolverCommand {
     #[arg(value_name = "VAULT", help = "The address of the vault.")]
     vault: Address,

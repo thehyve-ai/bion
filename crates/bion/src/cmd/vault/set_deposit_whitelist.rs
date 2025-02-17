@@ -19,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Enable or disable deposit whitelisting for your vault.")]
 pub struct SetDepositWhitelistCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,

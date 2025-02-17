@@ -22,6 +22,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set the delegator of your vault.")]
 pub struct SetDelegatorCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,

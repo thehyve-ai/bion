@@ -23,6 +23,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "List vaults where your network is opted in.")]
 pub struct ListVaultsCommand {
     #[arg(long, help = "Only show verified vaults.", default_value = "false")]
     verified_only: bool,

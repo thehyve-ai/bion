@@ -25,7 +25,7 @@ mod set_operator_network_shares;
 mod set_slasher;
 
 #[derive(Debug, Parser)]
-#[clap(about = "Commands related to creating and managing Vaults on Symbiotic.")]
+#[clap(about = "Commands related to creating and managing Vaults.")]
 pub struct VaultCommand {
     #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
     alias: String,

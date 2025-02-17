@@ -19,6 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Set deposit whitelist status of an account in your vault.")]
 pub struct SetDepositorWhitelistStatusCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,
@@ -26,10 +27,7 @@ pub struct SetDepositorWhitelistStatusCommand {
     #[arg(value_name = "ACCOUNT", help = "Address of the depositor.")]
     account: Address,
 
-    #[arg(
-        value_name = "WHITELIST_STATUS",
-        help = "Set deposit whitelist status of an account."
-    )]
+    #[arg(value_name = "WHITELIST_STATUS", help = "Whitelist status.")]
     whitelist_status: bool,
 
     #[arg(skip)]

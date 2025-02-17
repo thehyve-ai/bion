@@ -24,6 +24,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
+#[clap(about = "Opt out your operator from a network.")]
 pub struct OptOutNetworkCommand {
     #[arg(value_name = "NETWORK", help = "The address of the network.")]
     network: Address,
