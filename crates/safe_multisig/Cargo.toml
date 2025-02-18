@@ -1,0 +1,28 @@
+[package]
+name = "safe_multisig"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+
+# ethereum
+alloy-contract.workspace = true
+alloy-network.workspace = true
+alloy-primitives.workspace = true
+alloy-rpc-types.workspace = true
+alloy-sol-types.workspace = true
+
+cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
+foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }
+
+# misc
+eyre.workspace = true
+reqwest.workspace = true
+serde.workspace = true
+serde_json.workspace = true

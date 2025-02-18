@@ -5,12 +5,10 @@ members = [
 	"crates/lockfile",
 	"crates/version",
 	"crates/account-utils",
-
 	"crates/cli-runner",
 	"crates/bion",
-	"crates/multicall",
-
-
+	"crates/multicall", 
+	"crates/safe_multisig",
 ]
 resolver = "2"
 exclude = ["crates/client"]
