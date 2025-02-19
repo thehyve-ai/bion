@@ -3,6 +3,9 @@ use alloy_signer::Signer;
 use alloy_signer_local::{coins_bip39::English, LocalSigner, MnemonicBuilder, PrivateKeySigner};
 use colored::Colorize;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
+use foundry_common::provider::RetryProvider;
+use itertools::Itertools;
+use safe_multisig::calls::get_owners;
 use serde::{Deserialize, Serialize};
 
 use std::{collections::HashMap, path::PathBuf};
@@ -52,9 +55,13 @@ impl AliasConfig {
         self.address_type = address_type;
     }
 
-    pub fn set_signing_method(&mut self, dirs: &DirsCliArgs) -> eyre::Result<()> {
-        if self.address_type != AddressType::EOA {
-            return Ok(());
+    pub async fn set_signing_method(
+        &mut self,
+        dirs: &DirsCliArgs,
+        provider: &RetryProvider,
+    ) -> eyre::Result<()> {
+        if self.address_type == AddressType::Contract {
+            self.handle_multisig_signing_method(dirs, provider).await?;
         }
 
         let data_dir = dirs.data_dir(Some(self.chain_id))?;
@@ -251,5 +258,153 @@ impl AliasConfig {
 
     pub fn set_keystore_file(&mut self, keystore_file: Option<PathBuf>) {
         self.keystore_file = keystore_file;
+    }
+
+    async fn handle_multisig_signing_method(
+        &mut self,
+        dirs: &DirsCliArgs,
+        provider: &RetryProvider,
+    ) -> eyre::Result<()> {
+        let Ok(owners) = get_owners(self.address, provider).await else {
+            eyre::bail!("Please verify that the provided address is a multisig contract.");
+        };
+
+        let data_dir = dirs.data_dir(Some(self.chain_id))?;
+        let alias_config_dir = data_dir.join(format!("{}/{}", ALIAS_DIRECTORY, self.address));
+
+        let options = vec!["Private Key", "Keystore", "Mnemonic"];
+
+        let selection = Select::with_theme(&ColorfulTheme::default())
+            .with_prompt("\nChoose how you prefer to import an owner account:")
+            .items(&options)
+            .default(0)
+            .interact()
+            .map_err(|e| {
+                eyre::eyre!(format!("Failed to show owner import selection menu: {}", e))
+            })?;
+
+        match selection {
+            0 => {
+                // Private key
+                let private_key = rpassword::prompt_password_stdout("\nEnter private key:")?;
+                let signer = foundry_wallets::utils::create_private_key_signer(&private_key)?;
+                if !owners.iter().contains(&signer.address()) {
+                    eyre::bail!("Not an owner")
+                }
+
+                let private_key_bytes: B256 =
+                    alloy_primitives::hex::FromHex::from_hex(private_key)?;
+
+                let keystore_password = get_keystore_password()?;
+
+                print_success_message("✅ Keystore password setup completed");
+
+                let mut rng = rand::thread_rng();
+                let (_, _) = LocalSigner::encrypt_keystore(
+                    &alias_config_dir,
+                    &mut rng,
+                    private_key_bytes,
+                    keystore_password.as_ref(),
+                    Some("keystore"),
+                )?;
+
+                print_success_message("✅ Keystore creation completed");
+
+                self.signing_method = Some(SigningMethod::Keystore);
+                self.keystore_file = Some(alias_config_dir.join("keystore"));
+                self.password_enabled = true;
+            }
+            1 => {
+                // Keystore
+                let keypath = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt("\nEnter path to keystore:")
+                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
+                        let normalized = input.trim().to_lowercase();
+                        if normalized.len() == 0 {
+                            Err("Keystore path must not be empty.")
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .interact()
+                    .map_err(|e: dialoguer::Error| match e {
+                        dialoguer::Error::IO(e) => match e.kind() {
+                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                            _ => ExecuteError::Other(e.into()),
+                        },
+                    })?;
+
+                let password = rpassword::prompt_password_stdout("\nEnter keystore password")?;
+
+                match PrivateKeySigner::decrypt_keystore(keypath.clone(), password) {
+                    Ok(signer) => {
+                        if !owners.iter().contains(&signer.address()) {
+                            eyre::bail!("Not an owner");
+                        }
+
+                        print_success_message("✅ Keystore successfully decrypted");
+
+                        self.signing_method = Some(SigningMethod::Keystore);
+                        self.keystore_file = Some(alias_config_dir.join("keystore"));
+                        self.password_enabled = true;
+                    }
+                    Err(e) => eyre::bail!("Failed to decrypt keystore: {}", e),
+                };
+            }
+            2 => {
+                // Mnemonic
+                let phrase = Input::with_theme(&ColorfulTheme::default())
+                    .with_prompt(
+                        "\nEnter mnemonic phrase or path to a file that contains the phrase:",
+                    )
+                    .validate_with(|input: &String| -> std::result::Result<(), &str> {
+                        let normalized = input.trim().to_lowercase();
+                        if normalized.len() == 0 {
+                            Err("Mnemonic phrase or path cannot be empty.")
+                        } else {
+                            Ok(())
+                        }
+                    })
+                    .interact()
+                    .map_err(|e: dialoguer::Error| match e {
+                        dialoguer::Error::IO(e) => match e.kind() {
+                            std::io::ErrorKind::Interrupted => ExecuteError::UserCancelled,
+                            _ => ExecuteError::Other(e.into()),
+                        },
+                    })?;
+
+                let signer = MnemonicBuilder::<English>::default()
+                    .phrase(phrase)
+                    .build()?;
+
+                if !owners.iter().contains(&signer.address()) {
+                    eyre::bail!("Not an owner");
+                }
+
+                let keystore_password = get_keystore_password()?;
+
+                print_success_message("✅ Keystore password setup completed");
+
+                let mut rng = rand::thread_rng();
+                let (_, _) = LocalSigner::encrypt_keystore(
+                    &alias_config_dir,
+                    &mut rng,
+                    signer.to_bytes(),
+                    keystore_password.as_ref(),
+                    Some("keystore"),
+                )?;
+
+                print_success_message("✅ Keystore creation completed");
+
+                self.signing_method = Some(SigningMethod::Keystore);
+                self.keystore_file = Some(alias_config_dir.clone().join("keystore"));
+                self.password_enabled = true;
+            }
+            _ => unreachable!(),
+        }
+
+        self.signing_method = Some(SigningMethod::MultiSig);
+
+        Ok(())
     }
 }

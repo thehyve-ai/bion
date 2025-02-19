@@ -10,6 +10,7 @@ license.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+multicall.workspace = true
 
 # ethereum
 alloy-contract.workspace = true

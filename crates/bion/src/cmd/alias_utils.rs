@@ -109,6 +109,7 @@ pub fn set_foundry_signing_method(
             SigningMethod::Trezor => {
                 eth.wallet.trezor = true;
             }
+            _ => {}
         }
     }
     Ok(())

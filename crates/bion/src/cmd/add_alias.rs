@@ -89,7 +89,7 @@ impl AddAliasCommand {
         println!("\n{}{:?}", "Address type: ".bright_cyan(), address_type);
 
         alias_config.set_address_type(address_type);
-        alias_config.set_signing_method(&dirs)?;
+        alias_config.set_signing_method(&dirs, &provider).await?;
 
         write_to_json_file(alias_config_path, &alias_config, false).map_err(|e| eyre::eyre!(e))?;
 

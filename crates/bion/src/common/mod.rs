@@ -268,4 +268,5 @@ pub enum SigningMethod {
     Keystore,
     Ledger,
     Trezor,
+    MultiSig,
 }

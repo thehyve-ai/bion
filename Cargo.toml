@@ -240,6 +240,7 @@ hyve-primitives = { path = "crates/primitives" }
 hyve-version = { path = "crates/version" }
 lockfile = { path = "crates/lockfile" }
 multicall = { path = "crates/multicall" }
+safe_multisig = { path = "crates/safe_multisig" }
 
 # Lighthouse
 eth2_keystore = { git = "https://github.com/thehyve-ai/lighthouse.git", branch = "stable", package = "eth2_keystore" }
