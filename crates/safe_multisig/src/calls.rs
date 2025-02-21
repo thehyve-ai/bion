@@ -9,52 +9,81 @@ use std::str::FromStr;
 
 use crate::contracts::safe::Safe;
 
+pub async fn get_nonce<A: TryInto<Address>>(safe: A, provider: &RetryProvider) -> eyre::Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let safe = safe.try_into()?;
+
+    let call = Safe::nonceCall::new(());
+
+    let Safe::nonceReturn { _0: nonce } = call_and_decode(call, safe, provider).await?;
+
+    Ok(nonce)
+}
+
 pub async fn get_owners<A: TryInto<Address>>(
-    to: A,
+    safe: A,
     provider: &RetryProvider,
 ) -> eyre::Result<Vec<Address>>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let to = to.try_into()?;
+    let safe = safe.try_into()?;
 
     let call = Safe::getOwnersCall::new(());
 
-    let Safe::getOwnersReturn { _0: owners } = call_and_decode(call, to, provider).await?;
+    let Safe::getOwnersReturn { _0: owners } = call_and_decode(call, safe, provider).await?;
 
     Ok(owners)
 }
 
 pub async fn get_threshold<A: TryInto<Address>>(
-    to: A,
+    safe: A,
     provider: &RetryProvider,
 ) -> eyre::Result<U256>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let to = to.try_into()?;
+    let safe = safe.try_into()?;
 
     let call = Safe::getThresholdCall::new(());
 
-    let Safe::getThresholdReturn { _0: threshold } = call_and_decode(call, to, provider).await?;
+    let Safe::getThresholdReturn { _0: threshold } = call_and_decode(call, safe, provider).await?;
 
     Ok(threshold)
 }
 
+pub async fn get_version<A: TryInto<Address>>(
+    safe: A,
+    provider: &RetryProvider,
+) -> eyre::Result<String>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let safe = safe.try_into()?;
+
+    let call = Safe::VERSIONCall::new(());
+
+    let Safe::VERSIONReturn { _0: version } = call_and_decode(call, safe, provider).await?;
+
+    Ok(version)
+}
+
 pub async fn is_owner<A: TryInto<Address>>(
     address: A,
-    to: A,
+    safe: A,
     provider: &RetryProvider,
 ) -> eyre::Result<bool>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let to = to.try_into()?;
     let address = address.try_into()?;
+    let safe = safe.try_into()?;
 
     let call = Safe::isOwnerCall::new((address,));
 
-    let Safe::isOwnerReturn { _0: is_owner } = call_and_decode(call, to, provider).await?;
+    let Safe::isOwnerReturn { _0: is_owner } = call_and_decode(call, safe, provider).await?;
 
     Ok(is_owner)
 }

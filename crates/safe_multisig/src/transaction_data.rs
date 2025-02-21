@@ -1,3 +1,7 @@
+use alloy_primitives::{Address, TxHash};
+use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
+use alloy_signer::k256::ecdsa::SigningKey;
+use alloy_signer_local::LocalSigner;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -8,8 +12,17 @@ pub enum OperationType {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct MetaTransactionData {
+    pub to: Address,
+    pub value: String,
+    pub data: String,
+    pub operation: Option<OperationType>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SafeTransactionData {
-    pub to: String,
+    pub to: Address,
     pub value: String,
     pub data: String,
     pub operation: OperationType,
@@ -21,40 +34,11 @@ pub struct SafeTransactionData {
     pub nonce: u64,
 }
 
-impl SafeTransactionData {
-    pub fn new(
-        to: String,
-        value: String,
-        data: String,
-        operation: OperationType,
-        safe_tx_gas: String,
-        base_gas: String,
-        gas_price: String,
-        gas_token: String,
-        refund_receiver: String,
-        nonce: u64,
-    ) -> Self {
-        Self {
-            to,
-            value,
-            data,
-            operation,
-            safe_tx_gas,
-            base_gas,
-            gas_price,
-            gas_token,
-            refund_receiver,
-            nonce,
-        }
-    }
-}
-
 pub struct ProposeTransactionArgs {
-    pub safe_address: String,
-    pub safe_transaction_data: SafeTransactionData,
-    pub safe_tx_hash: String,
-    pub sender_address: String,
-    pub sender_signature: String,
+    pub safe_address: Address,
+    pub sender: Address,
+    pub data: String,
+    pub signer: LocalSigner<SigningKey>,
     pub origin: Option<String>,
 }
 
@@ -62,9 +46,9 @@ pub struct ProposeTransactionArgs {
 #[serde(rename_all = "camelCase")]
 pub struct ProposeTransactionBody {
     #[serde(flatten)]
-    pub safe_tx: SafeTransactionData,
-    pub contract_transaction_hash: String,
-    pub sender: String,
+    pub safe_tx: WithOtherFields<TransactionRequest>,
+    pub contract_transaction_hash: TxHash,
+    pub sender: Address,
     pub signature: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub origin: Option<String>,

@@ -17,10 +17,15 @@ alloy-contract.workspace = true
 alloy-network.workspace = true
 alloy-primitives.workspace = true
 alloy-rpc-types.workspace = true
+alloy-serde.workspace = true
+alloy-signer = { workspace = true, features = ["eip712"] }
+alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
 alloy-sol-types.workspace = true
 
 cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
 foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }
+foundry-config = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-config" }
+foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-wallets" }
 
 # misc
 eyre.workspace = true

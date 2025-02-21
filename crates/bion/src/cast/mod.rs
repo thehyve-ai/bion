@@ -1,4 +1,3 @@
 pub mod cmd;
 pub mod tx;
-
-mod utils;
+pub mod utils;

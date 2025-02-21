@@ -30,6 +30,7 @@ pub struct AliasConfig {
     pub alias: String,
     address_type: AddressType, // default value that will be overwritten
     pub signing_method: Option<SigningMethod>,
+    pub owner_signing_method: Option<SigningMethod>,
     password_enabled: bool,
     date_created: i64,
     date_updated: i64,
@@ -44,6 +45,7 @@ impl AliasConfig {
             alias,
             address_type: AddressType::EOA,
             signing_method: None,
+            owner_signing_method: None,
             password_enabled: false,
             date_created: chrono::Utc::now().timestamp(),
             date_updated: chrono::Utc::now().timestamp(),
@@ -108,8 +110,7 @@ impl AliasConfig {
                 if signer.address().to_string().to_lowercase()
                     != self.address.to_string().to_lowercase()
                 {
-                    print_error_message("Address does not match signer!");
-                    return Err(eyre::eyre!(""));
+                    eyre::bail!("Address does not match signer!");
                 }
 
                 let private_key_bytes: B256 =
@@ -166,8 +167,7 @@ impl AliasConfig {
                         if signer.address().to_string().to_lowercase()
                             != self.address.to_string().to_lowercase()
                         {
-                            print_error_message("Address does not match signer!");
-                            return Err(eyre::eyre!(""));
+                            eyre::bail!("Address does not match signer!");
                         }
 
                         print_success_message("✅ Keystore successfully decrypted");
@@ -213,8 +213,7 @@ impl AliasConfig {
                 if signer.address().to_string().to_lowercase()
                     != self.address.to_string().to_lowercase()
                 {
-                    print_error_message("Address does not match signer!");
-                    return Err(eyre::eyre!(""));
+                    eyre::bail!("Address does not match signer!");
                 }
 
                 let keystore_password = get_keystore_password()?;
@@ -272,7 +271,7 @@ impl AliasConfig {
         let data_dir = dirs.data_dir(Some(self.chain_id))?;
         let alias_config_dir = data_dir.join(format!("{}/{}", ALIAS_DIRECTORY, self.address));
 
-        let options = vec!["Private Key", "Keystore", "Mnemonic"];
+        let options = vec!["Private Key", "Keystore", "Mnemonic", "Ledger", "Trezor"];
 
         let selection = Select::with_theme(&ColorfulTheme::default())
             .with_prompt("\nChoose how you prefer to import an owner account:")
@@ -310,7 +309,7 @@ impl AliasConfig {
 
                 print_success_message("✅ Keystore creation completed");
 
-                self.signing_method = Some(SigningMethod::Keystore);
+                self.owner_signing_method = Some(SigningMethod::Keystore);
                 self.keystore_file = Some(alias_config_dir.join("keystore"));
                 self.password_enabled = true;
             }
@@ -344,7 +343,7 @@ impl AliasConfig {
 
                         print_success_message("✅ Keystore successfully decrypted");
 
-                        self.signing_method = Some(SigningMethod::Keystore);
+                        self.owner_signing_method = Some(SigningMethod::Keystore);
                         self.keystore_file = Some(alias_config_dir.join("keystore"));
                         self.password_enabled = true;
                     }
@@ -396,15 +395,22 @@ impl AliasConfig {
 
                 print_success_message("✅ Keystore creation completed");
 
-                self.signing_method = Some(SigningMethod::Keystore);
+                self.owner_signing_method = Some(SigningMethod::Keystore);
                 self.keystore_file = Some(alias_config_dir.clone().join("keystore"));
                 self.password_enabled = true;
+            }
+            3 => {
+                // Ledger
+                self.owner_signing_method = Some(SigningMethod::Ledger);
+            }
+            4 => {
+                // Trezor
+                self.owner_signing_method = Some(SigningMethod::Trezor);
             }
             _ => unreachable!(),
         }
 
         self.signing_method = Some(SigningMethod::MultiSig);
-
         Ok(())
     }
 }
