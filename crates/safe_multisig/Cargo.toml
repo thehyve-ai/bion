@@ -16,11 +16,14 @@ multicall.workspace = true
 alloy-contract.workspace = true
 alloy-network.workspace = true
 alloy-primitives.workspace = true
+alloy-rlp.workspace = true
 alloy-rpc-types.workspace = true
 alloy-serde.workspace = true
 alloy-signer = { workspace = true, features = ["eip712"] }
 alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
 alloy-sol-types.workspace = true
+
+alloy-eips = "0.11.1"
 
 cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
 foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }

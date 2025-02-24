@@ -109,7 +109,33 @@ pub fn set_foundry_signing_method(
             SigningMethod::Trezor => {
                 eth.wallet.trezor = true;
             }
-            _ => {}
+            SigningMethod::MultiSig => {
+                if let Some(owner_signing_method) = alias_config.owner_signing_method.clone() {
+                    match owner_signing_method {
+                        SigningMethod::Keystore => {
+                            let password = rpassword::prompt_password_stdout(
+                                "\nEnter owner keystore password",
+                            )?;
+                            eth.wallet.keystore_path = Some(
+                                alias_config
+                                    .keystore_file
+                                    .clone()
+                                    .unwrap()
+                                    .to_string_lossy()
+                                    .to_string(),
+                            );
+                            eth.wallet.keystore_password = Some(password);
+                        }
+                        SigningMethod::Ledger => {
+                            eth.wallet.ledger = true;
+                        }
+                        SigningMethod::Trezor => {
+                            eth.wallet.trezor = true;
+                        }
+                        _ => {}
+                    }
+                }
+            }
         }
     }
     Ok(())
