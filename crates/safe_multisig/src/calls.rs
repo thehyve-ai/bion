@@ -1,8 +1,8 @@
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{Address, Bytes, U256};
+use alloy_primitives::{Address, Bytes, B256, U256, U8};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_sol_types::SolCall;
-use cast::Cast;
+use cast::{base, Cast};
 use foundry_common::provider::RetryProvider;
 
 use std::str::FromStr;
@@ -52,6 +52,47 @@ where
     let Safe::getThresholdReturn { _0: threshold } = call_and_decode(call, safe, provider).await?;
 
     Ok(threshold)
+}
+
+pub async fn get_transaction_hash<A: TryInto<Address>>(
+    to: A,
+    value: U256,
+    data: Bytes,
+    operation: u8,
+    safe_tx_gas: U256,
+    base_gas: U256,
+    gas_price: U256,
+    gas_token: Address,
+    refund_receiver: Address,
+    nonce: U256,
+    safe: A,
+    provider: &RetryProvider,
+) -> eyre::Result<B256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let to = to.try_into()?;
+    let gas_token = gas_token.try_into()?;
+    let refund_receiver = refund_receiver.try_into()?;
+    let safe = safe.try_into()?;
+
+    let call = Safe::getTransactionHashCall::new((
+        to,
+        value,
+        data,
+        operation,
+        safe_tx_gas,
+        base_gas,
+        gas_price,
+        gas_token,
+        refund_receiver,
+        nonce,
+    ));
+
+    let Safe::getTransactionHashReturn { _0: tx_hash } =
+        call_and_decode(call, safe, provider).await?;
+
+    Ok(tx_hash)
 }
 
 pub async fn get_version<A: TryInto<Address>>(

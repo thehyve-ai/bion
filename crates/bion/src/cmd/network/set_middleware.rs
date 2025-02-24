@@ -97,18 +97,17 @@ impl SetMiddlewareCommand {
             command: None,
             unlocked,
             timeout,
-            tx: tx.clone(),
+            tx,
             eth: eth.clone(),
             path: None,
         };
 
         match network_config.signing_method {
             Some(SigningMethod::MultiSig) => {
-                let safe_client = SafeClient::new(chain_id)?;
+                let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let tx = build_tx(arg, &config, &provider).await?;
-                safe_client
-                    .propose_transaction(network_config.address, signer, tx, &provider)
+                safe.propose_transaction(network_config.address, signer, tx, &provider)
                     .await?;
             }
             _ => {

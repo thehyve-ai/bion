@@ -5,14 +5,15 @@ use foundry_cli::{
 };
 use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
+use safe_multisig::SafeClient;
 
 use crate::{
-    cast::cmd::send::SendTxArgs,
+    cast::{cmd::send::SendTxArgs, utils::build_tx},
     cmd::{
         alias_utils::{get_alias_config, set_foundry_signing_method},
         utils::get_chain_id,
     },
-    common::DirsCliArgs,
+    common::{DirsCliArgs, SigningMethod},
     symbiotic::{calls::is_network, consts::get_network_registry},
     utils::{print_error_message, print_loading_until_async, validate_cli_args},
 };
@@ -94,11 +95,22 @@ impl RegisterCommand {
             unlocked,
             timeout,
             tx,
-            eth,
+            eth: eth.clone(),
             path: None,
         };
 
-        let _ = arg.run().await?;
+        match network_config.signing_method {
+            Some(SigningMethod::MultiSig) => {
+                let safe = SafeClient::new(chain_id)?;
+                let signer = eth.wallet.signer().await?;
+                let tx = build_tx(arg, &config, &provider).await?;
+                safe.propose_transaction(network_config.address, signer, tx, &provider)
+                    .await?;
+            }
+            _ => {
+                let _ = arg.run().await?;
+            }
+        };
         Ok(())
     }
 }
