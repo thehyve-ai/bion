@@ -54,7 +54,7 @@ clap = { workspace = true, features = ["derive", "string"] }
 dirs.workspace = true
 dialoguer = "0.11.0"
 crossterm = "0.28.1"
-colored = "2.0"
+colored.workspace = true
 ethereum-types.workspace = true
 eth2_keystore.workspace = true
 eth2_wallet.workspace = true

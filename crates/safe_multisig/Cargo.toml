@@ -31,6 +31,7 @@ foundry-config = { git = "https://github.com/thehyve-ai/foundry.git", branch = "
 foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-wallets" }
 
 # misc
+colored.workspace = true
 eyre.workspace = true
 reqwest.workspace = true
 semver.workspace = true

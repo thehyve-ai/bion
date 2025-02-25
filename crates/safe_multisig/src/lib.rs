@@ -1,7 +1,8 @@
 use alloy_primitives::{hex::ToHexExt, Address, TxKind, U256};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_signer::Signer;
-use calls::{get_nonce, get_transaction_hash, get_version};
+use calls::{get_nonce, get_transaction_hash, get_version, is_owner};
+use colored::Colorize;
 use consts::get_transaction_service_url;
 use foundry_common::provider::RetryProvider;
 use foundry_wallets::WalletSigner;
@@ -35,6 +36,17 @@ impl SafeClient {
         let safe_version: Version = get_version(safe_address, provider).await?.parse().unwrap();
         if safe_version < "1.3.0".parse().unwrap() {
             eyre::bail!("Account Abstraction functionality is not available for Safes with version lower than v1.3.0");
+        }
+
+        let sender = match &signer {
+            WalletSigner::Local(s) => s.address(),
+            WalletSigner::Ledger(s) => s.get_address().await?,
+            WalletSigner::Trezor(s) => s.get_address().await?,
+        };
+
+        let is_owner = is_owner(sender, safe_address, provider).await?;
+        if !is_owner {
+            eyre::bail!("Signer is not an owner!");
         }
 
         let data = tx.input.data.clone().unwrap();
@@ -73,12 +85,11 @@ impl SafeClient {
         )
         .await?;
 
+        println!(
+            "{}",
+            format!("Transaction hash: {}", tx_hash.encode_hex_with_prefix()).green()
+        );
         let signature = signer.sign_hash(&tx_hash).await?;
-        let sender = match signer {
-            WalletSigner::Local(s) => s.address(),
-            WalletSigner::Ledger(s) => s.get_address().await?,
-            WalletSigner::Trezor(s) => s.get_address().await?,
-        };
 
         // Build the request body.
         let body = ProposeTransactionBody {
@@ -102,6 +113,8 @@ impl SafeClient {
             let status = response.status();
             let text = response.text().await.unwrap_or_default();
             eyre::bail!("Failed to propose transaction: {} - {}", status, text);
+        } else {
+            println!("{}", "Transaction proposed successfully.".green());
         }
 
         Ok(())
