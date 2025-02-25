@@ -1,3 +1,4 @@
+use alloy_primitives::{aliases::U96, U256};
 use clap::Parser;
 use foundry_cli::{
     opts::EthereumOpts,
@@ -11,15 +12,15 @@ use crate::{
     cmd::{alias_utils::get_alias_config, utils::get_chain_id},
     common::DirsCliArgs,
     symbiotic::{
-        calls::is_opted_in_vault,
-        consts::{get_network_registry, get_vault_opt_in_service},
+        calls::get_network_limit,
+        consts::get_network_registry,
         network_utils::validate_network_status,
         vault_utils::{
             fetch_token_datas, fetch_vault_addresses, fetch_vault_datas,
             fetch_vault_symbiotic_metadata,
         },
     },
-    utils::validate_cli_args,
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 #[derive(Debug, Parser)]
@@ -27,6 +28,9 @@ use crate::{
 pub struct ListVaultsCommand {
     #[arg(long, help = "Only show verified vaults.", default_value = "false")]
     verified_only: bool,
+
+    #[arg(value_name = "SUBNETWORK", help = "The index of the subnetwork.")]
+    subnetwork: U96,
 
     #[arg(skip)]
     alias: String,
@@ -46,39 +50,52 @@ impl ListVaultsCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
             verified_only,
+            subnetwork,
             alias,
             dirs,
             eth,
         } = self;
 
-        // pass vault name
-
         validate_cli_args(&eth)?;
+
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
         let network_config = get_alias_config(chain_id, alias, &dirs)?;
         let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
-        let opt_in_service = get_vault_opt_in_service(chain_id)?;
 
         validate_network_status(network, network_registry, &provider).await?;
 
         let vault_addresses = fetch_vault_addresses(&provider, chain_id).await?;
-        let mut valid_vault_addresses = Vec::new();
-        for vault in vault_addresses {
-            if is_opted_in_vault(network, vault, opt_in_service, &provider).await? {
-                valid_vault_addresses.push(vault);
+        let vaults = fetch_vault_datas(&provider, chain_id, vault_addresses).await?;
+        let mut valid_vaults = Vec::new();
+        for vault in vaults {
+            let Some(delegator) = vault.delegator else {
+                continue;
+            };
+
+            let network_limit = print_loading_until_async(
+                "Fetching vault network limit",
+                get_network_limit(network, subnetwork, delegator, &provider),
+            )
+            .await;
+
+            if let Ok(network_limit) = network_limit {
+                if network_limit > U256::ZERO {
+                    valid_vaults.push(vault);
+                }
             }
         }
 
-        if valid_vault_addresses.is_empty() {
+        if valid_vaults.is_empty() {
             eyre::bail!("No vaults found for the network");
         }
 
-        let vaults = fetch_vault_datas(&provider, chain_id, valid_vault_addresses).await?;
-        let vaults = fetch_vault_symbiotic_metadata(vaults).await?;
-        let vaults = fetch_token_datas(&provider, chain_id, vaults).await?;
+        println!("Vaults for network: {}", valid_vaults.len());
+
+        let valid_vaults = fetch_vault_symbiotic_metadata(valid_vaults).await?;
+        let valid_vaults = fetch_token_datas(&provider, chain_id, valid_vaults).await?;
 
         let mut table = Table::new();
 
@@ -93,7 +110,7 @@ impl ListVaultsCommand {
         ]);
 
         let mut i = 0;
-        for vault in vaults
+        for vault in valid_vaults
             .into_iter()
             .sorted_by(|a, b| b.active_stake.cmp(&a.active_stake))
         {

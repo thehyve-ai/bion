@@ -92,7 +92,7 @@ pub fn set_foundry_signing_method(
     if let Some(signing_method) = alias_config.signing_method.clone() {
         match signing_method {
             SigningMethod::Keystore => {
-                let password = rpassword::prompt_password_stdout("\nEnter keystore password")?;
+                let password = rpassword::prompt_password_stdout("Enter keystore password:\n")?;
                 eth.wallet.keystore_path = Some(
                     alias_config
                         .keystore_file
@@ -114,7 +114,7 @@ pub fn set_foundry_signing_method(
                     match owner_signing_method {
                         SigningMethod::Keystore => {
                             let password = rpassword::prompt_password_stdout(
-                                "\nEnter owner keystore password",
+                                "Enter owner keystore password:\n",
                             )?;
                             eth.wallet.keystore_path = Some(
                                 alias_config

@@ -113,7 +113,7 @@ pub fn get_keystore_password() -> eyre::Result<ZeroizeString> {
             println!("{}", "Please enter a password when prompted.".bright_cyan());
             Ok(get_keystore_password_from_input()?)
         }
-        2 => Ok(get_random_keystore_password()?),
+        1 => Ok(get_random_keystore_password()?),
         _ => unreachable!(),
     }
 }

@@ -87,7 +87,7 @@ impl SafeClient {
 
         println!(
             "{}",
-            format!("Transaction hash: {}", tx_hash.encode_hex_with_prefix()).green()
+            format!("Safe tx hash: {}", tx_hash.encode_hex_with_prefix()).bright_cyan()
         );
         let signature = signer.sign_hash(&tx_hash).await?;
 

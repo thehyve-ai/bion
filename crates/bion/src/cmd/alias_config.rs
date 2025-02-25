@@ -13,10 +13,7 @@ use std::{collections::HashMap, path::PathBuf};
 use crate::{
     cmd::utils::AddressType,
     common::{DirsCliArgs, SigningMethod},
-    utils::{
-        get_keystore_password, print_error_message, print_success_message, read_user_confirmation,
-        ExecuteError,
-    },
+    utils::{get_keystore_password, print_success_message, read_user_confirmation, ExecuteError},
 };
 
 use super::consts::ALIAS_DIRECTORY;
@@ -63,7 +60,7 @@ impl AliasConfig {
         provider: &RetryProvider,
     ) -> eyre::Result<()> {
         if self.address_type == AddressType::Contract {
-            self.handle_multisig_signing_method(dirs, provider).await?;
+            return self.handle_multisig_signing_method(dirs, provider).await;
         }
 
         let data_dir = dirs.data_dir(Some(self.chain_id))?;
