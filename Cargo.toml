@@ -169,6 +169,7 @@ mockall = "0.13.1"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 rpassword = "5.0.0"
+semver = "1.0.25"
 url = "2.5.4"
 
 # Network

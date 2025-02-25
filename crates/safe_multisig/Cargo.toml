@@ -33,5 +33,6 @@ foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = 
 # misc
 eyre.workspace = true
 reqwest.workspace = true
+semver.workspace = true
 serde.workspace = true
 serde_json.workspace = true

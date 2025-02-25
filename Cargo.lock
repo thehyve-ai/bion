@@ -7732,6 +7732,7 @@ dependencies = [
  "foundry-wallets",
  "multicall",
  "reqwest",
+ "semver 1.0.25",
  "serde",
  "serde_json",
 ]

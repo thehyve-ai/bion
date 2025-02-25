@@ -1,10 +1,11 @@
 use alloy_primitives::{hex::ToHexExt, Address, TxKind, U256};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_signer::Signer;
-use calls::{get_nonce, get_transaction_hash};
+use calls::{get_nonce, get_transaction_hash, get_version};
 use consts::get_transaction_service_url;
 use foundry_common::provider::RetryProvider;
 use foundry_wallets::WalletSigner;
+use semver::Version;
 use transaction_data::{ProposeTransactionBody, SafeTransactionData};
 
 pub mod calls;
@@ -31,10 +32,10 @@ impl SafeClient {
         tx: WithOtherFields<TransactionRequest>,
         provider: &RetryProvider,
     ) -> eyre::Result<()> {
-        // let safe_version = get_version(safe_address, provider).await?;
-        // if safe_version < "1.3.0" {
-        //     eyre::bail!("Account Abstraction functionality is not available for Safes with version lower than v1.3.0");
-        // }
+        let safe_version: Version = get_version(safe_address, provider).await?.parse().unwrap();
+        if safe_version < "1.3.0".parse().unwrap() {
+            eyre::bail!("Account Abstraction functionality is not available for Safes with version lower than v1.3.0");
+        }
 
         let data = tx.input.data.clone().unwrap();
         let nonce = get_nonce(safe_address, provider).await?;
