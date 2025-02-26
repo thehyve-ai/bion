@@ -185,7 +185,7 @@ impl SetMaxNetworkLimitCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let tx = build_tx(arg, &config, &provider).await?;
-                safe.propose_transaction(network_config.address, signer, tx, &provider)
+                safe.send_tx(network_config.address, signer, tx, &provider)
                     .await?;
             }
             _ => {

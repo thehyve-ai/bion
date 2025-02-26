@@ -1,13 +1,43 @@
 use alloy_network::TransactionBuilder;
 use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
+use alloy_signer::Signature;
 use alloy_sol_types::SolCall;
 use cast::Cast;
 use foundry_common::provider::RetryProvider;
 
 use std::str::FromStr;
 
-use crate::contracts::safe::Safe;
+use crate::{contracts::safe::Safe, transaction_data::SafeTransactionData};
+
+pub async fn exec_transaction<A: TryInto<Address>>(
+    safe_tx: &SafeTransactionData,
+    signature: [u8; 65],
+    safe: A,
+    provider: &RetryProvider,
+) -> eyre::Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let safe = safe.try_into()?;
+
+    let call = Safe::execTransactionCall::new((
+        safe_tx.to,
+        safe_tx.value,
+        safe_tx.data.clone(),
+        safe_tx.operation,
+        safe_tx.safe_tx_gas,
+        safe_tx.base_gas,
+        safe_tx.gas_price,
+        safe_tx.gas_token,
+        safe_tx.refund_receiver,
+        Bytes::copy_from_slice(&signature),
+    ));
+
+    let Safe::execTransactionReturn { success } = call_and_decode(call, safe, provider).await?;
+
+    Ok(success)
+}
 
 pub async fn get_nonce<A: TryInto<Address>>(safe: A, provider: &RetryProvider) -> eyre::Result<U256>
 where
@@ -55,38 +85,26 @@ where
 }
 
 pub async fn get_transaction_hash<A: TryInto<Address>>(
-    to: A,
-    value: U256,
-    data: Bytes,
-    operation: u8,
-    safe_tx_gas: U256,
-    base_gas: U256,
-    gas_price: U256,
-    gas_token: Address,
-    refund_receiver: Address,
-    nonce: U256,
+    safe_tx: &SafeTransactionData,
     safe: A,
     provider: &RetryProvider,
 ) -> eyre::Result<B256>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let to = to.try_into()?;
-    let gas_token = gas_token.try_into()?;
-    let refund_receiver = refund_receiver.try_into()?;
     let safe = safe.try_into()?;
 
     let call = Safe::getTransactionHashCall::new((
-        to,
-        value,
-        data,
-        operation,
-        safe_tx_gas,
-        base_gas,
-        gas_price,
-        gas_token,
-        refund_receiver,
-        nonce,
+        safe_tx.to,
+        safe_tx.value,
+        safe_tx.data.clone(),
+        safe_tx.operation,
+        safe_tx.safe_tx_gas,
+        safe_tx.base_gas,
+        safe_tx.gas_price,
+        safe_tx.gas_token,
+        safe_tx.refund_receiver,
+        safe_tx.nonce,
     ));
 
     let Safe::getTransactionHashReturn { _0: tx_hash } =
