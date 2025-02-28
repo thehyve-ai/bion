@@ -1,12 +1,7 @@
 use bion::cmd::{
-    add_alias::AddAliasCommand,
-    hyve::{bls::BLSCommands, HyveCommands},
-    list_aliases::ListAliasesCommand,
-    network::NetworkCommand,
-    operator::OperatorCommand,
-    remove_alias::RemoveAliasCommand,
-    symbiotic::SymbioticCommands,
-    vault::VaultCommand,
+    add_alias::AddAliasCommand, hyve::HyveCommand, list_aliases::ListAliasesCommand,
+    network::NetworkCommand, operator::OperatorCommand, remove_alias::RemoveAliasCommand,
+    symbiotic::SymbioticCommands, vault::VaultCommand,
 };
 use clap::{
     builder::{styling::AnsiColor, Styles},
@@ -76,67 +71,13 @@ impl Cli {
             Commands::RemoveAlias(remove_alias) => {
                 runner.run_command_until_exit(|ctx| remove_alias.execute(ctx))
             }
-            Commands::Hyve(hyve) => match hyve {
-                HyveCommands::BLS(bls) => match bls {
-                    BLSCommands::List(list) => {
-                        runner.run_command_until_exit(|ctx| list.execute(ctx))
-                    }
-                    BLSCommands::Export(export) => {
-                        runner.run_command_until_exit(|ctx| export.execute(ctx))
-                    }
-                    BLSCommands::Create(create) => {
-                        runner.run_command_until_exit(|ctx| create.execute(ctx))
-                    }
-                    BLSCommands::Delete(delete) => {
-                        runner.run_command_until_exit(|ctx| delete.execute(ctx))
-                    }
-                },
-                HyveCommands::OnboardOperator(onboard_operator) => {
-                    runner.run_command_until_exit(|ctx| onboard_operator.execute(ctx))
-                }
-                HyveCommands::PauseOperator(pause_operator) => {
-                    runner.run_command_until_exit(|ctx| pause_operator.execute(ctx))
-                }
-                HyveCommands::RegisterOperator(register_operator) => {
-                    runner.run_command_until_exit(|ctx| register_operator.execute(ctx))
-                }
-                HyveCommands::UnpauseOperator(unpause_operator) => {
-                    runner.run_command_until_exit(|ctx| unpause_operator.execute(ctx))
-                }
-                HyveCommands::UnregisterOperator(unregister_operator) => {
-                    runner.run_command_until_exit(|ctx| unregister_operator.execute(ctx))
-                }
-            },
+            Commands::Hyve(hyve) => runner.run_command_until_exit(|ctx| hyve.execute(ctx)),
             Commands::Symbiotic(symbiotic) => match symbiotic {
                 SymbioticCommands::GetVault(get_vault) => {
                     runner.run_command_until_exit(|ctx| get_vault.execute(ctx))
                 }
-                SymbioticCommands::IsOperator(is_operator) => {
-                    runner.run_command_until_exit(|ctx| is_operator.execute(ctx))
-                }
                 SymbioticCommands::ListVaults(list_vaults) => {
                     runner.run_command_until_exit(|ctx| list_vaults.execute(ctx))
-                }
-                SymbioticCommands::NetworkOptIn(network_opt_in) => {
-                    runner.run_command_until_exit(|ctx| network_opt_in.execute(ctx))
-                }
-                SymbioticCommands::NetworkOptInStatus(network_opt_in_status) => {
-                    runner.run_command_until_exit(|ctx| network_opt_in_status.execute(ctx))
-                }
-                SymbioticCommands::NetworkOptOut(network_opt_out) => {
-                    runner.run_command_until_exit(|ctx| network_opt_out.execute(ctx))
-                }
-                SymbioticCommands::RegisterOperator(register_operator) => {
-                    runner.run_command_until_exit(|ctx| register_operator.execute(ctx))
-                }
-                SymbioticCommands::VaultOptIn(vault_opt_in) => {
-                    runner.run_command_until_exit(|ctx| vault_opt_in.execute(ctx))
-                }
-                SymbioticCommands::VaultOptInStatus(vault_opt_in_status) => {
-                    runner.run_command_until_exit(|ctx| vault_opt_in_status.execute(ctx))
-                }
-                SymbioticCommands::VaultOptOut(vault_opt_out) => {
-                    runner.run_command_until_exit(|ctx| vault_opt_out.execute(ctx))
                 }
             },
             Commands::Network(network) => runner.run_command_until_exit(|ctx| network.execute(ctx)),
@@ -159,8 +100,8 @@ pub enum Commands {
     #[command(name = "remove-alias")]
     RemoveAlias(RemoveAliasCommand),
 
-    #[command(name = "hyve", subcommand)]
-    Hyve(HyveCommands),
+    #[command(name = "hyve")]
+    Hyve(HyveCommand),
 
     #[command(name = "symbiotic", subcommand)]
     Symbiotic(SymbioticCommands),

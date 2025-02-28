@@ -1134,7 +1134,7 @@ where
     Ok(())
 }
 
-pub async fn validate_operator_vault_opt_in_status<A: TryInto<Address>>(
+pub async fn validate_vault_opt_in_status<A: TryInto<Address>>(
     operator: A,
     vault: A,
     opt_in_service: A,

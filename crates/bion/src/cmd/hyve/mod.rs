@@ -1,5 +1,6 @@
 use bls::BLSCommands;
-use clap::Subcommand;
+use clap::{Parser, Subcommand};
+use hyve_cli_runner::CliContext;
 use onboard_operator::OnboardOperatorCommand;
 use pause_operator::PauseOperatorCommand;
 use register_operator::RegisterOperatorCommand;
@@ -13,8 +14,18 @@ mod register_operator;
 mod unpause_operator;
 mod unregister_operator;
 
+#[derive(Debug, Parser)]
+#[clap(about = "Commands related to the HyveDA middleware.")]
+pub struct HyveCommand {
+    #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
+    alias: String,
+
+    #[command(subcommand)]
+    pub command: HyveSubcommands,
+}
+
 #[derive(Debug, Subcommand)]
-pub enum HyveCommands {
+pub enum HyveSubcommands {
     #[command(name = "bls", subcommand)]
     BLS(BLSCommands),
 
@@ -32,4 +43,35 @@ pub enum HyveCommands {
 
     #[command(name = "unregister-operator")]
     UnregisterOperator(UnregisterOperatorCommand),
+}
+
+impl HyveCommand {
+    pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
+        match self.command {
+            HyveSubcommands::BLS(bls) => match bls {
+                BLSCommands::List(list) => list.execute(ctx).await,
+                BLSCommands::Export(export) => export.execute(ctx).await,
+                BLSCommands::Create(create) => create.execute(ctx).await,
+                BLSCommands::Delete(delete) => delete.execute(ctx).await,
+            },
+            HyveSubcommands::OnboardOperator(onboard_operator) => {
+                onboard_operator.with_alias(self.alias).execute(ctx).await
+            }
+            HyveSubcommands::PauseOperator(pause_operator) => {
+                pause_operator.with_alias(self.alias).execute(ctx).await
+            }
+            HyveSubcommands::RegisterOperator(register_operator) => {
+                register_operator.with_alias(self.alias).execute(ctx).await
+            }
+            HyveSubcommands::UnpauseOperator(unpause_operator) => {
+                unpause_operator.with_alias(self.alias).execute(ctx).await
+            }
+            HyveSubcommands::UnregisterOperator(unregister_operator) => {
+                unregister_operator
+                    .with_alias(self.alias)
+                    .execute(ctx)
+                    .await
+            }
+        }
+    }
 }

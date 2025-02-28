@@ -20,14 +20,19 @@ use tracing::trace;
 
 use crate::{
     cast::cmd::send::SendTxArgs,
-    cmd::utils::get_chain_id,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
     common::DirsCliArgs,
     hyve::consts::get_hyve_middleware_service,
-    symbiotic::{calls::is_vault, consts::get_vault_factory},
+    symbiotic::{
+        consts::{get_operator_registry, get_vault_factory, get_vault_opt_in_service},
+        operator_utils::validate_operator_status,
+        vault_utils::{validate_vault_opt_in_status, validate_vault_status},
+    },
     utils::validate_cli_args,
 };
-
-const HYVE_MIDDLEWARE_ENTITY: &str = "hyve_middleware_service";
 
 #[derive(RlpEncodable)]
 pub struct Keys {
@@ -42,17 +47,9 @@ pub struct RegisterOperatorCommand {
         long,
         required = true,
         value_name = "ADDRESS",
-        help = "Address of the operator."
-    )]
-    address: Address,
-
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
         help = "The address of the vault to opt-in."
     )]
-    vault_address: Address,
+    vault: Address,
 
     #[arg(
         long,
@@ -61,6 +58,9 @@ pub struct RegisterOperatorCommand {
         help = "The pubkey of the BLS keystore."
     )]
     voting_pubkey: String,
+
+    #[arg(skip)]
+    alias: String,
 
     #[clap(flatten)]
     dirs: DirsCliArgs,
@@ -81,14 +81,18 @@ pub struct RegisterOperatorCommand {
 }
 
 impl RegisterOperatorCommand {
+    pub fn with_alias(self, alias: String) -> Self {
+        Self { alias, ..self }
+    }
+
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
-            address,
-            vault_address,
+            vault,
             voting_pubkey,
+            alias,
             dirs,
             tx,
-            eth,
+            mut eth,
             timeout,
             confirmations,
         } = self;
@@ -96,17 +100,19 @@ impl RegisterOperatorCommand {
         validate_cli_args(&eth)?;
 
         let config = eth.load_config()?;
-
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
+        let operator_config = get_alias_config(chain_id, alias, &dirs)?;
+        let operator = operator_config.address;
+        let operator_registry = get_operator_registry(chain_id)?;
         let middleware_service = get_hyve_middleware_service(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
+        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        let is_vault = is_vault(vault_address, vault_factory, &provider).await?;
-        if !is_vault {
-            return Err(eyre::eyre!("Address is not a vault."));
-        }
+        validate_operator_status(operator, operator_registry, &provider).await?;
+        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_vault_opt_in_status(operator, vault, opt_in_service, &provider).await?;
 
         let operators_dir = dirs.operators_dir(Some(chain_id))?;
         let mut pubkey = voting_pubkey;
@@ -133,8 +139,6 @@ impl RegisterOperatorCommand {
                     .map_err(|e| eyre::eyre!("Error loading keystore password: {:?}", e))
                     .ok()?;
 
-                trace!("Retrieved keystore password, trying to decrypt keystore");
-
                 keystore_password
                     .map(|password| {
                         voting_keystore
@@ -150,7 +154,6 @@ impl RegisterOperatorCommand {
             })
             .ok_or_else(|| eyre::eyre!("No keypair found for the given public key"))?;
 
-        // Retrieve the signer, and bail if it can't be constructed.
         let signer = eth.wallet.signer().await?;
 
         let peer_id = match &signer {
@@ -162,7 +165,7 @@ impl RegisterOperatorCommand {
                 PeerId::from(kp.public())
             }
             _ => {
-                return Err(eyre::eyre!("Only local private key signers are supported."));
+                eyre::bail!("Only local private key signers are supported.");
             }
         };
 
@@ -201,7 +204,8 @@ impl RegisterOperatorCommand {
             eth,
             path: None,
         };
-        arg.run().await?;
+
+        let _ = arg.run().await?;
         Ok(())
     }
 }

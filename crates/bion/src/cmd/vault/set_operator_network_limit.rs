@@ -31,7 +31,7 @@ use crate::{
         operator_utils::validate_operator_status,
         utils::get_subnetwork,
         vault_utils::{
-            validate_operator_vault_opt_in_status, validate_vault_status, RowPrefix, VaultData,
+            validate_vault_opt_in_status, validate_vault_status, RowPrefix, VaultData,
             VaultDataTableBuilder,
         },
         DelegatorType,
@@ -118,11 +118,10 @@ impl SetOperatorNetworkLimitCommand {
 
         validate_operator_status(operator, operator_registry, &provider).await?;
         validate_network_status(network, network_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
         validate_network_opt_in_status(operator, network, network_opt_in_service, &provider)
             .await?;
-        validate_operator_vault_opt_in_status(operator, vault, vault_opt_in_service, &provider)
-            .await?;
+        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_vault_opt_in_status(operator, vault, vault_opt_in_service, &provider).await?;
 
         let vault = print_loading_until_async(
             "Fetching vault data",

@@ -1,7 +1,6 @@
 use alloy_network::TransactionBuilder;
 use alloy_primitives::{Address, Bytes, B256, U256};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
-use alloy_signer::Signature;
 use alloy_sol_types::SolCall;
 use cast::Cast;
 use foundry_common::provider::RetryProvider;

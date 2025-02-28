@@ -92,8 +92,6 @@ impl ListVaultsCommand {
             eyre::bail!("No vaults found for the network");
         }
 
-        println!("Vaults for network: {}", valid_vaults.len());
-
         let valid_vaults = fetch_vault_symbiotic_metadata(valid_vaults).await?;
         let valid_vaults = fetch_token_datas(&provider, chain_id, valid_vaults).await?;
 

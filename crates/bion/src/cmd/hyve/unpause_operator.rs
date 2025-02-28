@@ -1,4 +1,3 @@
-use alloy_primitives::Address;
 use clap::Parser;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -7,20 +6,24 @@ use foundry_cli::{
 use hyve_cli_runner::CliContext;
 
 use crate::{
-    cast::cmd::send::SendTxArgs, cmd::utils::get_chain_id,
-    hyve::consts::get_hyve_middleware_service, utils::validate_cli_args,
+    cast::cmd::send::SendTxArgs,
+    cmd::{
+        alias_utils::{get_alias_config, set_foundry_signing_method},
+        utils::get_chain_id,
+    },
+    common::DirsCliArgs,
+    hyve::consts::get_hyve_middleware_service,
+    utils::validate_cli_args,
 };
 
 #[derive(Debug, Parser)]
 #[clap(about = "Unpauses an Operator in the HyveDA middleware.")]
 pub struct UnpauseOperatorCommand {
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "Address of the operator."
-    )]
-    address: Address,
+    #[arg(skip)]
+    alias: String,
+
+    #[clap(flatten)]
+    dirs: DirsCliArgs,
 
     #[clap(flatten)]
     tx: TransactionOpts,
@@ -38,11 +41,16 @@ pub struct UnpauseOperatorCommand {
 }
 
 impl UnpauseOperatorCommand {
+    pub fn with_alias(self, alias: String) -> Self {
+        Self { alias, ..self }
+    }
+
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
-            address,
+            alias,
+            dirs,
             tx,
-            eth,
+            mut eth,
             timeout,
             confirmations,
         } = self;
@@ -51,9 +59,10 @@ impl UnpauseOperatorCommand {
 
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
-
         let chain_id = get_chain_id(&provider).await?;
+        let operator_config = get_alias_config(chain_id, alias, &dirs)?;
         let middleware_service = get_hyve_middleware_service(chain_id)?;
+        set_foundry_signing_method(&operator_config, &mut eth)?;
 
         let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
 
@@ -70,7 +79,8 @@ impl UnpauseOperatorCommand {
             eth,
             path: None,
         };
-        arg.run().await?;
+
+        let _ = arg.run().await?;
         Ok(())
     }
 }

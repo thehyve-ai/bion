@@ -7731,6 +7731,7 @@ dependencies = [
  "foundry-common",
  "foundry-config",
  "foundry-wallets",
+ "futures-util",
  "multicall",
  "reqwest",
  "semver 1.0.25",

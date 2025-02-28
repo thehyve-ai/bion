@@ -10,7 +10,7 @@ use foundry_common::provider::RetryProvider;
 use foundry_wallets::WalletSigner;
 use semver::Version;
 use transaction_data::ProposeTransactionBody;
-use utils::build_safe_tx;
+use utils::{build_safe_tx, print_loading_until_async};
 
 pub mod calls;
 pub mod transaction_data;
@@ -41,7 +41,11 @@ impl SafeClient {
         if threshold == U256::from(1) {
             self.execute_tx(safe_address, signer, tx, provider).await
         } else {
-            self.propose_tx(safe_address, signer, tx, provider).await
+            print_loading_until_async(
+                "Proposing transaction",
+                self.propose_tx(safe_address, signer, tx, provider),
+            )
+            .await
         }
     }
 
@@ -58,24 +62,34 @@ impl SafeClient {
             WalletSigner::Trezor(s) => s.get_address().await?,
         };
 
-        let is_owner = is_owner(sender, safe_address, provider).await?;
+        let is_owner = print_loading_until_async(
+            "Verifying ownership",
+            is_owner(sender, safe_address, provider),
+        )
+        .await?;
         if !is_owner {
             eyre::bail!("Signer is not an owner!");
         }
 
         let data = tx.input.data.clone().unwrap();
         let safe_tx = build_safe_tx(data, tx, U256::ZERO)?;
-        let tx_hash = get_transaction_hash(&safe_tx, safe_address, provider).await?;
+        let tx_hash = print_loading_until_async(
+            "Fetching safe tx hash",
+            get_transaction_hash(&safe_tx, safe_address, provider),
+        )
+        .await?;
         let signature = signer.sign_hash(&tx_hash).await?;
-        let success =
-            exec_transaction(&safe_tx, signature.as_bytes(), safe_address, provider).await?;
+        let success = print_loading_until_async(
+            "Executing transactions",
+            exec_transaction(&safe_tx, signature.as_bytes(), safe_address, provider),
+        )
+        .await?;
 
-        if success {
-            println!("{}", "Transaction executed successfully.".green());
-        } else {
-            println!("{}", "Transaction failed.".red());
+        if !success {
+            eyre::bail!("Transaction failed.");
         }
 
+        println!("{}", "Transaction executed successfully.".green());
         Ok(())
     }
 
