@@ -72,7 +72,8 @@ impl SafeClient {
         }
 
         let data = tx.input.data.clone().unwrap();
-        let safe_tx = build_safe_tx(data, tx, U256::ZERO)?;
+        let nonce = get_nonce(safe_address, provider).await?;
+        let safe_tx = build_safe_tx(data, tx, nonce)?;
         let tx_hash = print_loading_until_async(
             "Fetching safe tx hash",
             get_transaction_hash(&safe_tx, safe_address, provider),
