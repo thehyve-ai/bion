@@ -28,12 +28,8 @@ use crate::{
     common::DirsCliArgs,
     hyve::consts::{get_hyve_middleware_service, get_hyve_network},
     symbiotic::{
-        calls::{is_operator, is_opted_in_network, is_opted_in_vault},
-        consts::{
-            get_network_opt_in_service, get_operator_registry, get_vault_factory,
-            get_vault_opt_in_service,
-        },
-        vault_utils::validate_vault_status,
+        calls::{is_operator, is_opted_in_network},
+        consts::{get_network_opt_in_service, get_operator_registry},
     },
     utils::{
         print_loading_until_async, print_success_message, read_user_confirmation, validate_cli_args,
@@ -64,14 +60,6 @@ pub struct OnboardOperatorCommand {
         help = "Whether or not to be prompted to specify a keystore password. Will otherwise be randomly generated."
     )]
     prompt_keystore_password: bool,
-
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The address of the vault."
-    )]
-    vault: Address,
 
     #[arg(skip)]
     alias: String,
@@ -114,8 +102,6 @@ impl OnboardOperatorCommand {
         let hyve_network = get_hyve_network(chain_id)?;
         let network_opt_in_service = get_network_opt_in_service(chain_id)?;
         let operator_registry = get_operator_registry(chain_id)?;
-        let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
-        let vault_factory = get_vault_factory(chain_id)?;
         set_foundry_signing_method(&operator_config, &mut self.eth)?;
 
         println!(
@@ -129,9 +115,6 @@ impl OnboardOperatorCommand {
             .await?;
 
         self.ensure_opted_in_network(operator, hyve_network, network_opt_in_service, &provider)
-            .await?;
-
-        self.ensure_opted_in_vault(operator, vault_factory, vault_opt_in_service, &provider)
             .await?;
 
         self.register_key(chain_id, &bls_keypair).await?;
@@ -349,66 +332,6 @@ impl OnboardOperatorCommand {
         Ok(())
     }
 
-    async fn ensure_opted_in_vault(
-        &self,
-        operator: Address,
-        vault_factory: Address,
-        opt_in_service: Address,
-        provider: &RetryProvider,
-    ) -> eyre::Result<()> {
-        println!(
-            "\n{}\n",
-            "📝 Ensuring Operator is opted in vault..."
-                .bold()
-                .bright_cyan()
-        );
-
-        print_loading_until_async(
-            "Validating vault status",
-            validate_vault_status(self.vault, vault_factory, &provider),
-        )
-        .await?;
-
-        let is_opted_in_vault = print_loading_until_async(
-            "Fetching vault opt-in status",
-            is_opted_in_vault(operator, self.vault, opt_in_service, provider),
-        )
-        .await?;
-
-        if !is_opted_in_vault {
-            println!("{}", "Operator is not opted in to the Vault.".bright_red());
-            println!("\n {}", "Do you want to opt-in? (y/n)".bright_cyan());
-
-            let confirmation: String = read_user_confirmation()?;
-            if confirmation.trim().to_lowercase().as_str() == "y"
-                || confirmation.trim().to_lowercase().as_str() == "yes"
-            {
-                let to = NameOrAddress::Address(opt_in_service);
-
-                let arg = SendTxArgs {
-                    to: Some(to),
-                    sig: Some("optIn(address where)".to_string()),
-                    args: vec![self.vault.to_string()],
-                    cast_async: false,
-                    confirmations: self.confirmations,
-                    command: None,
-                    unlocked: self.unlocked,
-                    timeout: self.timeout,
-                    tx: self.tx.clone(),
-                    eth: self.eth.clone(),
-                    path: None,
-                };
-
-                let _ = arg.run().await?;
-                print_success_message("✅ Operator opted in Symbiotic vault.\n");
-            } else {
-                eyre::bail!("Operator must be opted in to the Vault to continue.");
-            }
-        }
-
-        Ok(())
-    }
-
     async fn register_key(&self, chain_id: u64, bls_keypair: &Keypair) -> eyre::Result<()> {
         println!(
             "\n{}\n",
@@ -456,7 +379,7 @@ impl OnboardOperatorCommand {
             ),
             args: vec![
                 voting_pubkey,
-                "0x0000000000000000000000000000000000000000".to_string(), // placeholder for now
+                "0x0000000000000000000000000000000000000000".to_string(), // all vaults
                 bls_sig,
             ],
             cast_async: true,
