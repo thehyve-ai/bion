@@ -35,6 +35,9 @@ pub struct CreateCommand {
     )]
     mnemonic_file: Option<PathBuf>,
 
+    #[arg(long, value_name = "CHAIN_ID", help = "The chain ID of the network.")]
+    chain_id: Option<u64>,
+
     #[clap(flatten)]
     dirs: DirsCliArgs,
 }
@@ -135,11 +138,13 @@ impl CreateCommand {
         mnemonic: Option<String>,
         mnemonic_file: Option<PathBuf>,
         dirs: DirsCliArgs,
+        chain_id: Option<u64>,
     ) -> Self {
         Self {
             mnemonic,
             mnemonic_file,
             dirs,
+            chain_id,
         }
     }
 
@@ -154,7 +159,7 @@ impl CreateCommand {
             "🔄 Deriving BLS keys from keystore. This may take up to 2 minutes...".bright_cyan()
         );
 
-        let operators_dir = self.dirs.operators_dir(None)?;
+        let operators_dir = self.dirs.operators_dir(self.chain_id)?;
         let mut defs = OperatorDefinitions::open_or_create(&operators_dir)
             .map_err(|e| eyre::eyre!(format!("Unable to open {:?}: {:?}", &operators_dir, e)))?;
 
@@ -457,6 +462,7 @@ impl CreateCommand {
         Ok(password)
     }
 }
+
 async fn confirm_mnemonic(mnemonic: &account_utils::bip39::Mnemonic) -> Result<()> {
     println!(
         "{}",

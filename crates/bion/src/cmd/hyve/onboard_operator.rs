@@ -132,10 +132,11 @@ impl OnboardOperatorCommand {
         );
         println!("\n");
 
-        let bls_command = super::bls::create::CreateCommand::new(
+        let bls_command = crate::cmd::bls::create::CreateCommand::new(
             self.bls_mnemonic.clone(),
             self.bls_mnemonic_file.clone(),
             self.dirs.clone(),
+            Some(chain_id),
         );
 
         // Step 1: Mnemonic Setup
@@ -266,12 +267,12 @@ impl OnboardOperatorCommand {
                 };
 
                 let _ = arg.run().await?;
-                print_success_message("✅ Operator registered in Symbiotic.\n");
             } else {
                 eyre::bail!("Operator must be registered in Symbiotic to continue.");
             }
         }
 
+        print_success_message("✅ Operator is registered in Symbiotic.");
         Ok(())
     }
 
@@ -323,16 +324,18 @@ impl OnboardOperatorCommand {
                 };
 
                 let _ = arg.run().await?;
-                print_success_message("✅ Operator opted in the HyveDA Network in Symbiotic.\n");
             } else {
                 eyre::bail!("Operator must be opted in to the HyveDA network to continue.");
             }
         }
 
+        print_success_message("✅ Operator is opted in the HyveDA Network in Symbiotic.\n");
         Ok(())
     }
 
     async fn register_key(&self, chain_id: u64, bls_keypair: &Keypair) -> eyre::Result<()> {
+        // check if already registered
+
         println!(
             "\n{}\n",
             "📝 Registering BLS Key in the HyveDA middleware..."

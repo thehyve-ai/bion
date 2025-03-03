@@ -17,13 +17,16 @@ pub struct DeleteCommand {
     )]
     voting_pubkey: String,
 
+    #[arg(long, value_name = "CHAIN_ID", help = "The chain ID of the network.")]
+    chain_id: Option<u64>,
+
     #[clap(flatten)]
     dirs: DirsCliArgs,
 }
 
 impl DeleteCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let operators_dir = self.dirs.operators_dir(None)?;
+        let operators_dir = self.dirs.operators_dir(self.chain_id)?;
         let mut pubkey = self.voting_pubkey;
         if !pubkey.starts_with("0x") {
             pubkey = format!("0x{}", pubkey);
@@ -33,7 +36,7 @@ impl DeleteCommand {
             .map_err(|e| eyre::eyre!(format!("Unable to open {:?}: {:?}", &operators_dir, e)))?;
 
         if !operator_defs.remove(&pubkey) {
-            return Err(eyre::eyre!("Operator not found"));
+            eyre::bail!("Operator not found");
         }
 
         operator_defs

@@ -1,4 +1,3 @@
-use bls::BLSCommands;
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
 use onboard_operator::OnboardOperatorCommand;
@@ -7,7 +6,6 @@ use register_operator::RegisterOperatorCommand;
 use unpause_operator::UnpauseOperatorCommand;
 use unregister_operator::UnregisterOperatorCommand;
 
-pub mod bls;
 mod onboard_operator;
 mod pause_operator;
 mod register_operator;
@@ -26,9 +24,6 @@ pub struct HyveCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum HyveSubcommands {
-    #[command(name = "bls", subcommand)]
-    BLS(BLSCommands),
-
     #[command(name = "onboard-operator")]
     OnboardOperator(OnboardOperatorCommand),
 
@@ -48,12 +43,6 @@ pub enum HyveSubcommands {
 impl HyveCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
-            HyveSubcommands::BLS(bls) => match bls {
-                BLSCommands::List(list) => list.execute(ctx).await,
-                BLSCommands::Export(export) => export.execute(ctx).await,
-                BLSCommands::Create(create) => create.execute(ctx).await,
-                BLSCommands::Delete(delete) => delete.execute(ctx).await,
-            },
             HyveSubcommands::OnboardOperator(onboard_operator) => {
                 onboard_operator.with_alias(self.alias).execute(ctx).await
             }

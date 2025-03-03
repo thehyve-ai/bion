@@ -1,11 +1,13 @@
-use alloy_primitives::Address;
+use alloy_primitives::{hex::ToHexExt, Address};
+use alloy_signer_local::PrivateKeySigner;
+use colored::Colorize;
 use foundry_cli::opts::EthereumOpts;
 
 use std::fs::create_dir_all;
 
 use crate::{
     common::{DirsCliArgs, SigningMethod},
-    utils::{load_from_json_file, write_to_json_file},
+    utils::{clear_previous_lines, load_from_json_file, print_success_message, write_to_json_file},
 };
 
 use super::{
@@ -92,16 +94,28 @@ pub fn set_foundry_signing_method(
     if let Some(signing_method) = alias_config.signing_method.clone() {
         match signing_method {
             SigningMethod::Keystore => {
+                if alias_config.keystore_file.is_none() {
+                    eyre::bail!(
+                        "❌ Keystore file not found for alias. Please re-import the alias."
+                    );
+                }
+
+                println!("{}", "Decrypting alias keystore...".bright_cyan());
                 let password = rpassword::prompt_password_stdout("Enter keystore password:\n")?;
-                eth.wallet.keystore_path = Some(
-                    alias_config
-                        .keystore_file
-                        .clone()
-                        .unwrap()
-                        .to_string_lossy()
-                        .to_string(),
-                );
-                eth.wallet.keystore_password = Some(password);
+                match PrivateKeySigner::decrypt_keystore(
+                    alias_config.keystore_file.clone().unwrap(),
+                    password,
+                ) {
+                    Ok(signer) => {
+                        let key_bytes = signer.to_bytes();
+                        eth.wallet.raw.private_key = Some(key_bytes.encode_hex_with_prefix());
+                        clear_previous_lines(3);
+                        print_success_message("✅ Keystore successfully decrypted");
+                    }
+                    Err(e) => {
+                        eyre::bail!("❌ Unable to decrypt keystore: {:?}", e);
+                    }
+                }
             }
             SigningMethod::Ledger => {
                 eth.wallet.ledger = true;
@@ -113,18 +127,30 @@ pub fn set_foundry_signing_method(
                 if let Some(owner_signing_method) = alias_config.owner_signing_method.clone() {
                     match owner_signing_method {
                         SigningMethod::Keystore => {
-                            let password = rpassword::prompt_password_stdout(
-                                "Enter owner keystore password:\n",
-                            )?;
-                            eth.wallet.keystore_path = Some(
-                                alias_config
-                                    .keystore_file
-                                    .clone()
-                                    .unwrap()
-                                    .to_string_lossy()
-                                    .to_string(),
-                            );
-                            eth.wallet.keystore_password = Some(password);
+                            if alias_config.keystore_file.is_none() {
+                                eyre::bail!(
+                                    "❌ Keystore file not found for owner. Please re-import the multi-sig owner."
+                                );
+                            }
+
+                            println!("{}", "Decrypting owner keystore...".bright_cyan());
+                            let password =
+                                rpassword::prompt_password_stdout("Enter keystore password:\n")?;
+                            match PrivateKeySigner::decrypt_keystore(
+                                alias_config.keystore_file.clone().unwrap(),
+                                password,
+                            ) {
+                                Ok(signer) => {
+                                    let key_bytes = signer.to_bytes();
+                                    eth.wallet.raw.private_key =
+                                        Some(key_bytes.encode_hex_with_prefix());
+                                    clear_previous_lines(3);
+                                    print_success_message("✅ Keystore successfully decrypted");
+                                }
+                                Err(e) => {
+                                    eyre::bail!("❌ Unable to decrypt keystore: {:?}", e);
+                                }
+                            }
                         }
                         SigningMethod::Ledger => {
                             eth.wallet.ledger = true;
