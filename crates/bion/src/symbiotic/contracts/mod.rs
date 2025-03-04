@@ -1,7 +1,6 @@
 pub mod delegator;
 pub mod delegator_factory;
 pub mod erc20;
-pub mod hyve_network_middleware;
 pub mod network_registry;
 pub mod operator_registry;
 pub mod opt_in_service;

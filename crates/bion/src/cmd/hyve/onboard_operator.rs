@@ -1,5 +1,6 @@
 use account_utils::OperatorDefinitions;
 use alloy_primitives::{
+    aliases::U48,
     hex::{FromHex, ToHexExt},
     keccak256, Address, Bytes,
 };
@@ -26,7 +27,10 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    hyve::consts::{get_hyve_middleware_service, get_hyve_network},
+    hyve::{
+        calls::{get_current_epoch, get_epoch_start, key_was_active_at, operator_key},
+        consts::{get_hyve_middleware_service, get_hyve_network},
+    },
     symbiotic::{
         calls::{is_operator, is_opted_in_network},
         consts::{get_network_opt_in_service, get_operator_registry},
@@ -109,7 +113,25 @@ impl OnboardOperatorCommand {
             "🚀 Starting Operator onboarding...".bold().bright_cyan()
         );
 
+        // Check if the operator is already active
+        let is_operator_active = self
+            .is_operator_active(operator, chain_id, &provider)
+            .await?;
+
+        if is_operator_active {
+            eyre::bail!("Operator is already registered in the HyveDA middleware.");
+        }
+
         let bls_keypair = self.create_bls_keypair(chain_id).await?;
+
+        // Check if the BLS key is already active
+        let is_key_active = self
+            .is_bls_key_active(&bls_keypair, chain_id, &provider)
+            .await?;
+
+        if is_key_active {
+            eyre::bail!("BLS key is already registered in the HyveDA middleware.");
+        }
 
         self.ensure_operator(operator, operator_registry, &provider)
             .await?;
@@ -123,6 +145,44 @@ impl OnboardOperatorCommand {
         print_success_message("✅ Onboarding completed successfully");
 
         Ok(())
+    }
+
+    async fn is_operator_active(
+        &self,
+        operator: Address,
+        chain_id: u64,
+        provider: &RetryProvider,
+    ) -> eyre::Result<bool> {
+        let hyve_middleware = get_hyve_middleware_service(chain_id)?;
+        let operator_key = operator_key(operator, hyve_middleware, provider).await?;
+        Ok(!operator_key.is_empty())
+    }
+
+    async fn is_bls_key_active(
+        &self,
+        keypair: &Keypair,
+        chain_id: u64,
+        provider: &RetryProvider,
+    ) -> eyre::Result<bool> {
+        let hyve_middleware = get_hyve_middleware_service(chain_id)?;
+        let key = keypair.sk.clone().serialize().as_ref().to_vec();
+
+        let current_epoch = get_current_epoch(hyve_middleware, provider).await?;
+        let current_epoch_start = get_epoch_start(current_epoch, hyve_middleware, provider).await?;
+        let is_active_current_epoch = key_was_active_at(
+            current_epoch_start,
+            key.clone().into(),
+            hyve_middleware,
+            provider,
+        )
+        .await?;
+
+        let next_epoch = current_epoch + U48::from(1);
+        let next_epoch_start = get_epoch_start(next_epoch, hyve_middleware, provider).await?;
+        let is_active_next_epoch =
+            key_was_active_at(next_epoch_start, key.into(), hyve_middleware, provider).await?;
+
+        Ok(is_active_current_epoch || is_active_next_epoch)
     }
 
     async fn create_bls_keypair(&self, chain_id: u64) -> eyre::Result<Keypair> {

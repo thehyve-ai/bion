@@ -6,7 +6,7 @@ use std::{
 };
 
 /// Names for the default directories.
-pub const DEFAULT_ROOT_DIR: &str = ".hyve";
+pub const DEFAULT_ROOT_DIR: &str = ".bion";
 pub const DEFAULT_SECRET_DIR: &str = "secrets";
 pub const DEFAULT_WALLET_DIR: &str = "wallets";
 pub const DEFAULT_OPERATOR_DIR: &str = "operators";
@@ -26,10 +26,10 @@ pub fn ensure_dir_exists<P: AsRef<Path>>(path: P) -> Result<(), String> {
 }
 
 /// Get the default hyve directory.
-pub fn hyve_dir() -> Option<PathBuf> {
+pub fn bion_dir() -> Option<PathBuf> {
     dirs::home_dir().map(|home| home.join(DEFAULT_ROOT_DIR))
 }
 
 pub fn keystores_dir() -> Option<PathBuf> {
-    hyve_dir().map(|root| root.join(DEFAULT_KEYSTORE_DIR))
+    bion_dir().map(|root| root.join(DEFAULT_KEYSTORE_DIR))
 }
