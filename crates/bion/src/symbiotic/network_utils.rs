@@ -36,7 +36,7 @@ pub async fn get_network_metadata(network_address: Address) -> eyre::Result<Opti
     Ok(vault_info)
 }
 
-pub async fn validate_network_status<A: TryInto<Address>>(
+pub async fn validate_network_symbiotic_status<A: TryInto<Address>>(
     network: A,
     network_registry: A,
     provider: &RetryProvider,
@@ -45,7 +45,7 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let is_network = print_loading_until_async(
-        "Validating network status",
+        "Validating network Symbiotic status",
         is_network(network, network_registry, provider),
     )
     .await?;

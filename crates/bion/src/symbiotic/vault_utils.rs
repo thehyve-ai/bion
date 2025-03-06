@@ -1071,7 +1071,7 @@ where
     Ok(vault_limit_display)
 }
 
-pub async fn validate_vault_status<A: TryInto<Address>>(
+pub async fn validate_vault_symbiotic_status<A: TryInto<Address>>(
     vault: A,
     vault_factory: A,
     provider: &RetryProvider,
@@ -1080,7 +1080,7 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let is_vault = print_loading_until_async(
-        "Validating vault status",
+        "Validating vault Symbiotic status",
         is_vault(vault, vault_factory, provider),
     )
     .await?;
@@ -1092,7 +1092,7 @@ where
     Ok(())
 }
 
-pub async fn validate_delegator_status<A: TryInto<Address>>(
+pub async fn validate_delegator_symbiotic_status<A: TryInto<Address>>(
     delegator: A,
     delegator_factory: A,
     provider: &RetryProvider,
@@ -1101,7 +1101,7 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let is_delegator = print_loading_until_async(
-        "Checking delegator status",
+        "Checking delegator Symbiotic status",
         is_delegator(delegator, delegator_factory, &provider),
     )
     .await?;
@@ -1113,7 +1113,7 @@ where
     Ok(())
 }
 
-pub async fn validate_slasher_status<A: TryInto<Address>>(
+pub async fn validate_slasher_symbiotic_status<A: TryInto<Address>>(
     slasher: A,
     slasher_factory: A,
     provider: &RetryProvider,
@@ -1122,7 +1122,7 @@ where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
     let is_slasher = print_loading_until_async(
-        "Checking slasher status",
+        "Checking slasher Symbiotic status",
         is_slasher(slasher, slasher_factory, &provider),
     )
     .await?;

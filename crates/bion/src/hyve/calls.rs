@@ -1,19 +1,50 @@
-use alloy_dyn_abi::DynSolValue;
-use alloy_network::{Network, TransactionBuilder};
-use alloy_primitives::{aliases::U48, Address, Bytes, U256};
-use alloy_provider::Provider;
+use alloy_network::TransactionBuilder;
+use alloy_primitives::{aliases::U48, Address, Bytes};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
 use alloy_sol_types::SolCall;
-use alloy_transport::Transport;
 use cast::Cast;
 use eyre::Result;
 use foundry_common::provider::RetryProvider;
-use multicall::Multicall;
 
 use std::str::FromStr;
 
-use super::contracts::hyve_network_middleware::HyveNetworkMiddleware;
+use super::contracts::{hyve_network_middleware::HyveNetworkMiddleware, hyve_reader::HyveReader};
+
+pub async fn active_operators<A: TryInto<Address>>(
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<Vec<Address>>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::activeOperatorsCall::new(());
+
+    let HyveReader::activeOperatorsReturn { _0: operators } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(operators)
+}
+
+pub async fn active_operators_at<A: TryInto<Address>>(
+    timestamp: U48,
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<Vec<Address>>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::activeOperatorsAtCall::new((timestamp,));
+
+    let HyveReader::activeOperatorsAtReturn { _0: operators } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(operators)
+}
 
 pub async fn get_current_epoch<A: TryInto<Address>>(
     middleware: A,
@@ -30,24 +61,6 @@ where
         call_and_decode(call, middleware, provider).await?;
 
     Ok(epoch)
-}
-
-// Decide if needed
-pub fn get_current_epoch_multicall<T, P, N>(
-    multicall: &mut Multicall<T, P, N>,
-    middleware: Address,
-    allow_failure: bool,
-) -> usize
-where
-    N: Network,
-    T: Transport + Clone,
-    P: Provider<T, N> + Clone,
-{
-    let abi = HyveNetworkMiddleware::abi::functions();
-    // can safely unwrap
-    let function = abi.get("getCurrentEpoch").unwrap().first().unwrap();
-
-    multicall.add_call(middleware, function, &[], allow_failure)
 }
 
 pub async fn get_epoch_start<A: TryInto<Address>>(
@@ -68,28 +81,23 @@ where
     Ok(epoch_start)
 }
 
-// Decide if needed
-pub fn get_epoch_start_multicall<T, P, N>(
-    multicall: &mut Multicall<T, P, N>,
-    epoch: U256,
-    middleware: Address,
-    allow_failure: bool,
-) -> usize
+pub async fn is_operator_registered<A: TryInto<Address>>(
+    operator: A,
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<bool>
 where
-    N: Network,
-    T: Transport + Clone,
-    P: Provider<T, N> + Clone,
+    A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let abi = HyveNetworkMiddleware::abi::functions();
-    // can safely unwrap
-    let function = abi.get("getEpochStart").unwrap().first().unwrap();
+    let operator = operator.try_into()?;
+    let middleware = middleware.try_into()?;
 
-    multicall.add_call(
-        middleware,
-        function,
-        &[DynSolValue::from(epoch)],
-        allow_failure,
-    )
+    let call = HyveReader::isOperatorRegisteredCall::new((operator,));
+
+    let HyveReader::isOperatorRegisteredReturn { _0: is_registered } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(is_registered)
 }
 
 pub async fn key_was_active_at<A: TryInto<Address>>(
@@ -111,34 +119,6 @@ where
     Ok(is_active)
 }
 
-// Decide if needed
-pub fn key_was_active_at_multicall<T, P, N>(
-    multicall: &mut Multicall<T, P, N>,
-    timestamp: U256,
-    key: Bytes,
-    middleware: Address,
-    allow_failure: bool,
-) -> usize
-where
-    N: Network,
-    T: Transport + Clone,
-    P: Provider<T, N> + Clone,
-{
-    let abi = HyveNetworkMiddleware::abi::functions();
-    // can safely unwrap
-    let function = abi.get("keyWasActiveAt").unwrap().first().unwrap();
-
-    multicall.add_call(
-        middleware,
-        function,
-        &[
-            DynSolValue::from(timestamp),
-            DynSolValue::from(key.as_ref().to_vec()),
-        ],
-        allow_failure,
-    )
-}
-
 pub async fn operator_key<A: TryInto<Address>>(
     operator: A,
     middleware: A,
@@ -156,6 +136,43 @@ where
         call_and_decode(call, middleware, provider).await?;
 
     Ok(key)
+}
+
+pub async fn operator_was_active_at<A: TryInto<Address>>(
+    timestamp: U48,
+    operator: A,
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<bool>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let operator = operator.try_into()?;
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::operatorWasActiveAtCall::new((timestamp, operator));
+
+    let HyveReader::operatorWasActiveAtReturn { _0: is_active } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(is_active)
+}
+
+pub async fn slashing_window<A: TryInto<Address>>(
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::SLASHING_WINDOWCall::new(());
+
+    let HyveReader::SLASHING_WINDOWReturn { _0: window } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(window)
 }
 
 async fn call_and_decode<C: SolCall>(

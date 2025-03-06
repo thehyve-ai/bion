@@ -14,7 +14,7 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    symbiotic::{consts::get_vault_factory, vault_utils::validate_vault_status},
+    symbiotic::{consts::get_vault_factory, vault_utils::validate_vault_symbiotic_status},
     utils::validate_cli_args,
 };
 
@@ -79,7 +79,7 @@ impl SetIsDepositLimitCommand {
         let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
 
         let to = NameOrAddress::Address(vault);
 

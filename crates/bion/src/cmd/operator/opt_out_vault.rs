@@ -17,8 +17,8 @@ use crate::{
     symbiotic::{
         calls::is_opted_in_vault,
         consts::{get_operator_registry, get_vault_factory, get_vault_opt_in_service},
-        operator_utils::validate_operator_status,
-        vault_utils::validate_vault_status,
+        operator_utils::validate_operator_symbiotic_status,
+        vault_utils::validate_vault_symbiotic_status,
     },
     utils::{print_loading_until_async, validate_cli_args},
 };
@@ -83,8 +83,8 @@ impl OptOutVaultCommand {
         let operator_registry = get_operator_registry(chain_id)?;
         set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        validate_operator_status(operator, operator_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
 
         let is_opted_in = print_loading_until_async(
             "Checking opted in status",

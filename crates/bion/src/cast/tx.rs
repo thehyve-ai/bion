@@ -13,7 +13,7 @@ use alloy_provider::Provider;
 use alloy_rpc_types::{AccessList, Authorization, TransactionInput, TransactionRequest};
 use alloy_serde::WithOtherFields;
 use alloy_signer::Signer;
-use alloy_transport::Transport;
+use alloy_transport::{RpcError, Transport};
 use eyre::Result;
 use foundry_cli::{
     opts::{CliAuthorizationList, TransactionOpts},
@@ -22,6 +22,8 @@ use foundry_cli::{
 use foundry_common::ens::NameOrAddress;
 use foundry_config::{Chain, Config};
 use foundry_wallets::{WalletOpts, WalletSigner};
+
+use crate::hyve::utils::try_match_error_data;
 
 /// Different sender kinds used by [`CastTxBuilder`].
 pub enum SenderKind<'a> {
@@ -388,7 +390,22 @@ where
         }
 
         if self.tx.gas.is_none() {
-            self.tx.gas = Some(self.provider.estimate_gas(&self.tx).await?);
+            match self.provider.estimate_gas(&self.tx).await {
+                Ok(gas) => {
+                    self.tx.gas = Some(gas);
+                }
+                Err(err) => {
+                    let err_str = err.to_string();
+                    if let Some(start) = err_str.find("data: \"0x") {
+                        let hex_start = start + "data: \"0x".len();
+                        if let Some(end) = err_str[hex_start..].find('"') {
+                            let hex_str = &err_str[hex_start..hex_start + end];
+                            try_match_error_data(hex_str)?;
+                        }
+                    }
+                    eyre::bail!(err);
+                }
+            }
         }
 
         Ok((self.tx, self.state.func))

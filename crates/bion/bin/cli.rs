@@ -5,24 +5,10 @@ use bion::cmd::{
 };
 use clap::{
     builder::{styling::AnsiColor, Styles},
-    ArgAction, Parser, Subcommand, ValueEnum,
+    ArgAction, Parser, Subcommand,
 };
 use hyve_cli_runner::CliRunner;
 use hyve_version::SHORT_VERSION;
-
-#[derive(ValueEnum, Clone, Debug)]
-pub enum Networks {
-    #[value(alias("sepolia"))]
-    Sepolia,
-}
-
-impl Networks {
-    pub fn as_str(&self) -> &str {
-        match self {
-            Networks::Sepolia => "sepolia",
-        }
-    }
-}
 
 /// The verbosity level.
 pub type Verbosity = u8;

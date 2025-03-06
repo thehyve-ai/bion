@@ -18,8 +18,8 @@ use crate::{
     symbiotic::{
         calls::{get_slasher_type, get_vault_slasher},
         consts::{get_network_registry, get_vault_factory},
-        network_utils::validate_network_status,
-        vault_utils::validate_vault_status,
+        network_utils::validate_network_symbiotic_status,
+        vault_utils::validate_vault_symbiotic_status,
         SlasherType,
     },
     utils::{print_loading_until_async, validate_cli_args},
@@ -92,8 +92,8 @@ impl SetResolverCommand {
         let vault_factory = get_vault_factory(chain_id)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
-        validate_network_status(network, network_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
 
         let slasher = print_loading_until_async(
             "Fetching vault slasher",

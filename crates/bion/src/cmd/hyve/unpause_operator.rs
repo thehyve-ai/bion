@@ -12,7 +12,10 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    hyve::consts::get_hyve_middleware_service,
+    hyve::{
+        consts::get_hyve_middleware_service,
+        operator_utils::validate_operator_hyve_middleware_status,
+    },
     utils::validate_cli_args,
 };
 
@@ -30,6 +33,10 @@ pub struct UnpauseOperatorCommand {
 
     #[clap(flatten)]
     eth: EthereumOpts,
+
+    /// Send via `eth_sendTransaction using the `--from` argument or $ETH_FROM as sender
+    #[arg(long, requires = "from")]
+    pub unlocked: bool,
 
     /// Timeout for sending the transaction.
     #[arg(long, env = "ETH_TIMEOUT")]
@@ -51,6 +58,7 @@ impl UnpauseOperatorCommand {
             dirs,
             tx,
             mut eth,
+            unlocked,
             timeout,
             confirmations,
         } = self;
@@ -61,10 +69,13 @@ impl UnpauseOperatorCommand {
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
         let operator_config = get_alias_config(chain_id, alias, &dirs)?;
-        let middleware_service = get_hyve_middleware_service(chain_id)?;
+        let operator = operator_config.address;
+        let hyve_middleware = get_hyve_middleware_service(chain_id)?;
         set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
+        validate_operator_hyve_middleware_status(operator, hyve_middleware, &provider).await?;
+
+        let to = foundry_common::ens::NameOrAddress::Address(hyve_middleware);
 
         let arg = SendTxArgs {
             to: Some(to),
@@ -73,7 +84,7 @@ impl UnpauseOperatorCommand {
             cast_async: true,
             confirmations,
             command: None,
-            unlocked: true,
+            unlocked,
             timeout,
             tx,
             eth,

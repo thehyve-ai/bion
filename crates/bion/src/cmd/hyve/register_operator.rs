@@ -1,7 +1,7 @@
 use account_utils::OperatorDefinitions;
 use alloy_primitives::{
     hex::{FromHex, ToHexExt},
-    keccak256, Address, Bytes,
+    keccak256, Bytes,
 };
 use alloy_rlp::RlpEncodable;
 use clap::Parser;
@@ -25,13 +25,11 @@ use crate::{
         utils::get_chain_id,
     },
     common::DirsCliArgs,
-    hyve::consts::get_hyve_middleware_service,
+    hyve::{calls::is_operator_registered, consts::get_hyve_middleware_service},
     symbiotic::{
-        consts::{get_operator_registry, get_vault_factory, get_vault_opt_in_service},
-        operator_utils::validate_operator_status,
-        vault_utils::{validate_vault_opt_in_status, validate_vault_status},
+        consts::get_operator_registry, operator_utils::validate_operator_symbiotic_status,
     },
-    utils::validate_cli_args,
+    utils::{print_loading_until_async, validate_cli_args},
 };
 
 #[derive(RlpEncodable)]
@@ -43,14 +41,6 @@ pub struct Keys {
 #[derive(Debug, Parser)]
 #[clap(about = "Register an Operator with a BLS key in the HyveDA middleware.")]
 pub struct RegisterOperatorCommand {
-    #[arg(
-        long,
-        required = true,
-        value_name = "ADDRESS",
-        help = "The address of the vault to opt-in."
-    )]
-    vault: Address,
-
     #[arg(
         long,
         required = true,
@@ -71,6 +61,10 @@ pub struct RegisterOperatorCommand {
     #[clap(flatten)]
     eth: EthereumOpts,
 
+    /// Send via `eth_sendTransaction using the `--from` argument or $ETH_FROM as sender
+    #[arg(long, requires = "from")]
+    pub unlocked: bool,
+
     /// Timeout for sending the transaction.
     #[arg(long, env = "ETH_TIMEOUT")]
     pub timeout: Option<u64>,
@@ -87,12 +81,12 @@ impl RegisterOperatorCommand {
 
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
         let Self {
-            vault,
             voting_pubkey,
             alias,
             dirs,
             tx,
             mut eth,
+            unlocked,
             timeout,
             confirmations,
         } = self;
@@ -105,14 +99,20 @@ impl RegisterOperatorCommand {
         let operator_config = get_alias_config(chain_id, alias, &dirs)?;
         let operator = operator_config.address;
         let operator_registry = get_operator_registry(chain_id)?;
-        let middleware_service = get_hyve_middleware_service(chain_id)?;
-        let vault_factory = get_vault_factory(chain_id)?;
-        let opt_in_service = get_vault_opt_in_service(chain_id)?;
+        let hyve_middleware = get_hyve_middleware_service(chain_id)?;
         set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        validate_operator_status(operator, operator_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
-        validate_vault_opt_in_status(operator, vault, opt_in_service, &provider).await?;
+        let is_hyve_operator = print_loading_until_async(
+            "Fetching Operator",
+            is_operator_registered(operator, hyve_middleware, &provider),
+        )
+        .await?;
+
+        if is_hyve_operator {
+            eyre::bail!("Operator is already registered in the HyveDA middleware");
+        }
+
+        validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
 
         let operators_dir = dirs.operators_dir(Some(chain_id))?;
         let mut pubkey = voting_pubkey;
@@ -182,7 +182,7 @@ impl RegisterOperatorCommand {
 
         let voting_pubkey = format!("0x00{}", &pubkey[2..]);
 
-        let to = foundry_common::ens::NameOrAddress::Address(middleware_service);
+        let to = foundry_common::ens::NameOrAddress::Address(hyve_middleware);
 
         let arg = SendTxArgs {
             to: Some(to),
@@ -198,7 +198,7 @@ impl RegisterOperatorCommand {
             cast_async: true,
             confirmations,
             command: None,
-            unlocked: true,
+            unlocked,
             timeout,
             tx,
             eth,

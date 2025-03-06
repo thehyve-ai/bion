@@ -5,7 +5,7 @@ use crate::utils::print_loading_until_async;
 
 use super::calls::is_operator;
 
-pub async fn validate_operator_status<A: TryInto<Address>>(
+pub async fn validate_operator_symbiotic_status<A: TryInto<Address>>(
     operator: A,
     operator_registry: A,
     provider: &RetryProvider,
@@ -13,13 +13,13 @@ pub async fn validate_operator_status<A: TryInto<Address>>(
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let is_vault = print_loading_until_async(
-        "Validating operator status",
+    let is_operator = print_loading_until_async(
+        "Validating operator Symbiotic status",
         is_operator(operator, operator_registry, provider),
     )
     .await?;
 
-    if !is_vault {
+    if !is_operator {
         eyre::bail!("Operator is not registered Symbiotic.");
     }
 

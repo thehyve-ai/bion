@@ -20,11 +20,11 @@ use crate::{
     symbiotic::{
         calls::{get_delegator_type, get_max_network_limit},
         consts::{get_network_registry, get_vault_factory},
-        network_utils::{get_network_metadata, validate_network_status},
+        network_utils::{get_network_metadata, validate_network_symbiotic_status},
         vault_utils::{
             fetch_token_datas, fetch_vault_addresses, fetch_vault_datas,
             fetch_vault_symbiotic_metadata, get_vault_network_limit_formatted,
-            validate_vault_status, VaultData, VaultDataTableBuilder,
+            validate_vault_symbiotic_status, VaultData, VaultDataTableBuilder,
         },
     },
     utils::{print_loading_until_async, validate_cli_args},
@@ -74,7 +74,7 @@ impl VaultParametersCommand {
         let vault_factory = get_vault_factory(chain_id)?;
         let vault = get_vault_address(vault, chain_id, vault_factory, &provider).await?;
 
-        validate_network_status(network, network_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
 
         let vault = print_loading_until_async(
             "Fetching vault info",
@@ -147,7 +147,7 @@ async fn get_vault_address(
     provider: &RetryProvider,
 ) -> eyre::Result<Address> {
     if let Ok(vault) = Address::parse_checksummed(address_or_name.clone(), None) {
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
         return Ok(vault);
     }
 

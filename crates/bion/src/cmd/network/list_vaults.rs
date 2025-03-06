@@ -14,7 +14,7 @@ use crate::{
     symbiotic::{
         calls::get_network_limit,
         consts::get_network_registry,
-        network_utils::validate_network_status,
+        network_utils::validate_network_symbiotic_status,
         vault_utils::{
             fetch_token_datas, fetch_vault_addresses, fetch_vault_datas,
             fetch_vault_symbiotic_metadata,
@@ -65,7 +65,7 @@ impl ListVaultsCommand {
         let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
 
-        validate_network_status(network, network_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
 
         let vault_addresses = fetch_vault_addresses(&provider, chain_id).await?;
         let vaults = fetch_vault_datas(&provider, chain_id, vault_addresses).await?;

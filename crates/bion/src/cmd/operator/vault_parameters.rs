@@ -16,9 +16,11 @@ use crate::{
             get_total_operator_network_shares,
         },
         consts::{get_network_registry, get_operator_registry, get_vault_factory},
-        network_utils::{get_network_metadata, validate_network_status},
-        operator_utils::validate_operator_status,
-        vault_utils::{validate_vault_status, RowPrefix, VaultData, VaultDataTableBuilder},
+        network_utils::{get_network_metadata, validate_network_symbiotic_status},
+        operator_utils::validate_operator_symbiotic_status,
+        vault_utils::{
+            validate_vault_symbiotic_status, RowPrefix, VaultData, VaultDataTableBuilder,
+        },
         DelegatorType,
     },
     utils::{print_loading_until_async, validate_cli_args},
@@ -72,9 +74,9 @@ impl VaultParametersCommand {
         let operator_registry = get_operator_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
 
-        validate_operator_status(operator, operator_registry, &provider).await?;
-        validate_network_status(network, network_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
 
         let vault = print_loading_until_async(
             "Fetching vault info",

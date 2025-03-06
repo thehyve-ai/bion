@@ -1,11 +1,13 @@
 use clap::{Parser, Subcommand};
 use hyve_cli_runner::CliContext;
+use list_operators::ListOperatorsCommand;
 use onboard_operator::OnboardOperatorCommand;
 use pause_operator::PauseOperatorCommand;
 use register_operator::RegisterOperatorCommand;
 use unpause_operator::UnpauseOperatorCommand;
 use unregister_operator::UnregisterOperatorCommand;
 
+mod list_operators;
 mod onboard_operator;
 mod pause_operator;
 mod register_operator;
@@ -24,6 +26,9 @@ pub struct HyveCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum HyveSubcommands {
+    #[command(name = "list-operators")]
+    ListOperators(ListOperatorsCommand),
+
     #[command(name = "onboard-operator")]
     OnboardOperator(OnboardOperatorCommand),
 
@@ -43,6 +48,9 @@ pub enum HyveSubcommands {
 impl HyveCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
+            HyveSubcommands::ListOperators(list_operators) => {
+                list_operators.with_alias(self.alias).execute(ctx).await
+            }
             HyveSubcommands::OnboardOperator(onboard_operator) => {
                 onboard_operator.with_alias(self.alias).execute(ctx).await
             }

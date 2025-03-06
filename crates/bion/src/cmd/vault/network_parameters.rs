@@ -12,8 +12,10 @@ use crate::{
     symbiotic::{
         calls::{get_max_network_limit, get_network_limit},
         consts::{get_network_registry, get_vault_factory},
-        network_utils::{get_network_metadata, validate_network_status},
-        vault_utils::{validate_vault_status, RowPrefix, VaultData, VaultDataTableBuilder},
+        network_utils::{get_network_metadata, validate_network_symbiotic_status},
+        vault_utils::{
+            validate_vault_symbiotic_status, RowPrefix, VaultData, VaultDataTableBuilder,
+        },
     },
     utils::{print_loading_until_async, validate_cli_args},
 };
@@ -62,8 +64,8 @@ impl NetworkParametersCommand {
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
 
-        validate_network_status(network, network_registry, &provider).await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
 
         let vault = print_loading_until_async(
             "Fetching vault data",

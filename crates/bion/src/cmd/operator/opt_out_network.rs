@@ -17,8 +17,8 @@ use crate::{
     symbiotic::{
         calls::is_opted_in_network,
         consts::{get_network_opt_in_service, get_network_registry, get_operator_registry},
-        network_utils::validate_network_status,
-        operator_utils::validate_operator_status,
+        network_utils::validate_network_symbiotic_status,
+        operator_utils::validate_operator_symbiotic_status,
     },
     utils::{print_loading_until_async, validate_cli_args},
 };
@@ -83,8 +83,8 @@ impl OptOutNetworkCommand {
         let operator_registry = get_operator_registry(chain_id)?;
         set_foundry_signing_method(&operator_config, &mut eth)?;
 
-        validate_operator_status(operator, operator_registry, &provider).await?;
-        validate_network_status(network, network_registry, &provider).await?;
+        validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
 
         let is_opted_in = print_loading_until_async(
             "Checking opted in status",

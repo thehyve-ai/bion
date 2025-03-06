@@ -17,7 +17,7 @@ use crate::{
     common::{DirsCliArgs, SigningMethod},
     symbiotic::{
         consts::{get_network_middleware_service, get_network_registry},
-        network_utils::validate_network_status,
+        network_utils::validate_network_symbiotic_status,
     },
     utils::validate_cli_args,
 };
@@ -84,7 +84,7 @@ impl SetMiddlewareCommand {
         let network_middleware_service = get_network_middleware_service(chain_id)?;
         set_foundry_signing_method(&network_config, &mut eth)?;
 
-        validate_network_status(network, network_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
 
         let to = NameOrAddress::Address(network_middleware_service);
 

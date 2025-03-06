@@ -1,7 +1,5 @@
 mod cli;
 
-use std::env;
-
 use clap::Parser;
 use cli::Cli;
 use colored::Colorize;

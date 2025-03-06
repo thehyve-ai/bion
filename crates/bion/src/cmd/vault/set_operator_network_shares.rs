@@ -26,12 +26,12 @@ use crate::{
             get_vault_factory, get_vault_opt_in_service,
         },
         network_utils::{
-            get_network_metadata, validate_network_opt_in_status, validate_network_status,
+            get_network_metadata, validate_network_opt_in_status, validate_network_symbiotic_status,
         },
-        operator_utils::validate_operator_status,
+        operator_utils::validate_operator_symbiotic_status,
         utils::get_subnetwork,
         vault_utils::{
-            validate_vault_opt_in_status, validate_vault_status, RowPrefix, VaultData,
+            validate_vault_opt_in_status, validate_vault_symbiotic_status, RowPrefix, VaultData,
             VaultDataTableBuilder,
         },
         DelegatorType,
@@ -121,11 +121,11 @@ impl SetOperatorNetworkSharesCommand {
         let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
-        validate_operator_status(operator, operator_registry, &provider).await?;
-        validate_network_status(network, network_registry, &provider).await?;
+        validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
+        validate_network_symbiotic_status(network, network_registry, &provider).await?;
         validate_network_opt_in_status(operator, network, network_opt_in_service, &provider)
             .await?;
-        validate_vault_status(vault, vault_factory, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
         validate_vault_opt_in_status(operator, vault, vault_opt_in_service, &provider).await?;
 
         let vault = print_loading_until_async(

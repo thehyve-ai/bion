@@ -16,7 +16,7 @@ use crate::{
     common::DirsCliArgs,
     symbiotic::{
         consts::{get_delegator_factory, get_vault_factory},
-        vault_utils::{validate_delegator_status, validate_vault_status},
+        vault_utils::{validate_delegator_symbiotic_status, validate_vault_symbiotic_status},
     },
     utils::validate_cli_args,
 };
@@ -83,8 +83,8 @@ impl SetDelegatorCommand {
         let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
-        validate_vault_status(vault, vault_factory, &provider).await?;
-        validate_delegator_status(delegator, delegator_factory, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
+        validate_delegator_symbiotic_status(delegator, delegator_factory, &provider).await?;
 
         let to = NameOrAddress::Address(vault);
 
