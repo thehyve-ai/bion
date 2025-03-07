@@ -9,17 +9,18 @@ use foundry_cli::{
 use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
 use prettytable::{row, Table};
+use safe_multisig::SafeClient;
 use serde::{Deserialize, Serialize};
 
 use std::str::FromStr;
 
 use crate::{
-    cast::cmd::send::SendTxArgs,
+    cast::{cmd::send::SendTxArgs, utils::build_tx},
     cmd::{
         alias_utils::{get_alias_config, set_foundry_signing_method},
         utils::{format_number_with_decimals, get_chain_id},
     },
-    common::DirsCliArgs,
+    common::{DirsCliArgs, SigningMethod},
     symbiotic::{
         calls::{get_token_decimals, get_token_symbol},
         consts::get_vault_configurator,
@@ -161,11 +162,22 @@ impl CreateCommand {
             unlocked,
             timeout,
             tx,
-            eth,
+            eth: eth.clone(),
             path: None,
         };
 
-        let _ = arg.run().await?;
+        match vault_admin_config.signing_method {
+            Some(SigningMethod::MultiSig) => {
+                let safe = SafeClient::new(chain_id)?;
+                let signer = eth.wallet.signer().await?;
+                let tx = build_tx(arg, &config, &provider).await?;
+                safe.send_tx(vault_admin_config.address, signer, tx, &provider)
+                    .await?;
+            }
+            _ => {
+                let _ = arg.run().await?;
+            }
+        };
         Ok(())
     }
 }

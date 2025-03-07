@@ -8,14 +8,15 @@ use foundry_cli::{
 };
 use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
+use safe_multisig::SafeClient;
 
 use crate::{
-    cast::cmd::send::SendTxArgs,
+    cast::{cmd::send::SendTxArgs, utils::build_tx},
     cmd::{
         alias_utils::{get_alias_config, set_foundry_signing_method},
         utils::get_chain_id,
     },
-    common::DirsCliArgs,
+    common::{DirsCliArgs, SigningMethod},
     symbiotic::{
         calls::{
             get_delegator_type, get_max_network_limit, get_network_limit,
@@ -108,12 +109,12 @@ impl SetOperatorNetworkLimitCommand {
         let config = eth.load_config()?;
         let provider = utils::get_provider(&config)?;
         let chain_id = get_chain_id(&provider).await?;
+        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         let network_opt_in_service = get_network_opt_in_service(chain_id)?;
         let network_registry = get_network_registry(chain_id)?;
         let operator_registry = get_operator_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
         let vault_opt_in_service = get_vault_opt_in_service(chain_id)?;
-        let vault_admin_config = get_alias_config(chain_id, alias, &dirs)?;
         set_foundry_signing_method(&vault_admin_config, &mut eth)?;
 
         validate_operator_symbiotic_status(operator, operator_registry, &provider).await?;
@@ -173,7 +174,7 @@ impl SetOperatorNetworkLimitCommand {
             unlocked,
             timeout,
             tx,
-            eth,
+            eth: eth.clone(),
             path: None,
         };
 
@@ -228,7 +229,18 @@ impl SetOperatorNetworkLimitCommand {
             eyre::bail!("Exiting...");
         }
 
-        let _ = arg.run().await?;
+        match vault_admin_config.signing_method {
+            Some(SigningMethod::MultiSig) => {
+                let safe = SafeClient::new(chain_id)?;
+                let signer = eth.wallet.signer().await?;
+                let tx = build_tx(arg, &config, &provider).await?;
+                safe.send_tx(vault_admin_config.address, signer, tx, &provider)
+                    .await?;
+            }
+            _ => {
+                let _ = arg.run().await?;
+            }
+        };
         Ok(())
     }
 }

@@ -1,5 +1,5 @@
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{aliases::U48, Address, Bytes};
+use alloy_primitives::{aliases::U48, Address, Bytes, U256};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
 use alloy_sol_types::SolCall;
@@ -156,6 +156,44 @@ where
         call_and_decode(call, middleware, provider).await?;
 
     Ok(is_active)
+}
+
+pub async fn operator_with_times_at<A: TryInto<Address>>(
+    pos: U256,
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<(Address, U48, U48)>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::operatorWithTimesAtCall::new((pos,));
+
+    let HyveReader::operatorWithTimesAtReturn {
+        _0: operator,
+        _1: start,
+        _2: end,
+    } = call_and_decode(call, middleware, provider).await?;
+
+    Ok((operator, start, end))
+}
+
+pub async fn operators_length<A: TryInto<Address>>(
+    middleware: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let middleware = middleware.try_into()?;
+
+    let call = HyveReader::operatorsLengthCall::new(());
+
+    let HyveReader::operatorsLengthReturn { _0: length } =
+        call_and_decode(call, middleware, provider).await?;
+
+    Ok(length)
 }
 
 pub async fn slashing_window<A: TryInto<Address>>(
