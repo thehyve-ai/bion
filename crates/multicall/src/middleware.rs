@@ -286,11 +286,16 @@ where
             }
 
             MulticallVersion::Multicall3 => {
-                let call = self.as_aggregate_3();
+                let calls = self.as_aggregate_3();
 
-                let multicall_result = call.call().await?;
+                let mut multicall_results = Vec::new();
+                for call in calls {
+                    let multicall_result = call.call().await?;
+                    let parsed = self.parse_multicall_result(multicall_result.returnData)?;
 
-                self.parse_multicall_result(multicall_result.returnData)
+                    multicall_results.extend(parsed);
+                }
+                Ok(multicall_results)
             }
         }
     }
@@ -533,19 +538,27 @@ where
     /// Returns a [CallBuilder], which uses [IMulticall3::aggregate3Call] for decoding.
     pub fn as_aggregate_3(
         &self,
-    ) -> CallBuilder<T, &P, PhantomData<IMulticall3::aggregate3Call>, N> {
+    ) -> Vec<CallBuilder<T, &P, PhantomData<IMulticall3::aggregate3Call>, N>> {
         let calls = self
             .calls
             .clone()
-            .into_iter()
-            .map(|call| IMulticall3::Call3 {
-                target: call.target,
-                callData: call.calldata,
-                allowFailure: call.allow_failure,
+            .chunks(100)
+            .map(|calls| {
+                calls
+                    .to_vec()
+                    .into_iter()
+                    .map(|call| IMulticall3::Call3 {
+                        target: call.target,
+                        callData: call.calldata,
+                        allowFailure: call.allow_failure,
+                    })
+                    .collect::<Vec<IMulticall3::Call3>>()
             })
-            .collect::<Vec<IMulticall3::Call3>>();
-
-        self.contract.aggregate3(calls)
+            .collect::<Vec<Vec<IMulticall3::Call3>>>();
+        calls
+            .into_iter()
+            .map(|calls| self.contract.aggregate3(calls))
+            .collect()
     }
 
     /// Decodes the return data for each individual call result within a multicall.

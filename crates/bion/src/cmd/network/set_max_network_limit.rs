@@ -5,9 +5,12 @@ use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
     utils::{self, LoadConfig},
 };
-use foundry_common::ens::NameOrAddress;
+use foundry_common::{
+    abi::{encode_function_args, get_func},
+    ens::NameOrAddress,
+};
 use hyve_cli_runner::CliContext;
-use safe_multisig::SafeClient;
+use safe_multisig::{ExecutableSafeTransaction, SafeClient};
 
 use crate::{
     cast::{cmd::send::SendTxArgs, utils::build_tx},
@@ -185,12 +188,23 @@ impl SetMaxNetworkLimitCommand {
         match network_config.signing_method {
             Some(SigningMethod::MultiSig) => {
                 let safe = SafeClient::new(chain_id)?;
-                eth.wallet.from = Some(network_config.address);
-                let config = eth.load_config()?;
-                let tx = build_tx(arg, &config, &provider).await?;
+
                 set_foundry_signing_method(&network_config, &mut eth)?;
                 let signer = eth.wallet.signer().await?;
-                safe.send_tx(network, signer, tx, &provider).await?;
+
+                let mut final_args = arg.clone();
+
+                if let Some(ExecutableSafeTransaction {
+                    safe_address,
+                    input_data,
+                }) = safe
+                    .send_tx(network, signer, arg.try_into()?, &provider)
+                    .await?
+                {
+                    final_args.to = Some(NameOrAddress::Address(safe_address));
+                    final_args.sig = Some(input_data);
+                    let _ = final_args.run().await?;
+                }
             }
             _ => {
                 set_foundry_signing_method(&network_config, &mut eth)?;

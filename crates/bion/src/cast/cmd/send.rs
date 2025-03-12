@@ -3,7 +3,7 @@ use crate::cast::{
     utils::etherscan_tx_url,
 };
 use alloy_network::{AnyNetwork, EthereumWallet};
-use alloy_primitives::B256;
+use alloy_primitives::{B256, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -18,11 +18,15 @@ use foundry_cli::{
     utils,
     utils::LoadConfig,
 };
-use foundry_common::ens::NameOrAddress;
+use foundry_common::{
+    abi::{encode_function_args, get_func},
+    ens::NameOrAddress,
+};
+use safe_multisig::SafeMetaTransaction;
 use std::{path::PathBuf, str::FromStr};
 
 /// CLI arguments for `cast send`.
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct SendTxArgs {
     /// The destination of the transaction.
     ///
@@ -72,7 +76,34 @@ pub struct SendTxArgs {
     pub path: Option<PathBuf>,
 }
 
-#[derive(Debug, Parser)]
+fn calldata_encode(sig: impl AsRef<str>, args: &[impl AsRef<str>]) -> eyre::Result<String> {
+    let func = get_func(sig.as_ref())?;
+    let calldata = encode_function_args(&func, args)?;
+    Ok(alloy_primitives::hex::encode_prefixed(calldata))
+}
+
+impl TryInto<SafeMetaTransaction> for SendTxArgs {
+    type Error = eyre::Error;
+
+    fn try_into(self) -> std::result::Result<SafeMetaTransaction, Self::Error> {
+        let input = calldata_encode(self.sig.clone().unwrap(), &self.args)?;
+        Ok(SafeMetaTransaction {
+            to: match self.to {
+                Some(NameOrAddress::Address(address)) => address,
+                Some(NameOrAddress::Name(_)) => {
+                    return Err(eyre::eyre!("ENS is not supported"));
+                }
+                None => {
+                    return Err(eyre::eyre!("No address provided"));
+                }
+            },
+            input,
+            value: self.tx.value.unwrap_or(U256::from(0)),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Parser)]
 pub enum SendTxSubcommands {
     /// Use to deploy raw contract bytecode.
     #[command(name = "--create")]

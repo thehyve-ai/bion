@@ -23,6 +23,17 @@ pub struct SafeClient {
     tx_service_url: String,
 }
 
+pub struct SafeMetaTransaction {
+    pub to: Address,
+    pub input: String,
+    pub value: U256,
+}
+
+pub struct ExecutableSafeTransaction {
+    pub safe_address: Address,
+    pub input_data: String,
+}
+
 impl SafeClient {
     pub fn new(chain_id: u64) -> eyre::Result<Self> {
         let tx_service_url = get_transaction_service_url(chain_id)?;
@@ -34,15 +45,18 @@ impl SafeClient {
         &self,
         safe_address: Address,
         signer: WalletSigner,
-        tx: WithOtherFields<TransactionRequest>,
+        tx: SafeMetaTransaction,
         provider: &RetryProvider,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<Option<ExecutableSafeTransaction>> {
         let threshold = get_threshold(safe_address, provider).await?;
         if threshold == U256::from(1) {
             println!("Threshold is 1, executing transaction directly.");
-            self.execute_tx(safe_address, signer, tx, provider).await
+            Ok(Some(
+                self.execute_tx(safe_address, signer, tx, provider).await?,
+            ))
         } else {
-            self.propose_tx(safe_address, signer, tx, provider).await
+            self.propose_tx(safe_address, signer, tx, provider).await?;
+            Ok(None)
         }
     }
 
@@ -50,9 +64,9 @@ impl SafeClient {
         &self,
         safe_address: Address,
         signer: WalletSigner,
-        tx: WithOtherFields<TransactionRequest>,
+        tx: SafeMetaTransaction,
         provider: &RetryProvider,
-    ) -> eyre::Result<()> {
+    ) -> eyre::Result<ExecutableSafeTransaction> {
         let sender = match &signer {
             WalletSigner::Local(s) => s.address(),
             WalletSigner::Ledger(s) => s.get_address().await?,
@@ -76,25 +90,19 @@ impl SafeClient {
         )
         .await?;
         let signature = signer.sign_hash(&tx_hash).await?;
-        let success = print_loading_until_async(
-            "Executing transactions",
-            exec_transaction(&safe_tx, signature.as_bytes(), safe_address, provider),
-        )
-        .await?;
 
-        if !success {
-            eyre::bail!("Transaction failed.");
-        }
-
-        println!("{}", "Transaction executed successfully.".green());
-        Ok(())
+        Ok(exec_transaction(
+            &safe_tx,
+            signature.as_bytes(),
+            safe_address,
+        )?)
     }
 
     async fn propose_tx(
         &self,
         safe_address: Address,
         signer: WalletSigner,
-        tx: WithOtherFields<TransactionRequest>,
+        tx: SafeMetaTransaction,
         provider: &RetryProvider,
     ) -> eyre::Result<()> {
         let safe_version: Version =

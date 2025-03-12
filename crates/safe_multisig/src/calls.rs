@@ -1,5 +1,8 @@
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{Address, Bytes, B256, U256};
+use alloy_primitives::{
+    hex::{self, ToHexExt},
+    Address, Bytes, B256, U256,
+};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_sol_types::SolCall;
 use cast::Cast;
@@ -7,18 +10,19 @@ use foundry_common::provider::RetryProvider;
 
 use std::str::FromStr;
 
-use crate::{contracts::safe::Safe, transaction_data::SafeTransactionData};
+use crate::{
+    contracts::safe::Safe, transaction_data::SafeTransactionData, ExecutableSafeTransaction,
+};
 
-pub async fn exec_transaction<A: TryInto<Address>>(
+pub fn exec_transaction<A: TryInto<Address>>(
     safe_tx: &SafeTransactionData,
     signature: [u8; 65],
     safe: A,
-    provider: &RetryProvider,
-) -> eyre::Result<bool>
+) -> eyre::Result<ExecutableSafeTransaction>
 where
     A::Error: std::error::Error + Send + Sync + 'static,
 {
-    let safe = safe.try_into()?;
+    let safe: Address = safe.try_into()?;
 
     let call = Safe::execTransactionCall::new((
         Address::parse_checksummed(&safe_tx.to, None)?,
@@ -33,9 +37,12 @@ where
         Bytes::copy_from_slice(&signature),
     ));
 
-    let Safe::execTransactionReturn { success } = call_and_decode(call, safe, provider).await?;
+    let calldata = call.abi_encode().encode_hex_with_prefix();
 
-    Ok(success)
+    Ok(ExecutableSafeTransaction {
+        safe_address: safe,
+        input_data: calldata,
+    })
 }
 
 pub async fn get_nonce<A: TryInto<Address>>(safe: A, provider: &RetryProvider) -> eyre::Result<U256>
