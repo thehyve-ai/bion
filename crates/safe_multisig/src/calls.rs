@@ -21,13 +21,13 @@ where
     let safe = safe.try_into()?;
 
     let call = Safe::execTransactionCall::new((
-        safe_tx.to,
-        safe_tx.value,
+        Address::parse_checksummed(&safe_tx.to, None)?,
+        safe_tx.value.try_into()?,
         safe_tx.data.clone(),
         safe_tx.operation,
-        safe_tx.safe_tx_gas,
-        safe_tx.base_gas,
-        safe_tx.gas_price,
+        safe_tx.safe_tx_gas.try_into()?,
+        safe_tx.base_gas.try_into()?,
+        safe_tx.gas_price.try_into()?,
         safe_tx.gas_token,
         safe_tx.refund_receiver,
         Bytes::copy_from_slice(&signature),
@@ -94,16 +94,16 @@ where
     let safe = safe.try_into()?;
 
     let call = Safe::getTransactionHashCall::new((
-        safe_tx.to,
-        safe_tx.value,
+        Address::parse_checksummed(&safe_tx.to, None)?,
+        safe_tx.value.try_into()?,
         safe_tx.data.clone(),
         safe_tx.operation,
-        safe_tx.safe_tx_gas,
-        safe_tx.base_gas,
-        safe_tx.gas_price,
+        safe_tx.safe_tx_gas.try_into()?,
+        safe_tx.base_gas.try_into()?,
+        safe_tx.gas_price.try_into()?,
         safe_tx.gas_token,
         safe_tx.refund_receiver,
-        safe_tx.nonce,
+        safe_tx.nonce.try_into()?,
     ));
 
     let Safe::getTransactionHashReturn { _0: tx_hash } =

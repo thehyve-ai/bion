@@ -93,7 +93,7 @@ impl SetMaxNetworkLimitCommand {
         let network = network_config.address;
         let network_registry = get_network_registry(chain_id)?;
         let vault_factory = get_vault_factory(chain_id)?;
-        set_foundry_signing_method(&network_config, &mut eth)?;
+        // set_foundry_signing_method(&network_config, &mut eth)?;
 
         validate_network_symbiotic_status(network, network_registry, &provider).await?;
         validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
@@ -185,12 +185,15 @@ impl SetMaxNetworkLimitCommand {
         match network_config.signing_method {
             Some(SigningMethod::MultiSig) => {
                 let safe = SafeClient::new(chain_id)?;
-                let signer = eth.wallet.signer().await?;
+                eth.wallet.from = Some(network_config.address);
+                let config = eth.load_config()?;
                 let tx = build_tx(arg, &config, &provider).await?;
-                safe.send_tx(network_config.address, signer, tx, &provider)
-                    .await?;
+                set_foundry_signing_method(&network_config, &mut eth)?;
+                let signer = eth.wallet.signer().await?;
+                safe.send_tx(network, signer, tx, &provider).await?;
             }
             _ => {
+                set_foundry_signing_method(&network_config, &mut eth)?;
                 let _ = arg.run().await?;
             }
         };

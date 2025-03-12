@@ -39,13 +39,10 @@ impl SafeClient {
     ) -> eyre::Result<()> {
         let threshold = get_threshold(safe_address, provider).await?;
         if threshold == U256::from(1) {
+            println!("Threshold is 1, executing transaction directly.");
             self.execute_tx(safe_address, signer, tx, provider).await
         } else {
-            print_loading_until_async(
-                "Proposing transaction",
-                self.propose_tx(safe_address, signer, tx, provider),
-            )
-            .await
+            self.propose_tx(safe_address, signer, tx, provider).await
         }
     }
 
@@ -71,9 +68,8 @@ impl SafeClient {
             eyre::bail!("Signer is not an owner!");
         }
 
-        let data = tx.input.data.clone().unwrap();
         let nonce = get_nonce(safe_address, provider).await?;
-        let safe_tx = build_safe_tx(data, tx, nonce)?;
+        let safe_tx = build_safe_tx(tx, nonce)?;
         let tx_hash = print_loading_until_async(
             "Fetching safe tx hash",
             get_transaction_hash(&safe_tx, safe_address, provider),
@@ -101,7 +97,11 @@ impl SafeClient {
         tx: WithOtherFields<TransactionRequest>,
         provider: &RetryProvider,
     ) -> eyre::Result<()> {
-        let safe_version: Version = get_version(safe_address, provider).await?.parse().unwrap();
+        let safe_version: Version =
+            print_loading_until_async("Fetching safe version", get_version(safe_address, provider))
+                .await?
+                .parse()
+                .unwrap();
         if safe_version < "1.3.0".parse().unwrap() {
             eyre::bail!("Account Abstraction functionality is not available for Safes with version lower than v1.3.0");
         }
@@ -112,27 +112,33 @@ impl SafeClient {
             WalletSigner::Trezor(s) => s.get_address().await?,
         };
 
-        let is_owner = is_owner(sender, safe_address, provider).await?;
+        let is_owner = print_loading_until_async(
+            "Verifying ownership",
+            is_owner(sender, safe_address, provider),
+        )
+        .await?;
         if !is_owner {
             eyre::bail!("Signer is not an owner!");
         }
 
-        let data = tx.input.data.clone().unwrap();
-        let nonce = get_nonce(safe_address, provider).await?;
-        let safe_tx = build_safe_tx(data, tx, nonce)?;
-        let tx_hash = get_transaction_hash(&safe_tx, safe_address, provider).await?;
+        let nonce =
+            print_loading_until_async("Fetching nonce", get_nonce(safe_address, provider)).await?;
+        println!("Nonce: {}", nonce);
+        let safe_tx = build_safe_tx(tx, nonce)?;
+        let tx_hash = print_loading_until_async(
+            "Fetching tx hash",
+            get_transaction_hash(&safe_tx, safe_address, provider),
+        )
+        .await?;
 
-        println!(
-            "{}",
-            format!("Safe tx hash: {}", tx_hash.encode_hex_with_prefix()).bright_cyan()
-        );
-        let signature = signer.sign_hash(&tx_hash).await?;
+        let signature =
+            print_loading_until_async("Getting signature", signer.sign_hash(&tx_hash)).await?;
 
         // Build the request body.
         let body = ProposeTransactionBody {
             safe_tx,
             contract_transaction_hash: tx_hash,
-            sender,
+            sender: sender.to_checksum(None),
             signature: signature.as_bytes().encode_hex_with_prefix(),
             origin: None,
         };
@@ -143,7 +149,11 @@ impl SafeClient {
             self.tx_service_url, safe_address
         );
         let client = reqwest::Client::new();
-        let response = client.post(&url).json(&body).send().await?;
+        let response = print_loading_until_async(
+            "Proposing transaction",
+            client.post(&url).json(&body).send(),
+        )
+        .await?;
 
         // Check if the response indicates success.
         if !response.status().is_success() {

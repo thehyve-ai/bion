@@ -14,26 +14,25 @@ use alloy_serde::WithOtherFields;
 use crate::transaction_data::SafeTransactionData;
 
 pub fn build_safe_tx(
-    data: Bytes,
     tx: WithOtherFields<TransactionRequest>,
     nonce: U256,
 ) -> eyre::Result<SafeTransactionData> {
     Ok(SafeTransactionData {
         to: match tx.to.unwrap() {
-            TxKind::Call(a) => a,
+            TxKind::Call(a) => a.to_checksum(None),
             _ => {
                 eyre::bail!("Invalid tx kind")
             }
         },
-        value: tx.value.unwrap_or_else(|| U256::from(0)),
-        data,
+        value: tx.value.unwrap_or(U256::from(0)).try_into()?,
+        data: tx.input.data.clone().unwrap(),
         operation: 0,
-        safe_tx_gas: U256::from(tx.gas.unwrap_or(0)),
-        base_gas: U256::from(0),
-        gas_price: U256::from(0),
+        safe_tx_gas: tx.gas.unwrap_or(0),
+        base_gas: 0,
+        gas_price: 0,
         gas_token: Address::ZERO,
         refund_receiver: Address::ZERO,
-        nonce,
+        nonce: nonce.try_into()?,
     })
 }
 

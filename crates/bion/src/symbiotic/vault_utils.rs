@@ -373,7 +373,7 @@ impl VaultDataTableBuilder {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct VaultData {
     pub address: Address,
     pub version: Option<u64>,
