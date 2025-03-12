@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use create::CreateCommand;
 use hyve_cli_runner::CliContext;
 use network_parameters::NetworkParametersCommand;
 use set_delegator::SetDelegatorCommand;
@@ -12,7 +11,6 @@ use set_operator_network_limit::SetOperatorNetworkLimitCommand;
 use set_operator_network_shares::SetOperatorNetworkSharesCommand;
 use set_slasher::SetSlasherCommand;
 
-mod create;
 mod network_parameters;
 mod set_delegator;
 mod set_deposit_limit;
@@ -36,9 +34,6 @@ pub struct VaultCommand {
 
 #[derive(Debug, Subcommand)]
 pub enum VaultSubcommands {
-    #[command(name = "create")]
-    Create(CreateCommand),
-
     #[command(name = "network-parameters")]
     NetworkParameters(NetworkParametersCommand),
 
@@ -73,9 +68,8 @@ pub enum VaultSubcommands {
 impl VaultCommand {
     pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
         match self.command {
-            VaultSubcommands::Create(create) => create.with_alias(self.alias).execute(ctx).await,
             VaultSubcommands::NetworkParameters(network_parameters) => {
-                network_parameters.with_alias(self.alias).execute(ctx).await
+                network_parameters.execute(ctx).await
             }
             VaultSubcommands::SetDelegator(set_delegator) => {
                 set_delegator.with_alias(self.alias).execute(ctx).await

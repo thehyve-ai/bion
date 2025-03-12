@@ -4,7 +4,6 @@ use std::path::{Path, PathBuf};
 use eth2_keystore::Keystore;
 use hyve_primitives::dirs::ensure_dir_exists;
 use hyve_primitives::fs::write_file_via_temporary;
-use lighthouse_bls::generics::GenericPublicKey;
 use lighthouse_bls::PublicKey;
 use serde::{Deserialize, Serialize};
 

@@ -1,5 +1,16 @@
-use alloy_primitives::{Address, Bytes, TxHash};
+use alloy_primitives::{Address, Bytes, TxHash, U256};
 use serde::{Deserialize, Serialize};
+
+pub struct SafeMetaTransaction {
+    pub to: Address,
+    pub input: Bytes,
+    pub value: U256,
+}
+
+pub struct ExecutableSafeTransaction {
+    pub safe_address: Address,
+    pub input_data: String,
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -18,7 +29,7 @@ pub struct SafeTransactionData {
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct ProposeTransactionBody {
+pub struct ProposeSafeTransactionBody {
     #[serde(flatten)]
     pub safe_tx: SafeTransactionData,
     pub contract_transaction_hash: TxHash,

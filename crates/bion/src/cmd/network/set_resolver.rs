@@ -6,10 +6,10 @@ use foundry_cli::{
 };
 use foundry_common::ens::NameOrAddress;
 use hyve_cli_runner::CliContext;
-use safe_multisig::SafeClient;
+use safe_multisig::{transaction_data::ExecutableSafeTransaction, SafeClient};
 
 use crate::{
-    cast::{cmd::send::SendTxArgs, utils::build_tx},
+    cast::cmd::send::SendTxArgs,
     cmd::{
         alias_utils::{get_alias_config, set_foundry_signing_method},
         utils::get_chain_id,
@@ -113,7 +113,7 @@ impl SetResolverCommand {
 
         let to = NameOrAddress::Address(slasher);
 
-        let arg = SendTxArgs {
+        let args = SendTxArgs {
             to: Some(to),
             sig: Some("setResolver(uint96 identifier, address resolver, bytes hints)".to_string()),
             args: vec![
@@ -135,12 +135,21 @@ impl SetResolverCommand {
             Some(SigningMethod::MultiSig) => {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
-                let tx = build_tx(arg, &config, &provider).await?;
-                safe.send_tx(network_config.address, signer, tx, &provider)
-                    .await?;
+                let mut executable_args = args.clone();
+                if let Some(ExecutableSafeTransaction {
+                    safe_address,
+                    input_data,
+                }) = safe
+                    .send_tx(network, signer, args.try_into()?, &provider)
+                    .await?
+                {
+                    executable_args.to = Some(NameOrAddress::Address(safe_address));
+                    executable_args.sig = Some(input_data);
+                    let _ = executable_args.run().await?;
+                }
             }
             _ => {
-                let _ = arg.run().await?;
+                let _ = args.run().await?;
             }
         };
         Ok(())

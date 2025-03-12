@@ -39,6 +39,7 @@ pub struct RpcArgs {
 }
 
 impl RpcArgs {
+    #[allow(dead_code)]
     pub async fn run(self) -> Result<()> {
         let Self {
             raw,
@@ -68,6 +69,7 @@ impl RpcArgs {
     }
 }
 
+#[allow(dead_code)]
 fn value_or_string(value: String) -> serde_json::Value {
     serde_json::from_str(&value).unwrap_or(serde_json::Value::String(value))
 }

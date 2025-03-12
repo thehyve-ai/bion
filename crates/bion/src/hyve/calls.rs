@@ -11,6 +11,7 @@ use std::str::FromStr;
 
 use super::contracts::{hyve_network_middleware::HyveNetworkMiddleware, hyve_reader::HyveReader};
 
+#[allow(dead_code)]
 pub async fn active_operators<A: TryInto<Address>>(
     middleware: A,
     provider: &RetryProvider,
@@ -28,6 +29,7 @@ where
     Ok(operators)
 }
 
+#[allow(dead_code)]
 pub async fn active_operators_at<A: TryInto<Address>>(
     timestamp: U48,
     middleware: A,
@@ -46,6 +48,7 @@ where
     Ok(operators)
 }
 
+#[allow(dead_code)]
 pub async fn get_current_epoch<A: TryInto<Address>>(
     middleware: A,
     provider: &RetryProvider,
@@ -63,6 +66,7 @@ where
     Ok(epoch)
 }
 
+#[allow(dead_code)]
 pub async fn get_epoch_start<A: TryInto<Address>>(
     epoch: U48,
     middleware: A,
@@ -100,6 +104,7 @@ where
     Ok(is_registered)
 }
 
+#[allow(dead_code)]
 pub async fn key_was_active_at<A: TryInto<Address>>(
     timestamp: U48,
     key: Bytes,
@@ -119,6 +124,7 @@ where
     Ok(is_active)
 }
 
+#[allow(dead_code)]
 pub async fn operator_key<A: TryInto<Address>>(
     operator: A,
     middleware: A,
@@ -138,6 +144,7 @@ where
     Ok(key)
 }
 
+#[allow(dead_code)]
 pub async fn operator_was_active_at<A: TryInto<Address>>(
     timestamp: U48,
     operator: A,
@@ -158,6 +165,7 @@ where
     Ok(is_active)
 }
 
+#[allow(dead_code)]
 pub async fn operator_with_times_at<A: TryInto<Address>>(
     pos: U256,
     middleware: A,
@@ -179,6 +187,7 @@ where
     Ok((operator, start, end))
 }
 
+#[allow(dead_code)]
 pub async fn operators_length<A: TryInto<Address>>(
     middleware: A,
     provider: &RetryProvider,
@@ -196,6 +205,7 @@ where
     Ok(length)
 }
 
+#[allow(dead_code)]
 pub async fn slashing_window<A: TryInto<Address>>(
     middleware: A,
     provider: &RetryProvider,

@@ -1,9 +1,4 @@
-use alloy_rpc_types::TransactionRequest;
-use alloy_serde::WithOtherFields;
-use foundry_common::provider::RetryProvider;
-use foundry_config::Config;
-
-use super::{cmd::send::SendTxArgs, tx::CastTxBuilder};
+use foundry_common::abi::{encode_function_args, get_func};
 
 /// Returns the Etherscan transaction URL for the given chain ID and transaction hash.
 ///
@@ -24,18 +19,8 @@ pub fn etherscan_tx_url(chain_id: u64, tx: String) -> String {
     }
 }
 
-pub async fn build_tx(
-    args: SendTxArgs,
-    config: &Config,
-    provider: &RetryProvider,
-) -> eyre::Result<WithOtherFields<TransactionRequest>> {
-    let builder = CastTxBuilder::new(&provider, args.tx, &config)
-        .await?
-        .with_to(args.to)
-        .await?
-        .with_code_sig_and_args(None, args.sig, args.args)
-        .await?;
-
-    let (tx, _) = builder.build(config.sender).await?;
-    Ok(tx)
+pub fn calldata_encode(sig: impl AsRef<str>, args: &[impl AsRef<str>]) -> eyre::Result<String> {
+    let func = get_func(sig.as_ref())?;
+    let calldata = encode_function_args(&func, args)?;
+    Ok(alloy_primitives::hex::encode_prefixed(calldata))
 }

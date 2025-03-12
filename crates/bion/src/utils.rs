@@ -1,5 +1,4 @@
 use account_utils::{helpers::random_password_string, ZeroizeString};
-use alloy_network::TxSigner;
 use alloy_primitives::{aliases::U48, Address, U256};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
@@ -34,23 +33,6 @@ pub fn validate_cli_args(eth: &EthereumOpts) -> eyre::Result<()> {
     validate_rpc_url(&eth.rpc)?;
 
     Ok(())
-}
-
-pub async fn validate_address_with_signer(
-    address: Address,
-    eth: &EthereumOpts,
-) -> eyre::Result<()> {
-    let signer = eth.wallet.signer().await?;
-    let from = signer.address();
-
-    match address.to_string().to_lowercase() == from.to_string().to_lowercase() {
-        true => Ok(()),
-        false => Err(eyre::eyre!(
-            "Address does not match signer! Address: {}, Signer: {}",
-            address,
-            from
-        )),
-    }
 }
 
 pub fn get_etherscan_address_link(address: Address, text: String) -> String {
@@ -217,6 +199,7 @@ pub fn clear_previous_lines(num_lines: u16) {
 /// // With a closure
 /// print_loading_until("Calculating...", || some_condition == true);
 /// ```
+#[allow(dead_code)]
 pub fn print_loading_until<F>(message: &str, condition: F)
 where
     F: Fn() -> bool,
@@ -305,6 +288,7 @@ pub fn load_from_json_file<P: AsRef<Path>, T: DeserializeOwned>(path: P) -> Resu
 }
 
 /// Parses a `T` from a string using [`serde_json::from_str`].
+#[allow(dead_code)]
 pub fn parse_json<T: DeserializeOwned>(value: &str) -> serde_json::Result<T> {
     serde_json::from_str(value)
 }
@@ -336,6 +320,7 @@ pub fn parse_ts(secs: i64) -> String {
     formatted
 }
 
+#[allow(dead_code)]
 pub fn parse_duration_secs_u48(secs: U48) -> String {
     let secs = secs.to_string().as_str().parse::<i64>().unwrap();
 

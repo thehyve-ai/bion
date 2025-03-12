@@ -39,6 +39,7 @@ pub mod addresses {
         pub const NETWORK_OPT_IN_SERVICE: &str = "0x7133415b33B438843D581013f98A08704316633c";
 
         /// Ready-to-work vaults' creator
+        #[allow(dead_code)]
         pub const VAULT_CONFIGURATOR: &str = "0x29300b1d3150B4E2b12fE80BE72f365E200441EC";
     }
 
@@ -58,6 +59,7 @@ pub mod addresses {
         pub const NETWORK_REGISTRY: &str = "0x7d03b7343BF8d5cEC7C0C27ecE084a20113D15C9";
 
         /// Networks' metadata setter
+        #[allow(dead_code)]
         pub const NETWORK_METADATA_SERVICE: &str = "0x0F7E58Cc4eA615E8B8BEB080dF8B8FDB63C21496";
 
         /// Networks' middleware addresses setter
@@ -67,6 +69,7 @@ pub mod addresses {
         pub const OPERATOR_REGISTRY: &str = "0x6F75a4ffF97326A00e52662d82EA4FdE86a2C548";
 
         /// Operators' metadata setter
+        #[allow(dead_code)]
         pub const OPERATOR_METADATA_SERVICE: &str = "0x0999048aB8eeAfa053bF8581D4Aa451ab45755c9";
 
         /// A contract for operators' opt-ins to vaults
@@ -76,6 +79,7 @@ pub mod addresses {
         pub const NETWORK_OPT_IN_SERVICE: &str = "0x58973d16FFA900D11fC22e5e2B6840d9f7e13401";
 
         /// Ready-to-work vaults' creator
+        #[allow(dead_code)]
         pub const VAULT_CONFIGURATOR: &str = "0xD2191FE92987171691d552C219b8caEf186eb9cA";
     }
 
@@ -95,6 +99,7 @@ pub mod addresses {
         pub const NETWORK_REGISTRY: &str = "0x7d03b7343BF8d5cEC7C0C27ecE084a20113D15C9";
 
         /// Networks' metadata setter
+        #[allow(dead_code)]
         pub const NETWORK_METADATA_SERVICE: &str = "0x0F7E58Cc4eA615E8B8BEB080dF8B8FDB63C21496";
 
         /// Networks' middleware addresses setter
@@ -104,6 +109,7 @@ pub mod addresses {
         pub const OPERATOR_REGISTRY: &str = "0x6F75a4ffF97326A00e52662d82EA4FdE86a2C548";
 
         /// Operators' metadata setter
+        #[allow(dead_code)]
         pub const OPERATOR_METADATA_SERVICE: &str = "0x0999048aB8eeAfa053bF8581D4Aa451ab45755c9";
 
         /// A contract for operators' opt-ins to vaults
@@ -113,6 +119,7 @@ pub mod addresses {
         pub const NETWORK_OPT_IN_SERVICE: &str = "0x58973d16FFA900D11fC22e5e2B6840d9f7e13401";
 
         /// Ready-to-work vaults' creator
+        #[allow(dead_code)]
         pub const VAULT_CONFIGURATOR: &str = "0xD2191FE92987171691d552C219b8caEf186eb9cA";
     }
 }
@@ -185,15 +192,6 @@ pub fn get_network_opt_in_service(chain_id: u64) -> eyre::Result<Address> {
         mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::NETWORK_OPT_IN_SERVICE)?),
         holesky::CHAIN_ID => Ok(Address::from_str(holesky::NETWORK_OPT_IN_SERVICE)?),
         sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::NETWORK_OPT_IN_SERVICE)?),
-        _ => Err(eyre::eyre!("Chain ID not supported")),
-    }
-}
-
-pub fn get_vault_configurator(chain_id: u64) -> eyre::Result<Address> {
-    match chain_id {
-        mainnet::CHAIN_ID => Ok(Address::from_str(mainnet::VAULT_CONFIGURATOR)?),
-        holesky::CHAIN_ID => Ok(Address::from_str(holesky::VAULT_CONFIGURATOR)?),
-        sepolia::CHAIN_ID => Ok(Address::from_str(sepolia::VAULT_CONFIGURATOR)?),
         _ => Err(eyre::eyre!("Chain ID not supported")),
     }
 }

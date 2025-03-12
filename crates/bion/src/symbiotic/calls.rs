@@ -204,6 +204,7 @@ where
     Ok(shares)
 }
 
+#[allow(dead_code)]
 pub async fn get_token_decimals<A: TryInto<Address>>(
     token: A,
     provider: &RetryProvider,
@@ -220,6 +221,7 @@ where
     Ok(decimals)
 }
 
+#[allow(dead_code)]
 pub async fn get_token_symbol<A: TryInto<Address>>(
     token: A,
     provider: &RetryProvider,
@@ -236,6 +238,7 @@ where
     Ok(symbol)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_active_stake<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -252,6 +255,7 @@ where
     Ok(active_stake)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_burner<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -285,6 +289,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_collateral<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -336,6 +341,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_current_epoch<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -370,6 +376,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_current_epoch_start<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -404,6 +411,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_delegator<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -437,6 +445,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_deposit_limit<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -471,6 +480,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_deposit_whitelist<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -506,6 +516,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_epoch_duration<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -540,6 +551,7 @@ where
     multicall.add_call(vault, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_entity<A: TryInto<Address>>(
     vault_factory: A,
     index: U256,
@@ -581,6 +593,7 @@ where
     )
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_next_epoch_start<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -666,6 +679,7 @@ where
     Ok(total_entities)
 }
 
+#[allow(dead_code)]
 pub async fn get_vault_total_stake<A: TryInto<Address>>(
     vault: A,
     provider: &RetryProvider,
@@ -922,6 +936,7 @@ where
 }
 
 /// Multicall variant of get_vault_total_entities
+#[allow(dead_code)]
 pub fn get_vault_total_entities_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     vault_factory: Address,
@@ -954,6 +969,7 @@ where
 }
 
 /// Multicall variant of is_operator
+#[allow(dead_code)]
 pub fn is_operator_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     address: Address,
@@ -976,6 +992,7 @@ where
 }
 
 /// Multicall variant of is_opted_in_network
+#[allow(dead_code)]
 pub fn is_opted_in_network_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     address: Address,
@@ -999,6 +1016,7 @@ where
 }
 
 /// Multicall variant of is_opted_in_vault
+#[allow(dead_code)]
 pub fn is_opted_in_vault_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     address: Address,
@@ -1022,6 +1040,7 @@ where
 }
 
 /// Multicall variant of is_network
+#[allow(dead_code)]
 pub fn is_network_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     network: Address,
@@ -1044,6 +1063,7 @@ where
 }
 
 /// Multicall variant of is_vault
+#[allow(dead_code)]
 pub fn is_vault_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     vault: Address,

@@ -1,8 +1,5 @@
 use alloy_network::TransactionBuilder;
-use alloy_primitives::{
-    hex::{self, ToHexExt},
-    Address, Bytes, B256, U256,
-};
+use alloy_primitives::{hex::ToHexExt, Address, Bytes, B256, U256};
 use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_sol_types::SolCall;
 use cast::Cast;
@@ -11,7 +8,8 @@ use foundry_common::provider::RetryProvider;
 use std::str::FromStr;
 
 use crate::{
-    contracts::safe::Safe, transaction_data::SafeTransactionData, ExecutableSafeTransaction,
+    contracts::safe::Safe,
+    transaction_data::{ExecutableSafeTransaction, SafeTransactionData},
 };
 
 pub fn exec_transaction<A: TryInto<Address>>(

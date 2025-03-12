@@ -52,7 +52,7 @@ foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = 
 async-trait.workspace = true
 clap = { workspace = true, features = ["derive", "string"] }
 dirs.workspace = true
-dialoguer = "0.11.0"
+dialoguer.workspace = true
 crossterm = "0.28.1"
 colored.workspace = true
 ethereum-types.workspace = true

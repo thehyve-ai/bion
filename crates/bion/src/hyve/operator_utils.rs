@@ -7,6 +7,7 @@ use super::calls::{
     get_current_epoch, get_epoch_start, is_operator_registered, operator_was_active_at,
 };
 
+#[allow(dead_code)]
 pub async fn validate_operator_hyve_middleware_status<A: TryInto<Address>>(
     operator: A,
     middleware: A,
@@ -28,6 +29,7 @@ where
     Ok(())
 }
 
+#[allow(dead_code)]
 pub async fn is_operator_active(
     operator: Address,
     middleware: Address,

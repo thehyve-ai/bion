@@ -32,9 +32,6 @@ pub struct NetworkParametersCommand {
     #[arg(value_name = "SUBNETWORK", help = "The subnetwork identifier.")]
     subnetwork: U96,
 
-    #[arg(skip)]
-    alias: String,
-
     #[clap(flatten)]
     dirs: DirsCliArgs,
 
@@ -43,10 +40,6 @@ pub struct NetworkParametersCommand {
 }
 
 impl NetworkParametersCommand {
-    pub fn with_alias(self, alias: String) -> Self {
-        Self { alias, ..self }
-    }
-
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
         let Self {
             vault,

@@ -13,7 +13,7 @@ use alloy_provider::Provider;
 use alloy_rpc_types::{AccessList, Authorization, TransactionInput, TransactionRequest};
 use alloy_serde::WithOtherFields;
 use alloy_signer::Signer;
-use alloy_transport::{RpcError, Transport};
+use alloy_transport::Transport;
 use eyre::Result;
 use foundry_cli::{
     opts::{CliAuthorizationList, TransactionOpts},
@@ -53,6 +53,7 @@ impl SenderKind<'_> {
     /// If from is specified, returns it
     /// If from is not specified, but there is a signer configured, returns the signer's address
     /// If from is not specified and there is no signer configured, returns zero address
+    #[allow(dead_code)]
     pub async fn from_wallet_opts(opts: WalletOpts) -> Result<Self> {
         if let Some(from) = opts.from {
             Ok(from.into())
@@ -307,6 +308,7 @@ where
 
     /// Builds [TransactionRequest] without filling missing fields. Used for read-only calls such as
     /// eth_call, eth_estimateGas, etc
+    #[allow(dead_code)]
     pub async fn build_raw(
         self,
         sender: impl Into<SenderKind<'_>>,

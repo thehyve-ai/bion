@@ -7727,6 +7727,7 @@ dependencies = [
  "alloy-sol-types",
  "cast",
  "colored",
+ "dialoguer",
  "eyre",
  "foundry-common",
  "foundry-config",
@@ -7737,6 +7738,7 @@ dependencies = [
  "semver 1.0.25",
  "serde",
  "serde_json",
+ "thiserror 1.0.69",
 ]
 
 [[package]]

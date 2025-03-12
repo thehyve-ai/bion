@@ -1,9 +1,9 @@
 use crate::cast::{
     tx::{self, CastTxBuilder},
-    utils::etherscan_tx_url,
+    utils::{calldata_encode, etherscan_tx_url},
 };
 use alloy_network::{AnyNetwork, EthereumWallet};
-use alloy_primitives::{B256, U256};
+use alloy_primitives::{hex::FromHex, Bytes, B256, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -18,11 +18,8 @@ use foundry_cli::{
     utils,
     utils::LoadConfig,
 };
-use foundry_common::{
-    abi::{encode_function_args, get_func},
-    ens::NameOrAddress,
-};
-use safe_multisig::SafeMetaTransaction;
+use foundry_common::ens::NameOrAddress;
+use safe_multisig::transaction_data::SafeMetaTransaction;
 use std::{path::PathBuf, str::FromStr};
 
 /// CLI arguments for `cast send`.
@@ -76,12 +73,6 @@ pub struct SendTxArgs {
     pub path: Option<PathBuf>,
 }
 
-fn calldata_encode(sig: impl AsRef<str>, args: &[impl AsRef<str>]) -> eyre::Result<String> {
-    let func = get_func(sig.as_ref())?;
-    let calldata = encode_function_args(&func, args)?;
-    Ok(alloy_primitives::hex::encode_prefixed(calldata))
-}
-
 impl TryInto<SafeMetaTransaction> for SendTxArgs {
     type Error = eyre::Error;
 
@@ -97,7 +88,7 @@ impl TryInto<SafeMetaTransaction> for SendTxArgs {
                     return Err(eyre::eyre!("No address provided"));
                 }
             },
-            input,
+            input: Bytes::from_hex(input)?,
             value: self.tx.value.unwrap_or(U256::from(0)),
         })
     }
@@ -251,7 +242,7 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
             )
             .bright_cyan()
         );
-        let receipt = cast
+        let _ = cast
             .receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false)
             .await?;
         println!(
@@ -261,10 +252,6 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
                 etherscan_tx_url(chain_id, format!("{tx_hash:#x}"))
             )
             .bright_cyan()
-        );
-        println!(
-            "{}",
-            format!("Transaction receipt: {}", receipt).bright_cyan()
         );
     }
 

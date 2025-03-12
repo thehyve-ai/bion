@@ -1,5 +1,4 @@
 use alloy_primitives::{hex::ToHexExt, Address, U256};
-use alloy_rpc_types::{serde_helpers::WithOtherFields, TransactionRequest};
 use alloy_signer::Signer;
 use calls::{
     exec_transaction, get_nonce, get_threshold, get_transaction_hash, get_version, is_owner,
@@ -9,8 +8,10 @@ use consts::get_transaction_service_url;
 use foundry_common::provider::RetryProvider;
 use foundry_wallets::WalletSigner;
 use semver::Version;
-use transaction_data::ProposeTransactionBody;
-use utils::{build_safe_tx, print_loading_until_async};
+use transaction_data::{
+    ExecutableSafeTransaction, ProposeSafeTransactionBody, SafeMetaTransaction,
+};
+use utils::{build_safe_tx, print_loading_until_async, read_user_confirmation};
 
 pub mod calls;
 pub mod transaction_data;
@@ -21,17 +22,6 @@ mod utils;
 
 pub struct SafeClient {
     tx_service_url: String,
-}
-
-pub struct SafeMetaTransaction {
-    pub to: Address,
-    pub input: String,
-    pub value: U256,
-}
-
-pub struct ExecutableSafeTransaction {
-    pub safe_address: Address,
-    pub input_data: String,
 }
 
 impl SafeClient {
@@ -50,10 +40,24 @@ impl SafeClient {
     ) -> eyre::Result<Option<ExecutableSafeTransaction>> {
         let threshold = get_threshold(safe_address, provider).await?;
         if threshold == U256::from(1) {
-            println!("Threshold is 1, executing transaction directly.");
-            Ok(Some(
-                self.execute_tx(safe_address, signer, tx, provider).await?,
-            ))
+            println!("{}", "The treshold is set to 1".bright_cyan());
+            println!(
+                "\n{}",
+                "Do you wish to review and confirm the transaction through the Safe dashboard? (y/n)"
+                    .bright_cyan()
+            );
+
+            let confirmation: String = read_user_confirmation()?;
+            if confirmation.trim().to_lowercase().as_str() == "y"
+                || confirmation.trim().to_lowercase().as_str() == "yes"
+            {
+                self.propose_tx(safe_address, signer, tx, provider).await?;
+                Ok(None)
+            } else {
+                Ok(Some(
+                    self.execute_tx(safe_address, signer, tx, provider).await?,
+                ))
+            }
         } else {
             self.propose_tx(safe_address, signer, tx, provider).await?;
             Ok(None)
@@ -131,7 +135,6 @@ impl SafeClient {
 
         let nonce =
             print_loading_until_async("Fetching nonce", get_nonce(safe_address, provider)).await?;
-        println!("Nonce: {}", nonce);
         let safe_tx = build_safe_tx(tx, nonce)?;
         let tx_hash = print_loading_until_async(
             "Fetching tx hash",
@@ -143,7 +146,7 @@ impl SafeClient {
             print_loading_until_async("Getting signature", signer.sign_hash(&tx_hash)).await?;
 
         // Build the request body.
-        let body = ProposeTransactionBody {
+        let body = ProposeSafeTransactionBody {
             safe_tx,
             contract_transaction_hash: tx_hash,
             sender: sender.to_checksum(None),

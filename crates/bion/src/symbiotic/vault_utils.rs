@@ -1,9 +1,4 @@
-use alloy_primitives::{
-    aliases::{U48, U96},
-    hex::ToHexExt,
-    Address, Bytes, U256,
-};
-use alloy_sol_types::SolValue;
+use alloy_primitives::{aliases::U96, Address, U256};
 use chrono::{DateTime, Utc};
 use colored::Colorize;
 use foundry_common::provider::RetryProvider;
@@ -13,13 +8,10 @@ use prettytable::{row, Table};
 use serde::Deserialize;
 
 use crate::{
-    cmd::{
-        alias_config::AliasConfig,
-        utils::{format_number_with_decimals, parse_currency},
-    },
+    cmd::utils::{format_number_with_decimals, parse_currency},
     utils::{
         get_etherscan_address_link, parse_duration_secs, parse_epoch_ts, parse_ts,
-        print_error_message, print_loading_until_async,
+        print_loading_until_async,
     },
 };
 
@@ -36,17 +28,6 @@ use super::{
         is_delegator, is_opted_in_vault, is_slasher, is_vault,
     },
     consts::get_vault_factory,
-    contracts::{
-        delegator::{
-            base_delegator::IBaseDelegator, full_restake_delegator::IFullRestakeDelegator,
-            network_restake_delegator::INetworkRestakeDelegator,
-            operator_network_specific_delegator::IOperatorNetworkSpecificDelegator,
-            operator_specific_delegator::IOperatorSpecificDelegator,
-        },
-        slasher::{base_slasher::IBaseSlasher, slasher::ISlasher, veto_slasher::IVetoSlasher},
-        vault_configurator::IVaultConfigurator,
-        IVault,
-    },
     network_utils::NetworkInfo,
     utils::{get_network_link, get_subnetwork, get_vault_link},
     DelegatorType,
@@ -86,6 +67,7 @@ impl VaultDataTableBuilder {
         }
     }
 
+    #[allow(dead_code)]
     pub fn with_table(mut self, table: Table) -> Self {
         self.table = table;
         self
@@ -497,6 +479,7 @@ impl VaultData {
         self.next_epoch_start = Some(next_epoch_start);
     }
 
+    #[allow(dead_code)]
     pub fn set_symbiotic_metadata(&mut self, symbiotic_metadata: VaultInfo) {
         self.symbiotic_metadata = Some(symbiotic_metadata);
     }
@@ -565,141 +548,6 @@ impl VaultData {
 #[derive(Debug, Deserialize, Clone)]
 pub struct VaultInfo {
     pub name: String,
-}
-
-#[derive(Clone)]
-pub struct TokenData {
-    pub address: Address,
-    pub decimals: u8,
-    pub symbol: String,
-}
-
-pub fn get_encoded_vault_configurator_params(
-    version: u64,
-    collateral: Address,
-    burner: Option<Address>,
-    epoch_duration: U48,
-    deposit_whitelist: bool,
-    is_deposit_limit: bool,
-    deposit_limit: U256,
-    delegator_type: DelegatorType,
-    delegator_hook: Option<Address>,
-    with_slasher: bool,
-    slasher_index: u64,
-    veto_duration: U48,
-    resolver_set_epochs_delay: U256,
-    vault_admin_config: &AliasConfig,
-) -> eyre::Result<String> {
-    let network_limit_set_role_holders = vec![vault_admin_config.address];
-    let operator_network_shares_set_role_holders = vec![vault_admin_config.address];
-
-    let burner = burner.unwrap_or(Address::ZERO);
-    let vault_params = IVault::InitParams {
-        collateral,
-        burner,
-        epochDuration: epoch_duration,
-        depositWhitelist: deposit_whitelist,
-        isDepositLimit: is_deposit_limit,
-        depositLimit: deposit_limit,
-        defaultAdminRoleHolder: vault_admin_config.address,
-        depositWhitelistSetRoleHolder: vault_admin_config.address,
-        depositorWhitelistRoleHolder: vault_admin_config.address,
-        isDepositLimitSetRoleHolder: vault_admin_config.address,
-        depositLimitSetRoleHolder: vault_admin_config.address,
-    };
-    let delegator_params: Vec<u8> = match delegator_type {
-        // NetworkRestakeDelegator (type 0)
-        DelegatorType::NetworkRestakeDelegator => INetworkRestakeDelegator::InitParams {
-            baseParams: IBaseDelegator::BaseParams {
-                defaultAdminRoleHolder: vault_admin_config.address,
-                hook: delegator_hook.unwrap_or(Address::ZERO),
-                hookSetRoleHolder: vault_admin_config.address,
-            },
-            networkLimitSetRoleHolders: network_limit_set_role_holders,
-            operatorNetworkSharesSetRoleHolders: operator_network_shares_set_role_holders,
-        }
-        .abi_encode(),
-
-        // FullRestakeDelegator (type 1)
-        DelegatorType::FullRestakeDelegator => IFullRestakeDelegator::InitParams {
-            baseParams: IBaseDelegator::BaseParams {
-                defaultAdminRoleHolder: vault_admin_config.address,
-                hook: delegator_hook.unwrap_or(Address::ZERO),
-                hookSetRoleHolder: vault_admin_config.address,
-            },
-            networkLimitSetRoleHolders: network_limit_set_role_holders,
-            operatorNetworkLimitSetRoleHolders: operator_network_shares_set_role_holders,
-        }
-        .abi_encode(),
-
-        // OperatorSpecificDelegator (type 2)
-        DelegatorType::OperatorSpecificDelegator => IOperatorSpecificDelegator::InitParams {
-            baseParams: IBaseDelegator::BaseParams {
-                defaultAdminRoleHolder: vault_admin_config.address,
-                hook: delegator_hook.unwrap_or(Address::ZERO),
-                hookSetRoleHolder: vault_admin_config.address,
-            },
-            networkLimitSetRoleHolders: network_limit_set_role_holders,
-            operator: Address::ZERO,
-        }
-        .abi_encode(),
-
-        // OperatorNetworkSpecificDelegator (type 3)
-        DelegatorType::OperatorNetworkSpecificDelegator => {
-            IOperatorNetworkSpecificDelegator::InitParams {
-                baseParams: IBaseDelegator::BaseParams {
-                    defaultAdminRoleHolder: vault_admin_config.address,
-                    hook: delegator_hook.unwrap_or(Address::ZERO),
-                    hookSetRoleHolder: vault_admin_config.address,
-                },
-                network: Address::ZERO,
-                operator: Address::ZERO,
-            }
-            .abi_encode()
-        }
-    };
-
-    let mut slasher_params = vec![];
-    if with_slasher {
-        slasher_params = match slasher_index {
-            // Slasher (type 0)
-            0 => ISlasher::InitParams {
-                baseParams: IBaseSlasher::BaseParams {
-                    isBurnerHook: !burner.is_zero(),
-                },
-            }
-            .abi_encode(),
-
-            // VetoSlasher (type 1)
-            1 => IVetoSlasher::InitParams {
-                baseParams: IBaseSlasher::BaseParams {
-                    isBurnerHook: !burner.is_zero(),
-                },
-                vetoDuration: veto_duration,
-                resolverSetEpochsDelay: resolver_set_epochs_delay,
-            }
-            .abi_encode(),
-            _ => {
-                print_error_message("Invalid slasher index.");
-                return Err(eyre::eyre!(""));
-            }
-        };
-    }
-
-    let configurator_init_params = IVaultConfigurator::InitParams {
-        version,
-        owner: vault_admin_config.address,
-        vaultParams: vault_params.abi_encode().into(),
-        delegatorIndex: delegator_type as u64,
-        delegatorParams: delegator_params.into(),
-        withSlasher: with_slasher,
-        slasherIndex: slasher_index,
-        slasherParams: slasher_params.into(),
-    };
-
-    let configurator_params_bytes: Bytes = configurator_init_params.abi_encode_params().into();
-    let encoded = format!("0x{}", configurator_params_bytes.encode_hex());
-    Ok(encoded)
 }
 
 /// Fetches data for multiple vaults using multicall
@@ -823,53 +671,6 @@ pub async fn fetch_vault_addresses(
         .collect_vec();
 
     Ok(vaults_addresses)
-}
-
-/// Fetches token metadata (decimals and symbol) for a vault collateral token
-///
-/// # Arguments
-///
-/// * `provider` - The Ethereum provider to use for making RPC calls
-/// * `chain_id` - The chain ID to use for the multicall contract
-/// * `vault` - Address of the vault to fetch token data for
-///
-/// # Returns
-///
-/// Returns a `TokenData` struct containing the fetched token metadata
-pub async fn fetch_token_data(
-    chain_id: u64,
-    token: Address,
-    provider: &RetryProvider,
-) -> eyre::Result<Option<TokenData>> {
-    let mut multicall = Multicall::with_chain_id(&provider, chain_id)?;
-    multicall.set_version(MulticallVersion::Multicall3);
-
-    get_token_decimals_multicall(&mut multicall, token, false);
-    get_token_symbol_multicall(&mut multicall, token, false);
-
-    let token_call = multicall.call().await?;
-    let decimals = token_call[0]
-        .as_ref()
-        .map(|data| data.as_uint())
-        .ok()
-        .flatten();
-    let symbol = token_call[1]
-        .as_ref()
-        .map(|data| data.as_str())
-        .ok()
-        .flatten();
-
-    if decimals.is_none() || symbol.is_none() {
-        return Ok(None);
-    }
-
-    let token = TokenData {
-        address: token,
-        decimals: decimals.unwrap().0.try_into()?,
-        symbol: symbol.unwrap().to_string(),
-    };
-
-    Ok(Some(token))
 }
 
 /// Fetches token metadata (decimals and symbol) for a list of vaults' collateral tokens
