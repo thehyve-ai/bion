@@ -19,7 +19,7 @@ multicall.workspace = true
 # hyve
 account-utils.workspace = true
 hyve-cli-runner.workspace = true
-hyve-primitives.workspace = true
+# hyve-primitives.workspace = true
 hyve-version.workspace = true
 
 # ethereum

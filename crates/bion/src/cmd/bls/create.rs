@@ -8,13 +8,15 @@ use colored::*;
 use dialoguer::{theme::ColorfulTheme, Input, Select};
 use eth2_wallet::WalletBuilder;
 use hyve_cli_runner::CliContext;
-use hyve_primitives::dirs::DEFAULT_KEYSTORE_FILENAME;
 use tracing::debug;
 
 use std::io::Write;
 use std::{fs, path::PathBuf, str::from_utf8};
 
-use crate::{common::DirsCliArgs, utils::write_to_json_file};
+use crate::{
+    common::{consts::DEFAULT_KEYSTORE_FILENAME, DirsCliArgs},
+    utils::write_to_json_file,
+};
 
 #[derive(Debug, Parser)]
 #[clap(about = "Create operators and validator keys.")]

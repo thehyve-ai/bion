@@ -1648,7 +1648,6 @@ dependencies = [
  "hex",
  "humantime",
  "hyve-cli-runner",
- "hyve-primitives",
  "hyve-version",
  "itertools 0.10.5",
  "libp2p",

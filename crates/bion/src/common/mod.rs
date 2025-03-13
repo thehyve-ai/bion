@@ -1,10 +1,10 @@
 use clap::{value_parser, Parser, ValueEnum};
-use hyve_primitives::dirs::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
 use serde::{Deserialize, Serialize};
 
 use std::path::PathBuf;
 
 use crate::cmd::utils::get_network;
+use consts::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
 
 pub mod consts;
 
