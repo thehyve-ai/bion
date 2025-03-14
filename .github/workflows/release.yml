@@ -91,11 +91,7 @@ jobs:
             svm_target_platform: macosx-aarch64
             platform: darwin
             arch: arm64
-          - runner: windows-2022
-            target: x86_64-pc-windows-msvc
-            svm_target_platform: windows-amd64
-            platform: win32
-            arch: amd64
+
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
@@ -144,8 +140,6 @@ jobs:
         shell: bash
         run: |
           set -eo pipefail
-
-          [[ "$TARGET" == *windows* ]] && ext=".exe" || ext=""
 
           cargo build --target $TARGET --release --bin bion
 
