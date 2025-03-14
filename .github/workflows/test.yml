@@ -18,7 +18,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: codespell-project/actions-codespell@v2
         with:
-          skip: "*.json"
+          skip: "*.json,Cargo.lock,Cargo.toml,README.md",
+          path: "crates",
+          ignore_words_list: "bion,optIn,OptIn"
 
   clippy:
     runs-on: ubuntu-latest
