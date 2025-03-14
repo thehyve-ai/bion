@@ -1,5 +1,9 @@
 # BION
 
+[![Github Actions][gha-badge]][gha-url] [![Telegram Chat][tg-badge]][tg-url]
+
+---
+
 ## ⚠️ ALPHA SOFTWARE WARNING ⚠️
 
 > **DISCLAIMER**: Bion is currently in ALPHA stage. This software is experimental and under active development.
@@ -12,7 +16,9 @@
 >
 > By using Bion, you acknowledge and accept these risks. We strongly recommend testing with small amounts on testnets before using on mainnet with significant value.
 
-[gha-badge]: https://img.shields.io/github/actions/workflow/status/thehyve-ai/bion/test.yml?branch=master
+---
+
+[gha-badge]: https://img.shields.io/github/actions/workflow/status/thehyve-ai/bion/test.yml?branch=main
 [gha-url]: https://github.com/thehyve-ai/bion/actions
 [tg-badge]: https://img.shields.io/endpoint?color=neon&logo=telegram&label=chat&style=flat-square&url=https%3A%2F%2Ftg.sumanjay.workers.dev%2Fbion_rs
 [tg-url]: https://t.me/bion_rs
