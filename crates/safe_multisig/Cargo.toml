@@ -14,6 +14,7 @@ multicall.workspace = true
 
 # ethereum
 alloy-contract.workspace = true
+alloy-eips = { workspace = true, features = ["serde"] }
 alloy-network.workspace = true
 alloy-primitives.workspace = true
 alloy-rlp.workspace = true
@@ -22,8 +23,6 @@ alloy-serde.workspace = true
 alloy-signer = { workspace = true, features = ["eip712"] }
 alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
 alloy-sol-types.workspace = true
-
-alloy-eips = "0.11.1"
 
 cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
 foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }
@@ -34,7 +33,6 @@ foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = 
 colored.workspace = true
 dialoguer.workspace = true
 eyre.workspace = true
-futures-util.workspace = true
 reqwest.workspace = true
 semver.workspace = true
 serde.workspace = true

@@ -22,7 +22,7 @@ pub fn get_or_create_alias_definitions(
     let data_dir = dirs.data_dir(Some(chain_id))?;
     let alias_dir = data_dir.join(ALIAS_DIRECTORY);
     let alias_definitions_path = alias_dir.join(ALIAS_DEFINITIONS_FILE);
-    return match load_from_json_file(&alias_definitions_path) {
+    match load_from_json_file(&alias_definitions_path) {
         Ok(alias_map) => Ok(alias_map),
         Err(..) => {
             create_dir_all(&alias_dir).map_err(|e| {
@@ -37,7 +37,7 @@ pub fn get_or_create_alias_definitions(
                 .map_err(|e| eyre::eyre!(e))?;
             Ok(alias_map)
         }
-    };
+    }
 }
 
 pub fn get_or_create_alias_config(
@@ -51,7 +51,7 @@ pub fn get_or_create_alias_config(
     let alias_dir = data_dir.join(ALIAS_DIRECTORY);
     let alias_config_dir = alias_dir.join(address.to_string());
     let alias_config_path = alias_config_dir.join(ALIAS_CONFIG_FILE);
-    return match load_from_json_file(&alias_config_path) {
+    match load_from_json_file(&alias_config_path) {
         Ok(alias_config) => Ok(alias_config),
         Err(err) => {
             if fail_on_error {
@@ -70,7 +70,7 @@ pub fn get_or_create_alias_config(
                 .map_err(|e| eyre::eyre!(e))?;
             Ok(alias_config)
         }
-    };
+    }
 }
 
 pub fn get_alias_config(

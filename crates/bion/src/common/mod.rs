@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 
 use std::path::PathBuf;
 
-use crate::cmd::utils::get_network;
 use consts::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
 
 pub mod consts;
@@ -19,8 +18,16 @@ pub enum Networks {
 impl Networks {
     pub fn as_str(&self) -> &str {
         match self {
-            Networks::Sepolia => "sepolia",
             Networks::Mainnet => "mainnet",
+            Networks::Sepolia => "sepolia",
+        }
+    }
+
+    pub fn get_by_chain_id(chain_id: u64) -> eyre::Result<String> {
+        match chain_id {
+            1 => Ok(Networks::Mainnet.as_str().to_string()),
+            11155111 => Ok(Networks::Sepolia.as_str().to_string()),
+            _ => Err(eyre::eyre!("Chain ID not supported")),
         }
     }
 }
@@ -44,7 +51,7 @@ pub struct DirsCliArgs {
 impl DirsCliArgs {
     pub fn data_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
         let network = if let Some(chain_id) = chain_id {
-            get_network(chain_id)?
+            Networks::get_by_chain_id(chain_id)?
         } else {
             Networks::Mainnet.as_str().to_string()
         };

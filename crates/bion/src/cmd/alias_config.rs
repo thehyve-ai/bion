@@ -143,7 +143,7 @@ impl AliasConfig {
                     .with_prompt("\nEnter path to keystore:")
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();
-                        if normalized.len() == 0 {
+                        if normalized.is_empty() {
                             Err("Keystore path must not be empty.")
                         } else {
                             Ok(())
@@ -159,7 +159,7 @@ impl AliasConfig {
 
                 let password = rpassword::prompt_password_stdout("\nEnter keystore password")?;
 
-                return match PrivateKeySigner::decrypt_keystore(keypath.clone(), password) {
+                match PrivateKeySigner::decrypt_keystore(keypath.clone(), password) {
                     Ok(signer) => {
                         if signer.address().to_string().to_lowercase()
                             != self.address.to_string().to_lowercase()
@@ -175,7 +175,7 @@ impl AliasConfig {
                         Ok(())
                     }
                     Err(e) => Err(eyre::eyre!("Failed to decrypt keystore: {}", e)),
-                };
+                }
             }
             2 => {
                 // Mnemonic
@@ -189,7 +189,7 @@ impl AliasConfig {
                     )
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();
-                        if normalized.len() == 0 {
+                        if normalized.is_empty() {
                             Err("Mnemonic phrase or path cannot be empty.")
                         } else {
                             Ok(())
@@ -316,7 +316,7 @@ impl AliasConfig {
                     .with_prompt("\nEnter path to keystore:")
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();
-                        if normalized.len() == 0 {
+                        if normalized.is_empty() {
                             Err("Keystore path must not be empty.")
                         } else {
                             Ok(())
@@ -355,7 +355,7 @@ impl AliasConfig {
                     )
                     .validate_with(|input: &String| -> std::result::Result<(), &str> {
                         let normalized = input.trim().to_lowercase();
-                        if normalized.len() == 0 {
+                        if normalized.is_empty() {
                             Err("Mnemonic phrase or path cannot be empty.")
                         } else {
                             Ok(())

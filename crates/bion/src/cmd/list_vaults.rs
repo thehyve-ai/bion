@@ -119,10 +119,10 @@ impl ListVaultsCommand {
                 vault.symbol.as_ref().unwrap()
             );
 
-            if collateral.clone().is_some() {
-                if vault.symbol.clone().unwrap() != collateral.clone().unwrap() {
-                    continue;
-                }
+            if collateral.clone().is_some()
+                && vault.symbol.clone().unwrap() != collateral.clone().unwrap()
+            {
+                continue;
             }
 
             let row = row![

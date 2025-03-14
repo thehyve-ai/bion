@@ -45,4 +45,4 @@ LOG.old.*
 LOCK
 OPTIONS*
 
-crates/transaction-pool/fixtures/*
+.vscode/

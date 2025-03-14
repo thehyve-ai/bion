@@ -47,9 +47,9 @@ pub enum RowPrefix {
 impl RowPrefix {
     pub fn row_name(self, name: &str) -> String {
         match self {
-            RowPrefix::Default => return name.to_string(),
-            RowPrefix::New => return format!("New {}", name),
-            RowPrefix::Old => return format!("Old {}", name),
+            RowPrefix::Default => name.to_string(),
+            RowPrefix::New => format!("New {}", name),
+            RowPrefix::Old => format!("Old {}", name),
         }
     }
 }
@@ -121,7 +121,7 @@ impl VaultDataTableBuilder {
 
     pub fn with_version(mut self) -> Self {
         self.table
-            .add_row(row![Fcb -> "Version",  self.data.version.clone().unwrap()]);
+            .add_row(row![Fcb -> "Version",  self.data.version.unwrap()]);
         self
     }
 
@@ -129,7 +129,7 @@ impl VaultDataTableBuilder {
         let txt = format!(
             "{} ({})",
             self.data.symbol.clone().unwrap(),
-            self.data.collateral.clone().unwrap().to_string()
+            self.data.collateral.unwrap()
         );
         let link = get_etherscan_address_link(self.data.collateral.unwrap(), txt);
         self.table.add_row(row![Fcb -> "Collateral",  link]);
@@ -138,8 +138,8 @@ impl VaultDataTableBuilder {
 
     pub fn with_delegator(mut self) -> Self {
         let link = get_etherscan_address_link(
-            self.data.delegator.clone().unwrap(),
-            self.data.delegator.clone().unwrap().to_string(),
+            self.data.delegator.unwrap(),
+            self.data.delegator.unwrap().to_string(),
         );
         self.table.add_row(row![Fcb -> "Delegator",  link]);
         self
@@ -147,8 +147,8 @@ impl VaultDataTableBuilder {
 
     pub fn with_slasher(mut self) -> Self {
         let link = get_etherscan_address_link(
-            self.data.slasher.clone().unwrap(),
-            self.data.slasher.clone().unwrap().to_string(),
+            self.data.slasher.unwrap(),
+            self.data.slasher.unwrap().to_string(),
         );
         self.table.add_row(row![Fcb -> "Slasher",  link]);
         self
@@ -156,8 +156,8 @@ impl VaultDataTableBuilder {
 
     pub fn with_burner(mut self) -> Self {
         let link = get_etherscan_address_link(
-            self.data.burner.clone().unwrap(),
-            self.data.burner.clone().unwrap().to_string(),
+            self.data.burner.unwrap(),
+            self.data.burner.unwrap().to_string(),
         );
         self.table.add_row(row![Fcb -> "Burner",  link]);
         self
@@ -200,14 +200,14 @@ impl VaultDataTableBuilder {
 
     pub fn with_current_epoch(mut self) -> Self {
         self.table
-            .add_row(row![Fcb -> "Current epoch",  self.data.current_epoch.clone().unwrap()]);
+            .add_row(row![Fcb -> "Current epoch",  self.data.current_epoch.unwrap()]);
         self
     }
 
     pub fn with_current_epoch_start(mut self) -> Self {
         self.table.add_row(row![
             Fcb -> "Current epoch start",
-            parse_epoch_ts(self.data.current_epoch_start.clone().unwrap())
+            parse_epoch_ts(self.data.current_epoch_start.unwrap())
         ]);
         self
     }
@@ -215,7 +215,7 @@ impl VaultDataTableBuilder {
     pub fn with_epoch_duration(mut self) -> Self {
         self.table.add_row(row![
             Fcb -> "Epoch duration",
-            parse_duration_secs(self.data.epoch_duration.clone().unwrap())
+            parse_duration_secs(self.data.epoch_duration.unwrap())
         ]);
         self
     }
@@ -223,18 +223,16 @@ impl VaultDataTableBuilder {
     pub fn with_next_epoch_start(mut self) -> Self {
         self.table.add_row(row![
             Fcb -> "Next epoch start",
-            parse_epoch_ts(self.data.next_epoch_start.clone().unwrap())
+            parse_epoch_ts(self.data.next_epoch_start.unwrap())
         ]);
         self
     }
 
     pub fn with_time_till_next_epoch(mut self) -> Self {
         let now = Utc::now();
-        let next_epoch_start = DateTime::<Utc>::from_timestamp(
-            self.data.next_epoch_start.clone().unwrap().to::<i64>(),
-            0,
-        )
-        .unwrap();
+        let next_epoch_start =
+            DateTime::<Utc>::from_timestamp(self.data.next_epoch_start.unwrap().to::<i64>(), 0)
+                .unwrap();
 
         let time_till_next_epoch = next_epoch_start.signed_duration_since(now);
         let time_till_next_epoch_str = parse_ts(time_till_next_epoch.num_seconds());
@@ -252,7 +250,7 @@ impl VaultDataTableBuilder {
         row_prefix: RowPrefix,
     ) -> eyre::Result<Self> {
         let mut max_network_limit_formatted =
-            format_number_with_decimals(max_network_limit, self.data.decimals.clone().unwrap())?;
+            format_number_with_decimals(max_network_limit, self.data.decimals.unwrap())?;
         if max_network_limit_formatted == "0.000" {
             max_network_limit_formatted = "-".to_string();
         }
@@ -266,7 +264,7 @@ impl VaultDataTableBuilder {
         row_prefix: RowPrefix,
     ) -> eyre::Result<Self> {
         let mut network_limit_formatted =
-            format_number_with_decimals(network_limit, self.data.decimals.clone().unwrap())?;
+            format_number_with_decimals(network_limit, self.data.decimals.unwrap())?;
         if network_limit_formatted == "0.000" {
             network_limit_formatted = "-".to_string();
         }
@@ -279,10 +277,8 @@ impl VaultDataTableBuilder {
         operator_network_limit: U256,
         row_prefix: RowPrefix,
     ) -> eyre::Result<Self> {
-        let mut operator_network_limit_formatted = format_number_with_decimals(
-            operator_network_limit,
-            self.data.decimals.clone().unwrap(),
-        )?;
+        let mut operator_network_limit_formatted =
+            format_number_with_decimals(operator_network_limit, self.data.decimals.unwrap())?;
         if operator_network_limit_formatted == "0.000" {
             operator_network_limit_formatted = "-".to_string();
         }
@@ -295,10 +291,8 @@ impl VaultDataTableBuilder {
         operator_network_shares: U256,
         row_prefix: RowPrefix,
     ) -> eyre::Result<Self> {
-        let mut operator_network_shares_formatted = format_number_with_decimals(
-            operator_network_shares,
-            self.data.decimals.clone().unwrap(),
-        )?;
+        let mut operator_network_shares_formatted =
+            format_number_with_decimals(operator_network_shares, self.data.decimals.unwrap())?;
         if operator_network_shares_formatted == "0.000" {
             operator_network_shares_formatted = "-".to_string();
         }
@@ -308,7 +302,7 @@ impl VaultDataTableBuilder {
 
     pub fn with_operator_stake(mut self, operator_stake: U256) -> eyre::Result<Self> {
         let mut operator_stake_formatted =
-            format_number_with_decimals(operator_stake, self.data.decimals.clone().unwrap())?;
+            format_number_with_decimals(operator_stake, self.data.decimals.unwrap())?;
         if operator_stake_formatted == "0.000" {
             operator_stake_formatted = "-".to_string();
         }
@@ -322,7 +316,7 @@ impl VaultDataTableBuilder {
     ) -> eyre::Result<Self> {
         let mut total_operator_network_shares_formatted = format_number_with_decimals(
             total_operator_network_shares,
-            self.data.decimals.clone().unwrap(),
+            self.data.decimals.unwrap(),
         )?;
         if total_operator_network_shares_formatted == "0.000" {
             total_operator_network_shares_formatted = "-".to_string();
@@ -331,7 +325,7 @@ impl VaultDataTableBuilder {
         Ok(self)
     }
 
-    pub async fn with_all(self) -> eyre::Result<Self> {
+    pub fn with_all(self) -> eyre::Result<Self> {
         Ok(self
             .with_name()
             .with_address()
@@ -648,7 +642,7 @@ pub async fn fetch_vault_addresses(
     let vault_factory = get_vault_factory(chain_id)?;
 
     // exclude this one from the multicall
-    let total_entities = get_vault_total_entities(vault_factory, &provider)
+    let total_entities = get_vault_total_entities(vault_factory, provider)
         .await?
         .to::<usize>();
 
@@ -694,8 +688,8 @@ pub async fn fetch_token_datas(
     multicall.set_version(MulticallVersion::Multicall3);
 
     for vault in &vaults {
-        get_token_decimals_multicall(&mut multicall, vault.collateral.clone().unwrap(), true);
-        get_token_symbol_multicall(&mut multicall, vault.collateral.clone().unwrap(), true);
+        get_token_decimals_multicall(&mut multicall, vault.collateral.unwrap(), true);
+        get_token_symbol_multicall(&mut multicall, vault.collateral.unwrap(), true);
     }
 
     let token_calls = multicall.call().await?.into_iter().chunks(2);
@@ -853,17 +847,13 @@ where
     } else {
         let network_limit = get_network_limit(network, subnetwork, delegator, provider).await?;
         let network_limit_formatted =
-            format_number_with_decimals(network_limit, vault.decimals.clone().unwrap())?;
+            format_number_with_decimals(network_limit, vault.decimals.unwrap())?;
         if network_limit_formatted == "0.000" {
-            format!(
-                "{} (- {})",
-                network_limit.to_string(),
-                vault.symbol.clone().unwrap()
-            )
+            format!("{} (- {})", network_limit, vault.symbol.clone().unwrap())
         } else {
             format!(
                 "{} ({} {})",
-                network_limit.to_string(),
+                network_limit,
                 network_limit_formatted,
                 vault.symbol.clone().unwrap()
             )
@@ -903,7 +893,7 @@ where
 {
     let is_delegator = print_loading_until_async(
         "Checking delegator Symbiotic status",
-        is_delegator(delegator, delegator_factory, &provider),
+        is_delegator(delegator, delegator_factory, provider),
     )
     .await?;
 
@@ -924,7 +914,7 @@ where
 {
     let is_slasher = print_loading_until_async(
         "Checking slasher Symbiotic status",
-        is_slasher(slasher, slasher_factory, &provider),
+        is_slasher(slasher, slasher_factory, provider),
     )
     .await?;
 
@@ -946,7 +936,7 @@ where
 {
     let is_opted_in = print_loading_until_async(
         "Checking opted in status",
-        is_opted_in_vault(operator, vault, opt_in_service, &provider),
+        is_opted_in_vault(operator, vault, opt_in_service, provider),
     )
     .await?;
 

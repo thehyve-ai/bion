@@ -68,7 +68,7 @@ where
 {
     let is_opted_in = print_loading_until_async(
         "Checking opted in status",
-        is_opted_in_network(operator, network, opt_in_service, &provider),
+        is_opted_in_network(operator, network, opt_in_service, provider),
     )
     .await?;
 

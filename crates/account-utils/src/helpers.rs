@@ -1,4 +1,8 @@
-use std::{fs, io, path::Path};
+use std::{
+    fs::{self, create_dir_all},
+    io,
+    path::Path,
+};
 
 use eth2_keystore::PlainText;
 use rand::{distributions::Alphanumeric, Rng};
@@ -57,4 +61,15 @@ fn random_password_raw_string() -> String {
         .take(DEFAULT_PASSWORD_LEN)
         .map(char::from)
         .collect()
+}
+
+/// Checks if a directory exists in the given path and creates a directory if it does not exist.
+pub fn ensure_dir_exists<P: AsRef<Path>>(path: P) -> Result<(), String> {
+    let path = path.as_ref();
+
+    if !path.exists() {
+        create_dir_all(path).map_err(|e| format!("Unable to create {:?}: {:?}", path, e))?;
+    }
+
+    Ok(())
 }

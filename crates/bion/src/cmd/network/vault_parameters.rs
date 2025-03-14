@@ -91,7 +91,7 @@ impl VaultParametersCommand {
         let Some(delegator) = vault.delegator else {
             eyre::bail!("Invalid vault delegator.");
         };
-        let delegator_type = get_delegator_type(delegator.clone(), &provider).await?;
+        let delegator_type = get_delegator_type(delegator, &provider).await?;
 
         let max_network_limit =
             get_max_network_limit(network_config.address, subnetwork, delegator, &provider).await?;
@@ -115,7 +115,7 @@ impl VaultParametersCommand {
         } else {
             format!(
                 "{} ({} {})",
-                max_network_limit.to_string(),
+                max_network_limit,
                 max_limit_formatted,
                 vault.symbol.clone().unwrap()
             )
@@ -147,7 +147,7 @@ async fn get_vault_address(
     provider: &RetryProvider,
 ) -> eyre::Result<Address> {
     if let Ok(vault) = Address::parse_checksummed(address_or_name.clone(), None) {
-        validate_vault_symbiotic_status(vault, vault_factory, &provider).await?;
+        validate_vault_symbiotic_status(vault, vault_factory, provider).await?;
         return Ok(vault);
     }
 
@@ -198,10 +198,7 @@ async fn get_vault_address(
 
     let matches = fetch_token_datas(provider, chain_id, matches).await?;
 
-    println!(
-        "{}",
-        format!("Found {} vaults matching the given name", matches.len())
-    );
+    println!("Found {} vaults matching the given name", matches.len());
 
     let matches = matches
         .into_iter()
@@ -217,14 +214,15 @@ async fn get_vault_address(
     let mut options = matches
         .iter()
         .map(|v| {
+            let active_stake_formatted = format!(
+                "{} {}",
+                v.active_stake_formatted().unwrap(),
+                v.symbol.clone().unwrap()
+            );
             format!(
                 "{} ({})",
-                v.symbiotic_metadata.clone().unwrap().name.to_string(),
-                format!(
-                    "{} {}",
-                    v.active_stake_formatted().unwrap(),
-                    v.symbol.clone().unwrap()
-                )
+                v.symbiotic_metadata.clone().unwrap().name,
+                active_stake_formatted
             )
         })
         .collect::<Vec<_>>();

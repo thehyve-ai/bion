@@ -1,6 +1,7 @@
-use hyve_primitives::fs::{create_with_600_perms, FsError};
+use error::FsError;
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::fs::{self, File};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use zeroize::Zeroize;
 
@@ -47,7 +48,7 @@ impl ZeroizeString {
 
     /// Remove any number of newline or carriage returns from the end of a vector of bytes.
     pub fn without_newlines(&self) -> ZeroizeString {
-        let stripped_string = self.0.trim_end_matches(|c| c == '\r' || c == '\n').into();
+        let stripped_string = self.0.trim_end_matches(['\r', '\n']).into();
         Self(stripped_string)
     }
 }
@@ -123,6 +124,32 @@ pub fn write_file_via_temporary(
 
     // With the temporary file created, perform an atomic rename.
     fs::rename(temp_path, file_path).map_err(FsError::UnableToRenameFile)?;
+
+    Ok(())
+}
+
+/// Creates a file with `600 (-rw-------)` permissions and writes the specified bytes to file.
+pub fn create_with_600_perms<P: AsRef<Path>>(path: P, bytes: &[u8]) -> Result<(), FsError> {
+    let path = path.as_ref();
+    let mut file = File::create(path).map_err(FsError::UnableToCreateFile)?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perm = file
+            .metadata()
+            .map_err(FsError::UnableToRetrieveMetadata)?
+            .permissions();
+        perm.set_mode(0o600);
+        file.set_permissions(perm)
+            .map_err(FsError::UnableToSetPermissions)?;
+    }
+
+    file.write_all(bytes).map_err(FsError::UnableToWriteFile)?;
+    #[cfg(windows)]
+    {
+        restrict_file_permissions(path)?;
+    }
 
     Ok(())
 }

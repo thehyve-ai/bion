@@ -7,6 +7,7 @@ pub mod utils;
 pub mod vault_utils;
 
 #[derive(Debug, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub enum DelegatorType {
     NetworkRestakeDelegator = 0,
     FullRestakeDelegator = 1,

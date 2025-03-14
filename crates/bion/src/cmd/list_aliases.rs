@@ -12,7 +12,7 @@ use crate::{common::DirsCliArgs, utils::validate_cli_args};
 use super::{alias_utils::get_or_create_alias_definitions, utils::get_chain_id};
 
 #[derive(Debug, Parser)]
-#[clap(about = "List all aliases.")]
+#[clap(about = "List all account aliases.")]
 pub struct ListAliasesCommand {
     #[clap(flatten)]
     dirs: DirsCliArgs,

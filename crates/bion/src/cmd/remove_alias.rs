@@ -19,7 +19,7 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
-#[clap(about = "Remove an alias.")]
+#[clap(about = "Remove an account alias.")]
 pub struct RemoveAliasCommand {
     #[arg(value_name = "ALIAS", help = "The saved alias.")]
     alias: String,
@@ -46,7 +46,7 @@ impl RemoveAliasCommand {
 
         let chain_id = get_chain_id(&provider).await?;
 
-        println!("{}", "🔄 Checking alias is imported.".bright_cyan());
+        println!("{}", "🔄 Checking if alias is imported.".bright_cyan());
 
         let mut alias_map = get_or_create_alias_definitions(chain_id, &dirs)?;
         if let Some((_, address)) = alias_map.get_key_value(&alias) {

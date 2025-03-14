@@ -21,9 +21,9 @@ use crate::{
 };
 
 #[derive(Debug, Parser)]
-#[clap(about = "Add an alias with an operator.")]
+#[clap(about = "Add an account alias.")]
 pub struct AddAliasCommand {
-    #[arg(value_name = "ALIAS", help = "The operator alias.")]
+    #[arg(value_name = "ALIAS", help = "The account alias.")]
     alias: String,
 
     #[arg(value_name = "ADDRESS", help = "The address to add.")]
@@ -70,7 +70,6 @@ impl AddAliasCommand {
         if alias_map.contains_key(alias.as_str())
             || alias_map
                 .values()
-                .into_iter()
                 .map(|a| a.to_string().to_lowercase())
                 .contains(&address.to_string().to_lowercase())
         {

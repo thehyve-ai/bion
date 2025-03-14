@@ -20,17 +20,11 @@ pub mod addresses {
         /// Networks' managing addresses (e.g., DAO contract, multisig, etc.) registrator
         pub const NETWORK_REGISTRY: &str = "0xC773b1011461e7314CF05f97d95aa8e92C1Fd8aA";
 
-        /// Networks' metadata setter
-        // pub const NETWORK_METADATA_SERVICE: &str = "0x0F7E58Cc4eA615E8B8BEB080dF8B8FDB63C21496";
-
         /// Networks' middleware addresses setter
         pub const NETWORK_MIDDLEWARE_SERVICE: &str = "0xD7dC9B366c027743D90761F71858BCa83C6899Ad";
 
         /// Operators' managing addresses (e.g., DAO contract, multisig, etc.) registrator
         pub const OPERATOR_REGISTRY: &str = "0xAd817a6Bc954F678451A71363f04150FDD81Af9F";
-
-        /// Operators' metadata setter
-        // pub const OPERATOR_METADATA_SERVICE: &str = "0x0999048aB8eeAfa053bF8581D4Aa451ab45755c9";
 
         /// A contract for operators' opt-ins to vaults
         pub const VAULT_OPT_IN_SERVICE: &str = "0xb361894bC06cbBA7Ea8098BF0e32EB1906A5F891";

@@ -4,9 +4,8 @@ use foundry_common::provider::RetryProvider;
 use num_format::{Locale, ToFormattedString};
 use serde::{Deserialize, Serialize};
 
-use crate::hyve::consts::addresses::{mainnet, sepolia};
-
 #[derive(Debug, Clone, Deserialize, PartialEq, Serialize)]
+#[allow(clippy::upper_case_acronyms)]
 pub enum AddressType {
     EOA,
     Contract,
@@ -19,7 +18,7 @@ pub async fn get_address_type(
     let cast = Cast::new(&provider);
     let code = cast.code(address, None, false).await?;
 
-    if code.len() > 0 && code != "0x" {
+    if !code.is_empty() && code != "0x" {
         Ok(AddressType::Contract)
     } else {
         Ok(AddressType::EOA)
@@ -32,14 +31,6 @@ pub async fn get_chain_id(provider: &RetryProvider) -> eyre::Result<u64> {
     let chain_id = cast.chain_id().await?;
 
     Ok(chain_id)
-}
-
-pub fn get_network(chain_id: u64) -> eyre::Result<String> {
-    match chain_id {
-        mainnet::CHAIN_ID => Ok("mainnet".to_string()),
-        sepolia::CHAIN_ID => Ok("sepolia".to_string()),
-        _ => Err(eyre::eyre!("Unsupported chain id: {}", chain_id)),
-    }
 }
 
 pub fn parse_currency(value: U256, decimals: u8) -> eyre::Result<f64> {

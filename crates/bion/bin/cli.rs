@@ -1,7 +1,7 @@
 use bion::cmd::{
-    add_alias::AddAliasCommand, bls::BLSCommands, hyve::HyveCommand,
-    list_aliases::ListAliasesCommand, network::NetworkCommand, operator::OperatorCommand,
-    remove_alias::RemoveAliasCommand, symbiotic::SymbioticCommands, vault::VaultCommand,
+    add_alias::AddAliasCommand, get_vault::GetVaultCommand, list_aliases::ListAliasesCommand,
+    list_vaults::ListVaultsCommand, network::NetworkCommand, operator::OperatorCommand,
+    remove_alias::RemoveAliasCommand, vault::VaultCommand,
 };
 use clap::{
     builder::{styling::AnsiColor, Styles},
@@ -57,27 +57,12 @@ impl Cli {
             Commands::RemoveAlias(remove_alias) => {
                 runner.run_command_until_exit(|ctx| remove_alias.execute(ctx))
             }
-            Commands::BLS(bls) => match bls {
-                BLSCommands::Create(create) => {
-                    runner.run_command_until_exit(|ctx| create.execute(ctx))
-                }
-                BLSCommands::Delete(delete) => {
-                    runner.run_command_until_exit(|ctx| delete.execute(ctx))
-                }
-                BLSCommands::Export(export) => {
-                    runner.run_command_until_exit(|ctx| export.execute(ctx))
-                }
-                BLSCommands::List(list) => runner.run_command_until_exit(|ctx| list.execute(ctx)),
-            },
-            Commands::Hyve(hyve) => runner.run_command_until_exit(|ctx| hyve.execute(ctx)),
-            Commands::Symbiotic(symbiotic) => match symbiotic {
-                SymbioticCommands::GetVault(get_vault) => {
-                    runner.run_command_until_exit(|ctx| get_vault.execute(ctx))
-                }
-                SymbioticCommands::ListVaults(list_vaults) => {
-                    runner.run_command_until_exit(|ctx| list_vaults.execute(ctx))
-                }
-            },
+            Commands::GetVault(get_vault) => {
+                runner.run_command_until_exit(|ctx| get_vault.execute(ctx))
+            }
+            Commands::ListVaults(list_vaults) => {
+                runner.run_command_until_exit(|ctx| list_vaults.execute(ctx))
+            }
             Commands::Network(network) => runner.run_command_until_exit(|ctx| network.execute(ctx)),
             Commands::Operator(operator) => {
                 runner.run_command_until_exit(|ctx| operator.execute(ctx))
@@ -92,20 +77,17 @@ pub enum Commands {
     #[command(name = "add-alias")]
     AddAlias(AddAliasCommand),
 
+    #[command(name = "get-vault")]
+    GetVault(GetVaultCommand),
+
     #[command(name = "list-aliases")]
     ListAliases(ListAliasesCommand),
 
+    #[command(name = "list-vaults")]
+    ListVaults(ListVaultsCommand),
+
     #[command(name = "remove-alias")]
     RemoveAlias(RemoveAliasCommand),
-
-    #[command(name = "bls", subcommand)]
-    BLS(BLSCommands),
-
-    #[command(name = "hyve")]
-    Hyve(HyveCommand),
-
-    #[command(name = "symbiotic", subcommand)]
-    Symbiotic(SymbioticCommands),
 
     #[command(name = "network")]
     Network(NetworkCommand),

@@ -152,18 +152,14 @@ fn get_random_keystore_password() -> eyre::Result<ZeroizeString> {
         "Please type 'yes' after you have safely stored this password:".bright_cyan()
     );
 
-    loop {
-        let confirmation: String = read_user_confirmation()?;
-
-        if confirmation.trim() == "yes" {
-            println!("\n{}", "✅ Password confirmed as backed up.".bright_green());
-            break;
-        } else {
-            println!("{}", "Password confirmation cancelled".bright_cyan());
-            return Err(eyre::eyre!(ExecuteError::Ignore));
-        }
+    let confirmation: String = read_user_confirmation()?;
+    if confirmation.trim() == "yes" {
+        println!("\n{}", "✅ Password confirmed as backed up.".bright_green());
+        Ok(password)
+    } else {
+        println!("{}", "Password confirmation cancelled".bright_cyan());
+        eyre::bail!(ExecuteError::Ignore);
     }
-    Ok(password)
 }
 
 /// Clears a specified number of previous lines in the terminal output
@@ -307,7 +303,7 @@ pub fn parse_ts(secs: i64) -> String {
     let minutes = (secs % 3600) / 60;
     let seconds = secs % 60;
 
-    let formatted = if days > 0 {
+    if days > 0 {
         format!("{}d {}h {}m {}s", days, hours, minutes, seconds)
     } else if hours > 0 {
         format!("{}h {}m {}s", hours, minutes, seconds)
@@ -315,9 +311,7 @@ pub fn parse_ts(secs: i64) -> String {
         format!("{}m {}s", minutes, seconds)
     } else {
         format!("{}s", seconds)
-    };
-
-    formatted
+    }
 }
 
 #[allow(dead_code)]

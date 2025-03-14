@@ -2,13 +2,12 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use eth2_keystore::Keystore;
-use hyve_primitives::dirs::ensure_dir_exists;
-use hyve_primitives::fs::write_file_via_temporary;
 use lighthouse_bls::PublicKey;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
-use crate::{PasswordStorage, SigningDefinition};
+use crate::helpers::ensure_dir_exists;
+use crate::{write_file_via_temporary, PasswordStorage, SigningDefinition};
 
 /// The file name for the serialized `ValidatorDefinitions` struct.
 pub const CONFIG_FILENAME: &str = "operator_definitions.yml";
@@ -119,6 +118,10 @@ impl OperatorDefinitions {
 
     pub fn as_slice(&self) -> &[OperatorDefinition] {
         self.0.as_slice()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
     }
 
     pub fn len(&self) -> usize {

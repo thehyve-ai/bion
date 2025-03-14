@@ -2,7 +2,6 @@ pub mod cmd;
 pub mod common;
 
 mod cast;
-mod hyve;
 mod symbiotic;
 mod utils;
 

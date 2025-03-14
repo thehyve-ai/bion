@@ -19,13 +19,11 @@ multicall.workspace = true
 # hyve
 account-utils.workspace = true
 hyve-cli-runner.workspace = true
-# hyve-primitives.workspace = true
 hyve-version.workspace = true
 
 # ethereum
 alloy-chains.workspace = true
-# workspace version of alloy-consensus is broken for cast
-alloy-consensus = { version = "0.9.2", features = ["serde", "kzg"] }
+alloy-consensus.workspace = true
 alloy-contract.workspace = true
 alloy-dyn-abi.workspace = true
 alloy-eips = { workspace = true, features = ["serde"] }
@@ -33,13 +31,19 @@ alloy-json-abi.workspace = true
 alloy-network.workspace = true
 alloy-primitives.workspace = true
 alloy-provider.workspace = true
-alloy-rlp.workspace = true
+#alloy-rlp.workspace = true
 alloy-rpc-types.workspace = true
 alloy-serde.workspace = true
 alloy-signer = { workspace = true, features = ["eip712"] }
 alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
 alloy-sol-types.workspace = true
 alloy-transport.workspace = true
+ethereum-types.workspace = true
+
+# Lighthouse
+eth2_keystore.workspace = true
+eth2_wallet.workspace = true
+lighthouse-bls.workspace = true
 
 safe_multisig.workspace = true
 cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
@@ -49,32 +53,22 @@ foundry-config = { git = "https://github.com/thehyve-ai/foundry.git", branch = "
 foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-wallets" }
 
 # misc
-async-trait.workspace = true
+chrono.workspace = true
 clap = { workspace = true, features = ["derive", "string"] }
+colored.workspace = true
 dirs.workspace = true
 dialoguer.workspace = true
-crossterm = "0.28.1"
-colored.workspace = true
-ethereum-types.workspace = true
-eth2_keystore.workspace = true
-eth2_wallet.workspace = true
-hex.workspace = true
-itertools.workspace = true
 eyre.workspace = true
-futures-util.workspace = true
+hex.workspace = true
 humantime.workspace = true
-libp2p.workspace = true
-lighthouse-bls.workspace = true
-phf = { version = "0.11.2", features = ["macros"] }
+itertools.workspace = true
+num-format.workspace = true
 prettytable.workspace = true
 rand.workspace = true
 reqwest.workspace = true
 rpassword.workspace = true
 serde.workspace = true
 serde_json.workspace = true
-strum.workspace = true
 thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 tracing.workspace = true
-num-format = "0.4.4"
-chrono.workspace = true

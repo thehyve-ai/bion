@@ -95,11 +95,7 @@ impl SafeClient {
         .await?;
         let signature = signer.sign_hash(&tx_hash).await?;
 
-        Ok(exec_transaction(
-            &safe_tx,
-            signature.as_bytes(),
-            safe_address,
-        )?)
+        exec_transaction(&safe_tx, signature.as_bytes(), safe_address)
     }
 
     async fn propose_tx(

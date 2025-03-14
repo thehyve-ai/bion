@@ -536,6 +536,7 @@ where
     ///
     /// # Returns
     /// Returns a [CallBuilder], which uses [IMulticall3::aggregate3Call] for decoding.
+    #[allow(clippy::unnecessary_to_owned)]
     pub fn as_aggregate_3(
         &self,
     ) -> Vec<CallBuilder<T, &P, PhantomData<IMulticall3::aggregate3Call>, N>> {

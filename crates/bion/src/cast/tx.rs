@@ -23,8 +23,6 @@ use foundry_common::ens::NameOrAddress;
 use foundry_config::{Chain, Config};
 use foundry_wallets::{WalletOpts, WalletSigner};
 
-use crate::hyve::utils::try_match_error_data;
-
 /// Different sender kinds used by [`CastTxBuilder`].
 pub enum SenderKind<'a> {
     /// An address without signer. Used for read-only calls and transactions sent through unlocked
@@ -393,19 +391,11 @@ where
 
         if self.tx.gas.is_none() {
             match self.provider.estimate_gas(&self.tx).await {
-                Ok(gas) => {
-                    self.tx.gas = Some(gas);
+                Ok(estimated) => {
+                    self.tx.gas = Some(estimated);
                 }
                 Err(err) => {
-                    let err_str = err.to_string();
-                    if let Some(start) = err_str.find("data: \"0x") {
-                        let hex_start = start + "data: \"0x".len();
-                        if let Some(end) = err_str[hex_start..].find('"') {
-                            let hex_str = &err_str[hex_start..hex_start + end];
-                            try_match_error_data(hex_str)?;
-                        }
-                    }
-                    eyre::bail!(err);
+                    eyre::bail!("Failed to estimate gas: {}", err);
                 }
             }
         }
