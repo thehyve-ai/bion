@@ -61,10 +61,8 @@ impl DirsCliArgs {
 
     pub fn operators_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
         let data_dir = self.data_dir(chain_id)?;
-        let operators_dir = self
-            .operators_dir
-            .clone()
-            .unwrap_or_else(|| data_dir.join(DEFAULT_OPERATOR_DIR));
+        let operators_dir =
+            self.operators_dir.clone().unwrap_or_else(|| data_dir.join(DEFAULT_OPERATOR_DIR));
         Ok(operators_dir)
     }
 }
@@ -101,11 +99,7 @@ pub struct NetworkCliArgs {
     )]
     network_dir: Option<String>,
 
-    #[arg(
-        long,
-        default_value = "9002",
-        help = "The port to listen on for the libp2p beacon node"
-    )]
+    #[arg(long, default_value = "9002", help = "The port to listen on for the libp2p beacon node")]
     pub quic_port: u16,
 
     #[arg(
@@ -210,25 +204,13 @@ pub struct MetricsCliArgs {
 
 #[derive(Clone, Debug, Parser)]
 pub struct EncodingValidationCliArgs {
-    #[arg(
-        long,
-        default_value = "10",
-        help = "The number of encoding validations per thread."
-    )]
+    #[arg(long, default_value = "10", help = "The number of encoding validations per thread.")]
     pub capacity_per_thread: usize,
 
-    #[arg(
-        long,
-        default_value = "8",
-        help = "The number of threads for the encoding validator."
-    )]
+    #[arg(long, default_value = "8", help = "The number of threads for the encoding validator.")]
     pub num_threads: usize,
 
-    #[arg(
-        long,
-        default_value = "60",
-        help = "The timeout for encoding transactions."
-    )]
+    #[arg(long, default_value = "60", help = "The timeout for encoding transactions.")]
     pub transaction_timeout: u64,
 }
 
@@ -237,11 +219,7 @@ pub struct SlotClockCliArgs {
     #[arg(long, default_value = "0", help = "The genesis slot of the chain.")]
     pub genesis_slot: u64,
 
-    #[arg(
-        long,
-        default_value = "1606824023",
-        help = "The genesis time of the chain."
-    )]
+    #[arg(long, default_value = "1606824023", help = "The genesis time of the chain.")]
     pub genesis_timestamp: u64,
 
     #[arg(long, default_value = "12", help = "The number of seconds per slot.")]
@@ -259,11 +237,7 @@ fn parse_key_value(env: &str) -> Result<(String, String), String> {
 
 #[derive(Debug, Parser)]
 pub struct KeystoreCliArgs {
-    #[arg(
-        long,
-        required = true,
-        help = "The password that will be used to unlock the keystore."
-    )]
+    #[arg(long, required = true, help = "The password that will be used to unlock the keystore.")]
     keystore_password: String,
 
     #[arg(long, required = true, help = "The path to the keystore file.")]

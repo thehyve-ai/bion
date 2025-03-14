@@ -52,15 +52,7 @@ impl RegisterCommand {
     }
 
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let Self {
-            alias,
-            dirs,
-            mut eth,
-            tx,
-            confirmations,
-            timeout,
-            unlocked,
-        } = self;
+        let Self { alias, dirs, mut eth, tx, confirmations, timeout, unlocked } = self;
 
         validate_cli_args(&eth)?;
 
@@ -104,12 +96,8 @@ impl RegisterCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(network, signer, args.try_into()?, &provider)
-                    .await?
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) =
+                    safe.send_tx(network, signer, args.try_into()?, &provider).await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));
                     executable_args.sig = Some(input_data);

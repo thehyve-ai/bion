@@ -62,17 +62,8 @@ impl SetDelegatorCommand {
     }
 
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let Self {
-            vault,
-            delegator,
-            alias,
-            dirs,
-            mut eth,
-            tx,
-            unlocked,
-            timeout,
-            confirmations,
-        } = self;
+        let Self { vault, delegator, alias, dirs, mut eth, tx, unlocked, timeout, confirmations } =
+            self;
 
         validate_cli_args(&eth)?;
 
@@ -108,16 +99,8 @@ impl SetDelegatorCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(
-                        vault_admin_config.address,
-                        signer,
-                        args.try_into()?,
-                        &provider,
-                    )
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) = safe
+                    .send_tx(vault_admin_config.address, signer, args.try_into()?, &provider)
                     .await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));

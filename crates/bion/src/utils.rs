@@ -36,10 +36,7 @@ pub fn validate_cli_args(eth: &EthereumOpts) -> eyre::Result<()> {
 }
 
 pub fn get_etherscan_address_link(address: Address, text: String) -> String {
-    format!(
-        "\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\",
-        address, text
-    )
+    format!("\x1B]8;;https://etherscan.io/address/{}\x1B\\{}\x1B]8;;\x1B\\", address, text)
 }
 
 pub fn validate_rpc_url(rpc: &RpcOpts) -> eyre::Result<()> {
@@ -78,10 +75,7 @@ pub fn read_user_confirmation() -> eyre::Result<String> {
 }
 
 pub fn get_keystore_password() -> eyre::Result<ZeroizeString> {
-    let options = vec![
-        "Enter a custom password",
-        "Generate a random strong password",
-    ];
+    let options = vec!["Enter a custom password", "Generate a random strong password"];
 
     let selection = Select::with_theme(&ColorfulTheme::default())
         .with_prompt("\nChoose a password option for the keystore")
@@ -112,18 +106,12 @@ pub fn get_keystore_password_from_input() -> eyre::Result<ZeroizeString> {
 
         if password.as_str() != confirmation {
             clear_previous_lines(2);
-            println!(
-                "\n{}",
-                "❌ Passwords do not match. Please try again.".bright_red()
-            );
+            println!("\n{}", "❌ Passwords do not match. Please try again.".bright_red());
             continue;
         }
         if password.as_str().trim().is_empty() {
             clear_previous_lines(2);
-            println!(
-                "\n{}",
-                "❌ Password cannot be empty. Please try again.".bright_red()
-            );
+            println!("\n{}", "❌ Password cannot be empty. Please try again.".bright_red());
 
             continue;
         }
@@ -147,10 +135,7 @@ fn get_random_keystore_password() -> eyre::Result<ZeroizeString> {
     println!("{}", "─".repeat(20));
     println!("{}", password.as_str().bright_yellow().bold());
     println!("{}", "─".repeat(20));
-    println!(
-        "{}",
-        "Please type 'yes' after you have safely stored this password:".bright_cyan()
-    );
+    println!("{}", "Please type 'yes' after you have safely stored this password:".bright_cyan());
 
     let confirmation: String = read_user_confirmation()?;
     if confirmation.trim() == "yes" {

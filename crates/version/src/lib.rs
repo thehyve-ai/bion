@@ -63,10 +63,6 @@ mod test {
     fn version_formatting() {
         let re = Regex::new(r"^HyveDA/v[0-9]+\.[0-9]+\.[0-9]+(-rc.[0-9])?(-[[:xdigit:]]{7})?\+?$")
             .unwrap();
-        assert!(
-            re.is_match(VERSION),
-            "version doesn't match regex: {}",
-            VERSION
-        );
+        assert!(re.is_match(VERSION), "version doesn't match regex: {}", VERSION);
     }
 }

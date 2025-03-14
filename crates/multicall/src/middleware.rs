@@ -81,9 +81,7 @@ impl TryFrom<u8> for MulticallVersion {
             1 => Ok(MulticallVersion::Multicall),
             2 => Ok(MulticallVersion::Multicall2),
             3 => Ok(MulticallVersion::Multicall3),
-            _ => Err(format!(
-                "Invalid Multicall version: {v}. Accepted values: 1, 2, 3."
-            )),
+            _ => Err(format!("Invalid Multicall version: {v}. Accepted values: 1, 2, 3.")),
         }
     }
 }
@@ -133,11 +131,7 @@ where
     ///  This method doesn't verify if the address is a valid Multicall contract address.
     pub fn new(provider: P, address: Address) -> Self {
         let contract = IMulticall3::new(address, provider);
-        Self {
-            calls: vec![],
-            contract,
-            version: MulticallVersion::Multicall3,
-        }
+        Self { calls: vec![], contract, version: MulticallVersion::Multicall3 }
     }
 
     /// Create a new [Multicall] from the given provider and chain_id and chain's well-known multicall address.
@@ -153,10 +147,7 @@ where
 
     /// Create a new [Multicall] by querying the chain ID from the provider and using the chain's well-known multicall address.
     pub async fn with_provider_chain_id(provider: P) -> Result<Self> {
-        let chain_id = provider
-            .get_chain_id()
-            .await
-            .map_err(MulticallError::TransportError)?;
+        let chain_id = provider.get_chain_id().await.map_err(MulticallError::TransportError)?;
         Self::with_chain_id(provider, chain_id)
     }
 
@@ -269,12 +260,12 @@ where
 
                 let multicall_result = call.call().await?;
 
-                self.parse_multicall_result(multicall_result.returnData.into_iter().map(
-                    |return_data| MulticallResult {
+                self.parse_multicall_result(
+                    multicall_result.returnData.into_iter().map(|return_data| MulticallResult {
                         success: true,
                         returnData: return_data,
-                    },
-                ))
+                    }),
+                )
             }
 
             MulticallVersion::Multicall2 => {
@@ -325,12 +316,7 @@ where
 
         let get_block_hash_function = functions.get("getBlockNumber").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the current
@@ -338,18 +324,10 @@ where
     pub fn add_get_current_block_coinbase(&mut self) -> &mut Self {
         let functions = IMulticall3::abi::functions();
 
-        let get_block_hash_function = functions
-            .get("getCurrentBlockCoinbase")
-            .unwrap()
-            .first()
-            .unwrap();
+        let get_block_hash_function =
+            functions.get("getCurrentBlockCoinbase").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the current
@@ -361,18 +339,10 @@ where
     pub fn add_get_current_block_difficulty(&mut self) -> &mut Self {
         let functions = IMulticall3::abi::functions();
 
-        let get_block_hash_function = functions
-            .get("getCurrentBlockDifficulty")
-            .unwrap()
-            .first()
-            .unwrap();
+        let get_block_hash_function =
+            functions.get("getCurrentBlockDifficulty").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the current
@@ -380,18 +350,10 @@ where
     pub fn add_get_current_block_gas_limit(&mut self) -> &mut Self {
         let functions = IMulticall3::abi::functions();
 
-        let get_block_hash_function = functions
-            .get("getCurrentBlockGasLimit")
-            .unwrap()
-            .first()
-            .unwrap();
+        let get_block_hash_function =
+            functions.get("getCurrentBlockGasLimit").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the current
@@ -399,18 +361,10 @@ where
     pub fn add_get_current_block_timestamp(&mut self) -> &mut Self {
         let functions = IMulticall3::abi::functions();
 
-        let get_block_hash_function = functions
-            .get("getCurrentBlockTimestamp")
-            .unwrap()
-            .first()
-            .unwrap();
+        let get_block_hash_function =
+            functions.get("getCurrentBlockTimestamp").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the ETH
@@ -435,12 +389,7 @@ where
 
         let get_block_hash_function = functions.get("getLastBlockHash").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the current
@@ -453,12 +402,7 @@ where
 
         let get_block_hash_function = functions.get("getBasefee").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            allow_failure,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], allow_failure)
     }
 
     /// Appends a `call` to the list of calls of the Multicall instance for querying the last
@@ -468,12 +412,7 @@ where
 
         let get_block_hash_function = functions.get("getChainId").unwrap().first().unwrap();
 
-        self.with_call(
-            *self.contract.address(),
-            get_block_hash_function,
-            &[],
-            false,
-        )
+        self.with_call(*self.contract.address(), get_block_hash_function, &[], false)
     }
 
     /// Uses the Multicall `aggregate(Call[] calldata calls)` method which returns a tuple of
@@ -487,10 +426,7 @@ where
             .calls
             .clone()
             .into_iter()
-            .map(|call| IMulticall3::Call {
-                target: call.target,
-                callData: call.calldata,
-            })
+            .map(|call| IMulticall3::Call { target: call.target, callData: call.calldata })
             .collect::<Vec<IMulticall3::Call>>();
 
         self.contract.aggregate(calls)
@@ -516,10 +452,7 @@ where
                 // `tryAggregate` contract call reverts if any of the individual calls revert.
                 allow_failure &= call.allow_failure;
 
-                IMulticall3::Call {
-                    target: call.target,
-                    callData: call.calldata,
-                }
+                IMulticall3::Call { target: call.target, callData: call.calldata }
             })
             .collect::<Vec<IMulticall3::Call>>();
 
@@ -556,10 +489,7 @@ where
                     .collect::<Vec<IMulticall3::Call3>>()
             })
             .collect::<Vec<Vec<IMulticall3::Call3>>>();
-        calls
-            .into_iter()
-            .map(|calls| self.contract.aggregate3(calls))
-            .collect()
+        calls.into_iter().map(|calls| self.contract.aggregate3(calls)).collect()
     }
 
     /// Decodes the return data for each individual call result within a multicall.
@@ -584,14 +514,7 @@ where
 
         let mut results = Vec::with_capacity(self.calls.len());
 
-        for (
-            call,
-            MulticallResult {
-                success,
-                returnData,
-            },
-        ) in self.calls.iter().zip(iter)
-        {
+        for (call, MulticallResult { success, returnData }) in self.calls.iter().zip(iter) {
             // TODO - should empty return data also be considered a call failure, and returns an
             // error when allow_failure = false?
 
@@ -741,46 +664,19 @@ mod tests {
 
         let results = multicall.call().await.unwrap();
 
-        let chain_id = results
-            .get(3)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .as_uint()
-            .unwrap()
-            .0
-            .to::<u64>();
-        let gas_limit = results
-            .get(6)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .as_uint()
-            .unwrap()
-            .0
-            .to::<u64>();
-        let eth_balance = format_ether(
-            results
-                .get(9)
+        let chain_id = results.get(3).unwrap().as_ref().unwrap().as_uint().unwrap().0.to::<u64>();
+        let gas_limit = results.get(6).unwrap().as_ref().unwrap().as_uint().unwrap().0.to::<u64>();
+        let eth_balance =
+            format_ether(results.get(9).unwrap().as_ref().unwrap().as_uint().unwrap().0)
+                .split('.')
+                .collect::<Vec<&str>>()
+                .first()
                 .unwrap()
-                .as_ref()
-                .unwrap()
-                .as_uint()
-                .unwrap()
-                .0,
-        )
-        .split('.')
-        .collect::<Vec<&str>>()
-        .first()
-        .unwrap()
-        .parse::<u64>()
-        .unwrap();
+                .parse::<u64>()
+                .unwrap();
 
         assert_eq!(chain_id, 1); // Provider forked from Mainnet should always have chain ID 1
-        assert!(
-            (29_900_000..=30_200_000).contains(&gas_limit),
-            "{gas_limit}"
-        ); // Mainnet gas limit is approx 30m
+        assert!((29_900_000..=30_200_000).contains(&gas_limit), "{gas_limit}"); // Mainnet gas limit is approx 30m
         assert!((306_276..=306_277).contains(&eth_balance)); // Parity multisig bug affected wallet
                                                              // - balance isn't expected to change
                                                              // significantly
@@ -789,15 +685,7 @@ mod tests {
     fn assert_results(results: Vec<StdResult<DynSolValue, Bytes>>) {
         // Get the expected individual results.
         let name = results.get(1).unwrap().as_ref().unwrap().as_str().unwrap();
-        let decimals = results
-            .get(2)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .as_uint()
-            .unwrap()
-            .0
-            .to::<u8>();
+        let decimals = results.get(2).unwrap().as_ref().unwrap().as_uint().unwrap().0.to::<u8>();
         let symbol = results.get(3).unwrap().as_ref().unwrap().as_str().unwrap();
 
         // Assert the returned results are as expected
@@ -807,25 +695,9 @@ mod tests {
 
         // Also check the calls that were added via the builder pattern
         let name = results.get(5).unwrap().as_ref().unwrap().as_str().unwrap();
-        let decimals = results
-            .get(6)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .as_uint()
-            .unwrap()
-            .0
-            .to::<u8>();
+        let decimals = results.get(6).unwrap().as_ref().unwrap().as_uint().unwrap().0.to::<u8>();
         let symbol = results.get(7).unwrap().as_ref().unwrap().as_str().unwrap();
-        let chain_id = results
-            .get(8)
-            .unwrap()
-            .as_ref()
-            .unwrap()
-            .as_uint()
-            .unwrap()
-            .0
-            .to::<u64>();
+        let chain_id = results.get(8).unwrap().as_ref().unwrap().as_uint().unwrap().0.to::<u64>();
 
         assert_eq!(name, "Wrapped Ether");
         assert_eq!(symbol, "WETH");

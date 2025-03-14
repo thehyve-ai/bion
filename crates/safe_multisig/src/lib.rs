@@ -54,9 +54,7 @@ impl SafeClient {
                 self.propose_tx(safe_address, signer, tx, provider).await?;
                 Ok(None)
             } else {
-                Ok(Some(
-                    self.execute_tx(safe_address, signer, tx, provider).await?,
-                ))
+                Ok(Some(self.execute_tx(safe_address, signer, tx, provider).await?))
             }
         } else {
             self.propose_tx(safe_address, signer, tx, provider).await?;
@@ -151,10 +149,8 @@ impl SafeClient {
         };
 
         // Send the POST request.
-        let url = format!(
-            "{}/v1/safes/{}/multisig-transactions/",
-            self.tx_service_url, safe_address
-        );
+        let url =
+            format!("{}/v1/safes/{}/multisig-transactions/", self.tx_service_url, safe_address);
         let client = reqwest::Client::new();
         let response = print_loading_until_async(
             "Proposing transaction",

@@ -55,13 +55,7 @@ impl VaultParametersCommand {
     }
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            vault,
-            subnetwork,
-            alias,
-            dirs,
-            eth,
-        } = self;
+        let Self { vault, subnetwork, alias, dirs, eth } = self;
 
         validate_cli_args(&eth)?;
 
@@ -172,10 +166,7 @@ async fn get_vault_address(
             continue;
         };
 
-        if symbiotic_metadata
-            .name
-            .to_lowercase()
-            .contains(address_or_name.to_lowercase().as_str())
+        if symbiotic_metadata.name.to_lowercase().contains(address_or_name.to_lowercase().as_str())
         {
             matches.push(v);
         }
@@ -214,16 +205,9 @@ async fn get_vault_address(
     let mut options = matches
         .iter()
         .map(|v| {
-            let active_stake_formatted = format!(
-                "{} {}",
-                v.active_stake_formatted().unwrap(),
-                v.symbol.clone().unwrap()
-            );
-            format!(
-                "{} ({})",
-                v.symbiotic_metadata.clone().unwrap().name,
-                active_stake_formatted
-            )
+            let active_stake_formatted =
+                format!("{} {}", v.active_stake_formatted().unwrap(), v.symbol.clone().unwrap());
+            format!("{} ({})", v.symbiotic_metadata.clone().unwrap().name, active_stake_formatted)
         })
         .collect::<Vec<_>>();
     options.push("Cancel".to_string());

@@ -41,13 +41,7 @@ pub struct NetworkParametersCommand {
 
 impl NetworkParametersCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            vault,
-            network,
-            subnetwork,
-            eth,
-            ..
-        } = self;
+        let Self { vault, network, subnetwork, eth, .. } = self;
 
         validate_cli_args(&eth)?;
 

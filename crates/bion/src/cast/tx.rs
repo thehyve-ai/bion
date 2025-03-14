@@ -205,11 +205,7 @@ where
 
     /// Sets [TxKind] for this builder and changes state to [TxKindState].
     pub async fn with_to(self, to: Option<NameOrAddress>) -> Result<CastTxBuilder<T, P, ToState>> {
-        let to = if let Some(to) = to {
-            Some(to.resolve(&self.provider).await?)
-        } else {
-            None
-        };
+        let to = if let Some(to) = to { Some(to.resolve(&self.provider).await?) } else { None };
         Ok(CastTxBuilder {
             provider: self.provider,
             tx: self.tx,
@@ -280,11 +276,7 @@ where
             etherscan_api_key: self.etherscan_api_key,
             auth: self.auth,
             access_list: self.access_list,
-            state: InputState {
-                kind: self.state.to.into(),
-                input,
-                func,
-            },
+            state: InputState { kind: self.state.to.into(), input, func },
             _t: self._t,
         })
     }
@@ -326,10 +318,7 @@ where
 
         // we set both fields to the same value because some nodes only accept the legacy `data` field: <https://github.com/foundry-rs/foundry/issues/7764#issuecomment-2210453249>
         let input = Bytes::copy_from_slice(&self.state.input);
-        self.tx.input = TransactionInput {
-            input: Some(input.clone()),
-            data: Some(input),
-        };
+        self.tx.input = TransactionInput { input: Some(input.clone()), data: Some(input) };
 
         self.tx.set_from(from);
         self.tx.set_chain_id(self.chain.id());
@@ -349,12 +338,7 @@ where
         if let Some(access_list) = match self.access_list.take() {
             None => None,
             // --access-list provided with no value, call the provider to create it
-            Some(None) => Some(
-                self.provider
-                    .create_access_list(&self.tx)
-                    .await?
-                    .access_list,
-            ),
+            Some(None) => Some(self.provider.create_access_list(&self.tx).await?.access_list),
             // Access list provided as a string, attempt to parse it
             Some(Some(access_list)) => Some(access_list),
         } {

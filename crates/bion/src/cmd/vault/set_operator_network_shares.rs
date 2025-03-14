@@ -48,10 +48,7 @@ pub struct SetOperatorNetworkSharesCommand {
     #[arg(value_name = "ADDRESS", help = "The address of the network.")]
     network: Address,
 
-    #[arg(
-        value_name = "SUBNETWORK",
-        help = "The subnetwork to set the limit for."
-    )]
+    #[arg(value_name = "SUBNETWORK", help = "The subnetwork to set the limit for.")]
     subnetwork: U96,
 
     #[arg(value_name = "OPERATOR", help = "Address of the operator.")]
@@ -165,9 +162,7 @@ impl SetOperatorNetworkSharesCommand {
                     .to_string(),
             ),
             args: vec![
-                subnetwork_address
-                    .abi_encode()
-                    .encode_hex_upper_with_prefix(),
+                subnetwork_address.abi_encode().encode_hex_upper_with_prefix(),
                 operator.to_string(),
                 shares.to_string(),
             ],
@@ -244,16 +239,8 @@ impl SetOperatorNetworkSharesCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(
-                        vault_admin_config.address,
-                        signer,
-                        args.try_into()?,
-                        &provider,
-                    )
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) = safe
+                    .send_tx(vault_admin_config.address, signer, args.try_into()?, &provider)
                     .await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));

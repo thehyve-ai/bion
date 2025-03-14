@@ -25,10 +25,7 @@ pub struct SetDepositWhitelistCommand {
     #[arg(value_name = "VAULT", help = "Address of the vault.")]
     vault: Address,
 
-    #[arg(
-        value_name = "DEPOSIT_WHITELIST",
-        help = "Enable deposit whitelisting."
-    )]
+    #[arg(value_name = "DEPOSIT_WHITELIST", help = "Enable deposit whitelisting.")]
     deposit_whitelist: bool,
 
     #[arg(skip)]
@@ -106,16 +103,8 @@ impl SetDepositWhitelistCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(
-                        vault_admin_config.address,
-                        signer,
-                        args.try_into()?,
-                        &provider,
-                    )
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) = safe
+                    .send_tx(vault_admin_config.address, signer, args.try_into()?, &provider)
                     .await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));

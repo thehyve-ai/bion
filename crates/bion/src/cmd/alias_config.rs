@@ -74,18 +74,12 @@ impl AliasConfig {
             .default(0)
             .interact()
             .map_err(|e| {
-                eyre::eyre!(format!(
-                    "Failed to show signing method selection menu: {}",
-                    e
-                ))
+                eyre::eyre!(format!("Failed to show signing method selection menu: {}", e))
             })?;
 
         let mut store_private_key = false;
         if selection == 0 || selection == 1 || selection == 2 {
-            println!(
-                "\n {}",
-                "Do you want to store the private key? (y/n)".bright_cyan()
-            );
+            println!("\n {}", "Do you want to store the private key? (y/n)".bright_cyan());
 
             let confirmation: String = read_user_confirmation()?;
             if confirmation.trim().to_lowercase().as_str() == "y"
@@ -203,9 +197,7 @@ impl AliasConfig {
                         },
                     })?;
 
-                let signer = MnemonicBuilder::<English>::default()
-                    .phrase(phrase)
-                    .build()?;
+                let signer = MnemonicBuilder::<English>::default().phrase(phrase).build()?;
 
                 if signer.address().to_string().to_lowercase()
                     != self.address.to_string().to_lowercase()
@@ -369,9 +361,7 @@ impl AliasConfig {
                         },
                     })?;
 
-                let signer = MnemonicBuilder::<English>::default()
-                    .phrase(phrase)
-                    .build()?;
+                let signer = MnemonicBuilder::<English>::default().phrase(phrase).build()?;
 
                 if !owners.iter().contains(&signer.address()) {
                     eyre::bail!("Not an owner");

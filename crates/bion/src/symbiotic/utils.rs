@@ -1,17 +1,11 @@
 use alloy_primitives::{aliases::U96, Address, FixedBytes, U256};
 
 pub fn get_vault_link(vault: Address, text: String) -> String {
-    format!(
-        "\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\",
-        vault, text
-    )
+    format!("\x1B]8;;https://app.symbiotic.fi/vault/{}\x1B\\{}\x1B]8;;\x1B\\", vault, text)
 }
 
 pub fn get_network_link(network: Address, text: String) -> String {
-    format!(
-        "\x1B]8;;https://app.symbiotic.fi/network/{}\x1B\\{}\x1B]8;;\x1B\\",
-        network, text
-    )
+    format!("\x1B]8;;https://app.symbiotic.fi/network/{}\x1B\\{}\x1B]8;;\x1B\\", network, text)
 }
 
 pub fn get_subnetwork(network: Address, subnetwork: U96) -> eyre::Result<FixedBytes<32>> {

@@ -60,10 +60,7 @@ impl NetworkCommand {
                 register.with_alias(self.alias).execute(ctx).await
             }
             NetworkSubcommands::SetMaxNetworkLimit(set_max_network_limit) => {
-                set_max_network_limit
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_max_network_limit.with_alias(self.alias).execute(ctx).await
             }
             NetworkSubcommands::SetMiddleware(set_middleware) => {
                 set_middleware.with_alias(self.alias).execute(ctx).await

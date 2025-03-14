@@ -78,17 +78,15 @@ pub enum SigningDefinition {
 impl SigningDefinition {
     pub fn keystore_password(&self) -> Result<Option<ZeroizeString>, Error> {
         match self {
-            SigningDefinition::LocalKeystore {
-                keystore_password: Some(password),
-                ..
-            } => Ok(Some(password.clone())),
-            SigningDefinition::LocalKeystore {
-                keystore_password_path: Some(path),
-                ..
-            } => read_password_string(path)
-                .map(Into::into)
-                .map(Option::Some)
-                .map_err(Error::UnableToReadKeystorePassword),
+            SigningDefinition::LocalKeystore { keystore_password: Some(password), .. } => {
+                Ok(Some(password.clone()))
+            }
+            SigningDefinition::LocalKeystore { keystore_password_path: Some(path), .. } => {
+                read_password_string(path)
+                    .map(Into::into)
+                    .map(Option::Some)
+                    .map_err(Error::UnableToReadKeystorePassword)
+            }
             SigningDefinition::LocalKeystore { .. } => Err(Error::KeystoreWithoutPassword),
             SigningDefinition::TestingKey { .. } => Ok(None),
         }
@@ -136,13 +134,9 @@ pub fn create_with_600_perms<P: AsRef<Path>>(path: P, bytes: &[u8]) -> Result<()
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
-        let mut perm = file
-            .metadata()
-            .map_err(FsError::UnableToRetrieveMetadata)?
-            .permissions();
+        let mut perm = file.metadata().map_err(FsError::UnableToRetrieveMetadata)?.permissions();
         perm.set_mode(0o600);
-        file.set_permissions(perm)
-            .map_err(FsError::UnableToSetPermissions)?;
+        file.set_permissions(perm).map_err(FsError::UnableToSetPermissions)?;
     }
 
     file.write_all(bytes).map_err(FsError::UnableToWriteFile)?;

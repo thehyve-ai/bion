@@ -54,14 +54,7 @@ impl VaultParametersCommand {
     }
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            vault,
-            network,
-            subnetwork,
-            alias,
-            dirs,
-            eth,
-        } = self;
+        let Self { vault, network, subnetwork, alias, dirs, eth } = self;
 
         validate_cli_args(&eth)?;
 

@@ -41,12 +41,7 @@ pub struct RpcArgs {
 impl RpcArgs {
     #[allow(dead_code)]
     pub async fn run(self) -> Result<()> {
-        let Self {
-            raw,
-            method,
-            params,
-            rpc,
-        } = self;
+        let Self { raw, method, params, rpc } = self;
 
         let config = rpc.load_config()?;
         let provider = utils::get_provider(&config)?;

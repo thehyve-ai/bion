@@ -69,9 +69,8 @@ where
 
     let call = IBaseDelegator::maxNetworkLimitCall::new((subnetwork,));
 
-    let IBaseDelegator::maxNetworkLimitReturn {
-        _0: max_network_limit,
-    } = call_and_decode(call, delegator, provider).await?;
+    let IBaseDelegator::maxNetworkLimitReturn { _0: max_network_limit } =
+        call_and_decode(call, delegator, provider).await?;
 
     Ok(max_network_limit)
 }
@@ -492,9 +491,8 @@ where
 
     let call = IVault::depositWhitelistCall::new(());
 
-    let IVault::depositWhitelistReturn {
-        _0: deposit_whitelist,
-    } = call_and_decode(call, vault, provider).await?;
+    let IVault::depositWhitelistReturn { _0: deposit_whitelist } =
+        call_and_decode(call, vault, provider).await?;
 
     Ok(deposit_whitelist)
 }
@@ -585,12 +583,7 @@ where
     // can safely unwrap
     let function = abi.get("entity").unwrap().first().unwrap();
 
-    multicall.add_call(
-        vault_factory,
-        function,
-        &[DynSolValue::from(index)],
-        allow_failure,
-    )
+    multicall.add_call(vault_factory, function, &[DynSolValue::from(index)], allow_failure)
 }
 
 #[allow(dead_code)]
@@ -605,9 +598,8 @@ where
 
     let call = IVault::nextEpochStartCall::new(());
 
-    let IVault::nextEpochStartReturn {
-        _0: next_epoch_start,
-    } = call_and_decode(call, vault, provider).await?;
+    let IVault::nextEpochStartReturn { _0: next_epoch_start } =
+        call_and_decode(call, vault, provider).await?;
 
     Ok(next_epoch_start)
 }
@@ -983,12 +975,7 @@ where
 {
     let abi = IOperatorRegistry::abi::functions();
     let function = abi.get("isEntity").unwrap().first().unwrap();
-    multicall.add_call(
-        operator_registry,
-        function,
-        &[DynSolValue::from(address)],
-        allow_failure,
-    )
+    multicall.add_call(operator_registry, function, &[DynSolValue::from(address)], allow_failure)
 }
 
 /// Multicall variant of is_opted_in_network
@@ -1054,12 +1041,7 @@ where
 {
     let abi = INetworkRegistry::abi::functions();
     let function = abi.get("isEntity").unwrap().first().unwrap();
-    multicall.add_call(
-        network_registry,
-        function,
-        &[DynSolValue::from(network)],
-        allow_failure,
-    )
+    multicall.add_call(network_registry, function, &[DynSolValue::from(network)], allow_failure)
 }
 
 /// Multicall variant of is_vault
@@ -1077,10 +1059,5 @@ where
 {
     let abi = VaultFactory::abi::functions();
     let function = abi.get("isEntity").unwrap().first().unwrap();
-    multicall.add_call(
-        vault_factory,
-        function,
-        &[DynSolValue::from(vault)],
-        allow_failure,
-    )
+    multicall.add_call(vault_factory, function, &[DynSolValue::from(vault)], allow_failure)
 }

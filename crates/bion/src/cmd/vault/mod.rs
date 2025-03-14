@@ -78,37 +78,22 @@ impl VaultCommand {
                 set_deposit_limit.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetDepositWhitelist(set_deposit_whitelist) => {
-                set_deposit_whitelist
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_deposit_whitelist.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetDepositorWhitelistStatus(set_depositor_whitelist_status) => {
-                set_depositor_whitelist_status
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_depositor_whitelist_status.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetIsDepositLimit(set_is_deposit_limit) => {
-                set_is_deposit_limit
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_is_deposit_limit.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetNetworkLimit(set_network_limit) => {
                 set_network_limit.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetOperatorNetworkLimit(set_operator_network_limit) => {
-                set_operator_network_limit
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_operator_network_limit.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetOperatorNetworkShares(set_operator_network_shares) => {
-                set_operator_network_shares
-                    .with_alias(self.alias)
-                    .execute(ctx)
-                    .await
+                set_operator_network_shares.with_alias(self.alias).execute(ctx).await
             }
             VaultSubcommands::SetSlasher(set_slasher) => {
                 set_slasher.with_alias(self.alias).execute(ctx).await

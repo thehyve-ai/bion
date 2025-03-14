@@ -61,10 +61,7 @@ pub struct VaultDataTableBuilder {
 
 impl VaultDataTableBuilder {
     pub fn from_vault_data(data: VaultData) -> Self {
-        Self {
-            data,
-            table: Table::new(),
-        }
+        Self { data, table: Table::new() }
     }
 
     #[allow(dead_code)]
@@ -94,9 +91,7 @@ impl VaultDataTableBuilder {
     ) -> Self {
         let network_link = get_network_link(
             network_address,
-            network_metadata
-                .map(|v| v.name)
-                .unwrap_or("UNVERIFIED".to_string()),
+            network_metadata.map(|v| v.name).unwrap_or("UNVERIFIED".to_string()),
         );
         self.table.add_row(row![Fcb -> "Network", network_link]);
         self
@@ -120,17 +115,13 @@ impl VaultDataTableBuilder {
     }
 
     pub fn with_version(mut self) -> Self {
-        self.table
-            .add_row(row![Fcb -> "Version",  self.data.version.unwrap()]);
+        self.table.add_row(row![Fcb -> "Version",  self.data.version.unwrap()]);
         self
     }
 
     pub fn with_collateral(mut self) -> Self {
-        let txt = format!(
-            "{} ({})",
-            self.data.symbol.clone().unwrap(),
-            self.data.collateral.unwrap()
-        );
+        let txt =
+            format!("{} ({})", self.data.symbol.clone().unwrap(), self.data.collateral.unwrap());
         let link = get_etherscan_address_link(self.data.collateral.unwrap(), txt);
         self.table.add_row(row![Fcb -> "Collateral",  link]);
         self
@@ -168,8 +159,7 @@ impl VaultDataTableBuilder {
         if deposit_limit == "0.000" {
             deposit_limit = "-".to_string();
         }
-        self.table
-            .add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
+        self.table.add_row(row![Fcb -> "Deposit limit",  deposit_limit]);
 
         self
     }
@@ -179,14 +169,12 @@ impl VaultDataTableBuilder {
             true => "✅",
             false => "❌",
         };
-        self.table
-            .add_row(row![Fcb -> "Deposit whitelist",  deposit_whitelist]);
+        self.table.add_row(row![Fcb -> "Deposit whitelist",  deposit_whitelist]);
         self
     }
 
     pub fn with_total_stake(mut self) -> Self {
-        self.table
-            .add_row(row![Fcb -> "Total stake",  self.data.total_stake_formatted().unwrap()]);
+        self.table.add_row(row![Fcb -> "Total stake",  self.data.total_stake_formatted().unwrap()]);
         self
     }
 
@@ -199,8 +187,7 @@ impl VaultDataTableBuilder {
     }
 
     pub fn with_current_epoch(mut self) -> Self {
-        self.table
-            .add_row(row![Fcb -> "Current epoch",  self.data.current_epoch.unwrap()]);
+        self.table.add_row(row![Fcb -> "Current epoch",  self.data.current_epoch.unwrap()]);
         self
     }
 
@@ -503,11 +490,8 @@ impl VaultData {
 
         let active_stake = self.active_stake_formatted()?;
 
-        let percentage = if total_f64 > 0.0 {
-            (active_f64 / total_f64 * 100.0).round()
-        } else {
-            0.0
-        };
+        let percentage =
+            if total_f64 > 0.0 { (active_f64 / total_f64 * 100.0).round() } else { 0.0 };
         Some(format!("{} ({:.0}%)", active_stake, percentage))
     }
 
@@ -580,31 +564,11 @@ pub async fn fetch_vault_datas(
     let mut vaults = Vec::with_capacity(vaults_addresses.len());
     for (vault_data, vault) in vault_datas.into_iter().zip(vaults_addresses) {
         let vault_data = vault_data.into_iter().collect_vec();
-        let collateral = vault_data[0]
-            .as_ref()
-            .map(|data| data.as_address())
-            .ok()
-            .flatten();
-        let delegator = vault_data[1]
-            .as_ref()
-            .map(|data| data.as_address())
-            .ok()
-            .flatten();
-        let total_stake = vault_data[2]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let active_stake = vault_data[3]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let version = vault_data[4]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
+        let collateral = vault_data[0].as_ref().map(|data| data.as_address()).ok().flatten();
+        let delegator = vault_data[1].as_ref().map(|data| data.as_address()).ok().flatten();
+        let total_stake = vault_data[2].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let active_stake = vault_data[3].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let version = vault_data[4].as_ref().map(|data| data.as_uint()).ok().flatten();
 
         // Skip if any of the vault data is missing/errored
         if collateral.is_none()
@@ -642,9 +606,7 @@ pub async fn fetch_vault_addresses(
     let vault_factory = get_vault_factory(chain_id)?;
 
     // exclude this one from the multicall
-    let total_entities = get_vault_total_entities(vault_factory, provider)
-        .await?
-        .to::<usize>();
+    let total_entities = get_vault_total_entities(vault_factory, provider).await?.to::<usize>();
 
     let mut multicall = Multicall::with_chain_id(provider, chain_id)?;
     multicall.set_version(MulticallVersion::Multicall3);
@@ -697,16 +659,8 @@ pub async fn fetch_token_datas(
     let mut out = Vec::with_capacity(vaults.len());
     for (token_call, mut vault) in token_calls.into_iter().zip(vaults) {
         let token_call = token_call.into_iter().collect_vec();
-        let decimals = token_call[0]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let symbol = token_call[1]
-            .as_ref()
-            .map(|data| data.as_str())
-            .ok()
-            .flatten();
+        let decimals = token_call[0].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let symbol = token_call[1].as_ref().map(|data| data.as_str()).ok().flatten();
 
         if decimals.is_none() || symbol.is_none() {
             println!("{} {}", "Skipping vault: ".bright_yellow(), vault.address);
@@ -748,46 +702,14 @@ pub async fn fetch_vault_extra_metadata(
     let mut out = Vec::with_capacity(vaults.len());
     for (extra_metadata_call, mut vault) in extra_metadata_calls.into_iter().zip(vaults) {
         let vault_call = extra_metadata_call.into_iter().collect_vec();
-        let slasher = vault_call[0]
-            .as_ref()
-            .map(|data| data.as_address())
-            .ok()
-            .flatten();
-        let burner = vault_call[1]
-            .as_ref()
-            .map(|data| data.as_address())
-            .ok()
-            .flatten();
-        let deposit_limit = vault_call[2]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let deposit_whitelist = vault_call[3]
-            .as_ref()
-            .map(|data| data.as_bool())
-            .ok()
-            .flatten();
-        let current_epoch = vault_call[4]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let current_epoch_start = vault_call[5]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let epoch_duration = vault_call[6]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
-        let next_epoch_start = vault_call[7]
-            .as_ref()
-            .map(|data| data.as_uint())
-            .ok()
-            .flatten();
+        let slasher = vault_call[0].as_ref().map(|data| data.as_address()).ok().flatten();
+        let burner = vault_call[1].as_ref().map(|data| data.as_address()).ok().flatten();
+        let deposit_limit = vault_call[2].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let deposit_whitelist = vault_call[3].as_ref().map(|data| data.as_bool()).ok().flatten();
+        let current_epoch = vault_call[4].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let current_epoch_start = vault_call[5].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let epoch_duration = vault_call[6].as_ref().map(|data| data.as_uint()).ok().flatten();
+        let next_epoch_start = vault_call[7].as_ref().map(|data| data.as_uint()).ok().flatten();
 
         if let Some(slasher) = slasher {
             vault.set_slasher(slasher);

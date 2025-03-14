@@ -37,10 +37,7 @@ where
 
     let calldata = call.abi_encode().encode_hex_with_prefix();
 
-    Ok(ExecutableSafeTransaction {
-        safe_address: safe,
-        input_data: calldata,
-    })
+    Ok(ExecutableSafeTransaction { safe_address: safe, input_data: calldata })
 }
 
 pub async fn get_nonce<A: TryInto<Address>>(safe: A, provider: &RetryProvider) -> eyre::Result<U256>

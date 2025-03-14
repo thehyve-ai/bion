@@ -116,11 +116,7 @@ impl SetResolverCommand {
         let args = SendTxArgs {
             to: Some(to),
             sig: Some("setResolver(uint96 identifier, address resolver, bytes hints)".to_string()),
-            args: vec![
-                subnetwork.to_string(),
-                resolver.to_string(),
-                "0x".to_string(),
-            ],
+            args: vec![subnetwork.to_string(), resolver.to_string(), "0x".to_string()],
             cast_async: false,
             confirmations,
             command: None,
@@ -136,12 +132,8 @@ impl SetResolverCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(network, signer, args.try_into()?, &provider)
-                    .await?
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) =
+                    safe.send_tx(network, signer, args.try_into()?, &provider).await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));
                     executable_args.sig = Some(input_data);

@@ -37,11 +37,7 @@ impl OperatorDefinition {
         let keystore =
             Keystore::from_json_file(&keystore_path).map_err(Error::UnableToOpenKeystore)?;
         let public_key = PublicKey::deserialize(
-            keystore
-                .public_key()
-                .ok_or(Error::InvalidKeystorePubkey)?
-                .serialize()
-                .as_slice(),
+            keystore.public_key().ok_or(Error::InvalidKeystorePubkey)?.serialize().as_slice(),
         )
         .unwrap();
         let (keystore_password_path, keystore_password) = match keystore_password_storage {
@@ -134,8 +130,7 @@ impl OperatorDefinitions {
 
     pub fn remove(&mut self, public_key: &str) -> bool {
         let len = self.0.len();
-        self.0
-            .retain(|def| def.public_key.as_hex_string() != public_key);
+        self.0.retain(|def| def.public_key.as_hex_string() != public_key);
         len != self.0.len()
     }
 }

@@ -38,12 +38,7 @@ pub struct ListVaultsCommand {
 
 impl ListVaultsCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let Self {
-            limit,
-            verified_only,
-            eth,
-            collateral,
-        } = self;
+        let Self { limit, verified_only, eth, collateral } = self;
 
         validate_cli_args(&eth)?;
 
@@ -52,15 +47,9 @@ impl ListVaultsCommand {
 
         let chain_id = get_chain_id(&provider).await?;
         {
-            let txt = format!(
-                "Loading vaults on chain {} with a limit of {}.",
-                chain_id, limit
-            );
+            let txt = format!("Loading vaults on chain {} with a limit of {}.", chain_id, limit);
             println!("{}", txt.as_str().bright_cyan());
-            println!(
-                "{}",
-                "You can change this limit using --limit".bright_green()
-            )
+            println!("{}", "You can change this limit using --limit".bright_green())
         }
 
         let t1 = Instant::now();
@@ -93,10 +82,7 @@ impl ListVaultsCommand {
         ]);
 
         let mut i = 0;
-        for vault in vaults
-            .into_iter()
-            .sorted_by(|a, b| b.active_stake.cmp(&a.active_stake))
-        {
+        for vault in vaults.into_iter().sorted_by(|a, b| b.active_stake.cmp(&a.active_stake)) {
             let vault_address = vault.address;
             let name = vault.symbiotic_metadata.clone().map(|m| m.name);
             if verified_only && name.is_none() {

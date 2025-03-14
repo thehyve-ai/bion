@@ -38,12 +38,7 @@ pub struct AddAliasCommand {
 
 impl AddAliasCommand {
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            address,
-            alias,
-            dirs,
-            eth,
-        } = self;
+        let Self { address, alias, dirs, eth } = self;
 
         validate_cli_args(&eth)?;
 
@@ -57,9 +52,8 @@ impl AddAliasCommand {
         let alias_definitions_path = dirs
             .data_dir(Some(chain_id))?
             .join(format!("{}/{}", ALIAS_DIRECTORY, ALIAS_DEFINITIONS_FILE));
-        let alias_config_dir = dirs
-            .data_dir(Some(chain_id))?
-            .join(format!("{}/{}", ALIAS_DIRECTORY, self.address));
+        let alias_config_dir =
+            dirs.data_dir(Some(chain_id))?.join(format!("{}/{}", ALIAS_DIRECTORY, self.address));
         let alias_config_path = alias_config_dir.join(ALIAS_CONFIG_FILE);
 
         let mut alias_map = get_or_create_alias_definitions(chain_id, &dirs)?;
@@ -73,10 +67,7 @@ impl AddAliasCommand {
                 .map(|a| a.to_string().to_lowercase())
                 .contains(&address.to_string().to_lowercase())
         {
-            eyre::bail!(format!(
-                "\nAlias {} or address {} already exist.",
-                alias, address
-            ));
+            eyre::bail!(format!("\nAlias {} or address {} already exist.", alias, address));
         }
 
         let address_type = print_loading_until_async(

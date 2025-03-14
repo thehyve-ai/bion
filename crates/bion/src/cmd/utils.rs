@@ -59,11 +59,8 @@ pub fn format_number_with_decimals(value: U256, decimals: u8) -> eyre::Result<St
     // Build final string, attaching decimals properly
     if decimal_places > 0 {
         let fraction_number = (fractional_part * factor).round() as u64;
-        let fractional_str = format!(
-            "{:0width$}",
-            fraction_number,
-            width = decimal_places as usize
-        );
+        let fractional_str =
+            format!("{:0width$}", fraction_number, width = decimal_places as usize);
         Ok(format!("{}.{}", integral_str, fractional_str))
     } else {
         Ok(integral_str)

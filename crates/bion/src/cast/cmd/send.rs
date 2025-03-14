@@ -127,11 +127,7 @@ impl SendTxArgs {
             timeout,
         } = self;
 
-        let blob_data = if let Some(path) = path {
-            Some(std::fs::read(path)?)
-        } else {
-            None
-        };
+        let blob_data = if let Some(path) = path { Some(std::fs::read(path)?) } else { None };
 
         let code = if let Some(SendTxSubcommands::Create {
             code,
@@ -242,9 +238,7 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
             )
             .bright_cyan()
         );
-        let _ = cast
-            .receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false)
-            .await?;
+        let _ = cast.receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false).await?;
         println!(
             "{}",
             format!(

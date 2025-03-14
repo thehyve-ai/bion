@@ -61,16 +61,7 @@ impl OptOutVaultCommand {
     }
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            vault,
-            alias,
-            dirs,
-            mut eth,
-            tx,
-            confirmations,
-            timeout,
-            unlocked,
-        } = self;
+        let Self { vault, alias, dirs, mut eth, tx, confirmations, timeout, unlocked } = self;
 
         validate_cli_args(&eth)?;
 
@@ -118,12 +109,8 @@ impl OptOutVaultCommand {
                 let safe = SafeClient::new(chain_id)?;
                 let signer = eth.wallet.signer().await?;
                 let mut executable_args = args.clone();
-                if let Some(ExecutableSafeTransaction {
-                    safe_address,
-                    input_data,
-                }) = safe
-                    .send_tx(operator, signer, args.try_into()?, &provider)
-                    .await?
+                if let Some(ExecutableSafeTransaction { safe_address, input_data }) =
+                    safe.send_tx(operator, signer, args.try_into()?, &provider).await?
                 {
                     executable_args.to = Some(NameOrAddress::Address(safe_address));
                     executable_args.sig = Some(input_data);

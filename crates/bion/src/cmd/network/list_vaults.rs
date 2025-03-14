@@ -48,13 +48,7 @@ impl ListVaultsCommand {
     }
 
     pub async fn execute(self, _cli: CliContext) -> eyre::Result<()> {
-        let Self {
-            verified_only,
-            subnetwork,
-            alias,
-            dirs,
-            eth,
-        } = self;
+        let Self { verified_only, subnetwork, alias, dirs, eth } = self;
 
         validate_cli_args(&eth)?;
 
@@ -108,9 +102,7 @@ impl ListVaultsCommand {
         ]);
 
         let mut i = 0;
-        for vault in valid_vaults
-            .into_iter()
-            .sorted_by(|a, b| b.active_stake.cmp(&a.active_stake))
+        for vault in valid_vaults.into_iter().sorted_by(|a, b| b.active_stake.cmp(&a.active_stake))
         {
             let vault_address = vault.address;
             let name = vault.symbiotic_metadata.clone().map(|m| m.name);
