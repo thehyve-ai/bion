@@ -12,7 +12,7 @@ rust-version.workspace = true
 [dependencies]
 alloy-dyn-abi.workspace = true
 alloy-json-abi.workspace = true
-alloy-sol-types.workspace = true
+alloy-sol-types = { workspace = true, features = ["json"] }
 alloy-contract.workspace = true
 alloy-chains.workspace = true
 alloy-primitives.workspace = true
