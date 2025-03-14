@@ -1,19 +1,14 @@
 [workspace]
 members = [
-
-	"crates/primitives",
 	"crates/lockfile",
 	"crates/version",
 	"crates/account-utils",
-
 	"crates/cli-runner",
 	"crates/bion",
-
-
+	"crates/multicall", 
+	"crates/safe_multisig",
 ]
 resolver = "2"
-exclude = ["crates/client"]
-
 
 [workspace.package]
 version = "0.0.1"
@@ -27,245 +22,87 @@ rust-version = "1.83"
 
 [workspace.dependencies]
 
-# Async
-async-channel = "1.9.0"
-async-mutex = "1.4.0"
-async-stream = "0.3"
-async-trait = "0.1.77"
-
-
 # Ethereum
 alloy = { version = "0.9.2", features = [
 	"full",
 	"provider-anvil-node",
 	"provider-anvil-api",
 	"rpc-types-anvil",
-] }
-alloy-chains = "0.1.51"
-alloy-consensus = "0.5.4"
+]}
+alloy-chains = "0.1.57"
+alloy-consensus = { version = "0.9.2", features = ["serde", "kzg"] }
 alloy-contract = "0.9.2"
 alloy-dyn-abi = "0.8.16"
 alloy-eips = "0.9.2"
-alloy-json-abi = "0.8.16"
+alloy-json-abi = "0.8.19"
 alloy-json-rpc = "0.9.2"
 alloy-network = "0.9.2"
 alloy-primitives = "0.8.16"
 alloy-provider = "0.9.2"
 alloy-rlp = "0.3.8"
-alloy-rpc-client = "0.9.2"
 alloy-rpc-types = "0.9.2"
-alloy-pubsub = "0.9.2"
 alloy-serde = "0.9.2"
 alloy-signer = "0.9.2"
-alloy-signer-aws = "0.9.2"
-alloy-signer-gcp = "0.9.2"
-alloy-signer-ledger = "0.9.2"
 alloy-signer-local = "0.9.2"
-alloy-signer-trezor = "0.9.2"
 alloy-sol-types = "0.8.16"
 alloy-transport = "0.9.2"
-alloy-transport-ipc = "0.9.2"
-alloy-transport-http = "0.9.2"
-alloy-transport-ws = "0.9.2"
 ethereum-types = "0.14"
-ethereum_ssz = "0.8"
-ethereum_ssz_derive = "0.8"
-
-# Crypto
-ark-bn254 = "0.4.0"
-ark-ec = "0.4.2"
-ark-ff = "0.4.1"
-ark-poly = "0.4.2"
-ark-serialize = "0.4.2"
-ark-std = "0.4.0"
-ethereum_hashing = "0.6.0"
-kzg = { git = "https://github.com/sifraitech/rust-kzg.git", rev = "47ad5ffb088db671922ec3e56b752ecde6d3b755", package = "rust-kzg-blst", features = [
-	"parallel",
-	"std",
-	"rand",
-], default-features = false }
-kzg_traits = { git = "https://github.com/sifraitech/rust-kzg.git", rev = "47ad5ffb088db671922ec3e56b752ecde6d3b755", package = "kzg", features = [
-	"parallel",
-	"std",
-	"rand",
-], default-features = false }
-secp256k1 = { version = "0.29", default-features = false, features = [
-	"global-context",
-	"recovery",
-] }
-
-
-# Data Structures
-bytes = "1.5"
-heapless = "0.8.0"
-indexmap = "2.2.5"
-linked_hash_set = { version = "0.1.4" }
-smallvec = { version = "1.11.2", features = ["arbitrary"] }
 
 # Error Handling
-anyhow = "1.0.86"
 thiserror = "1.0.57"
 
 # Filesystem
 dirs = "5.0.1"
-dlopen2 = "0.5.0"
-tempfile = "3.13.0"
-kvdb = "0.13.0"
-kvdb-memorydb = "0.13.0"
-kvdb-rocksdb = "=0.19.0"
-
-# Futures
-futures = "0.3.30"
-futures-timer = "3.0.3"
-futures-util = "0.3.29"
-exit-future = "0.2.0"
 
 # Logging
-env_logger = "0.11.3"
-log = "0.4.21"
 tracing = "0.1.0"
-tracing-subscriber = { version = "0.3", default-features = false, features = [
-	"env-filter",
-	"fmt",
-	"json",
-	"ansi",
-] }
 eyre = "0.6"
 
-
 # misc
-ahash = "0.8"
-auto_impl = "1.2.0"
-backtrace = "=0.3.71"
 clap = "4.5.20"
-criterion = "0.5.1"
-csv = "1.1"
-delay_map = "0.4.0"
-derive_more = "1.0.0"
-either = "1.13.0"
+colored = "2.0"
+dialoguer = "0.11.0"
 hex = "0.4.3"
 humantime = "2.1.0"
 lazy_static = "1.4.0"
-libc = "0.2.153"
-nix = "0.26.4"
-num_cpus = "1.16.0"
-percentage = "0.1.0"
-pprof = "0.14"
-prettytable = "0.10.0"
-rayon = "1.9.0"
+num-format = "0.4.4"
+prettytable = { git = "https://github.com/thehyve-ai/prettytable-rs.git", branch = "master", package = "prettytable-rs" }
 regex = "1"
-rustc-hash = { version = "2.0", default-features = false }
-snap = "1"
-tiny-bip39 = "2.0.0"
-unsigned-varint = { version = "0.8", features = ["codec"] }
-void = "1.0.2"
-zeroize = { version = "1", features = ["zeroize_derive"] }
-metrics = "0.24.0"
-metrics-derive = "0.1.0"
-metrics-exporter-prometheus = "0.16.0"
-metrics-util = "0.19.0"
-metrics-process = "2.3.1"
-schnellru = "0.2.3"
-mockall = "0.13.1"
-quickcheck = "1.0.3"
-quickcheck_macros = "1.0.0"
 rpassword = "5.0.0"
-url = "2.5.4"
+semver = "1.0.25"
+zeroize = { version = "1", features = ["zeroize_derive"] }
 
 # Network
-ip_network = "0.4.1"
-quinn = "0.10.2"
-quinn-proto = "0.10.6"
 reqwest = { version = "0.12", default-features = false }
-rustls = { version = "0.21.10", default-features = false, features = ["quic"] }
-socket2 = "0.5.6"
 tokio = "1.29.1"
-tokio-serde = "0.8"
-tokio-stream = "0.1.14"
-tokio-tungstenite = "0.20.1"
-tokio-util = { version = "0.7", features = ["codec", "compat", "time"] }
-jsonrpsee = { version = "0.24.7", features = [
-	"server",
-	"http-client",
-	"ws-client",
-	"macros",
-	"client-ws-transport-tls",
-] }
-jsonrpsee-types = "0.24.7"
-tower = "0.4.13"
-tower-http = { version = "0.6.1", features = ["cors"] }
-http-body = "1.0.1"
 
 # Parsing
-bincode = "1.3.3"
-pem = "1.1.1"
 serde = "1.0.204"
-serde_bytes = "0.11.15"
-serde_derive = "1.0.204"
 serde_json = "1.0.121"
-serde_with = { version = "3.9.0", default-features = false }
 serde_yaml = "0.9.32"
 
-
 # Primitives
-arbitrary = { version = "1", features = ["derive"] }
 chrono = "0.4.38"
-fnv = "1.0.7"
 itertools = "0.10.5"
-num-traits = "0.2.19"
-parking_lot = "0.12.3"
 rand = "0.8.5"
-strum = { version = "0.26.3", features = ["derive", "strum_macros"] }
-uuid = { version = "0.8", features = ["serde", "v4"] }
 
 # Reth
 reth-tasks = { git = "https://github.com/paradigmxyz/reth.git", tag = "v1.1.1", package = "reth-tasks" }
-
-# SSZ
-ssz_types = { git = "https://github.com/thehyve-ai/ssz_types.git", branch = "main" }
-tree_hash = "0.8.0"
-tree_hash_derive = "0.8.0"
-
-# Crossbeam
-crossbeam = "0.8.4"
-crossbeam-channel = "0.5.12"
-crossbeam-deque = "0.8.5"
-crossbeam-utils = "0.8.20"
 
 # Local Dependencies
 account-utils = { path = "crates/account-utils" }
 foundry-wallets = { path = "crates/foundry-wallets" }
 bion = { path = "crates/bion" }
 hyve-cli-runner = { path = "crates/cli-runner" }
-hyve-primitives = { path = "crates/primitives" }
 hyve-version = { path = "crates/version" }
 lockfile = { path = "crates/lockfile" }
+multicall = { path = "crates/multicall" }
+safe_multisig = { path = "crates/safe_multisig" }
 
 # Lighthouse
 eth2_keystore = { git = "https://github.com/thehyve-ai/lighthouse.git", branch = "stable", package = "eth2_keystore" }
 eth2_wallet = { git = "https://github.com/thehyve-ai/lighthouse.git", branch = "stable", package = "eth2_wallet" }
 lighthouse-bls = { git = "https://github.com/thehyve-ai/lighthouse.git", branch = "stable", package = "bls" }
-
-# p2p
-libp2p = { version = "0.54.1", features = [
-	"dns",
-	"identify",
-	"kad",
-	"macros",
-	"secp256k1",
-	"mdns",
-	"noise",
-	"ping",
-	"quic",
-	"upnp",
-	"tcp",
-	"tokio",
-	"websocket",
-	"ping",
-	"serde",
-] }
-libp2p-identity = "0.2.9"
-
 
 # Incremental compilation on Rust 1.58 causes an ICE on build. As soon as graph node builds again, these can be removed.
 [profile.test]

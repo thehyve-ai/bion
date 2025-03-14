@@ -2,6 +2,7 @@ use alloy_sol_types::sol;
 
 sol! {
     #[derive(Debug, PartialEq, Eq)]
+    #[sol(rpc, abi)]
     interface IVault  {
         error AlreadyClaimed();
         error AlreadySet();
@@ -254,6 +255,66 @@ sol! {
         function claimBatch(address recipient, uint256[] calldata epochs) external returns (uint256 amount);
 
         /**
+         * @notice Get a burner to issue debt to (e.g., 0xdEaD or some unwrapper contract).
+         * @return address of the burner
+         */
+        function burner() external view returns (address);
+
+        /**
+         * @notice Get a vault collateral.
+         * @return address of the collateral
+         */
+        function collateral() external view returns (address);
+
+        /**
+         * @notice Get a current vault epoch.
+         * @return current epoch
+         */
+        function currentEpoch() external view returns (uint256);
+
+        /**
+         * @notice Get a start of the current vault epoch.
+         * @return start of the current epoch
+         */
+        function currentEpochStart() external view returns (uint48);
+
+        /**
+         * @notice Get a delegator (it delegates the vault's stake to networks and operators).
+         * @return address of the delegator
+         */
+        function delegator() external view returns (address);
+
+        /**
+         * @notice Get a deposit limit (maximum amount of the active stake that can be in the vault simultaneously).
+         * @return deposit limit
+         */
+        function depositLimit() external view returns (uint256);
+
+        /**
+         * @notice Get if the deposit whitelist is enabled.
+         * @return if deposit whitelist is enabled
+         */
+        function depositWhitelist() external view returns (bool);
+
+        /**
+         * @notice Get a duration of the vault epoch.
+         * @return vault epoch duration
+         */
+        function epochDuration() external view returns (uint48);
+
+        /**
+         * @notice Get a start of the next vault epoch.
+         * @return start of the next epoch
+         */
+        function nextEpochStart() external view returns (uint48);
+
+        /**
+         * @notice Get a slasher (it provides networks a slashing mechanism).
+         * @return address of the slasher
+         */
+        function slasher() external view returns (address);
+
+        /**
          * @notice Slash callback for burning collateral.
          * @param amount amount to slash
          * @param captureTimestamp time point when the stake was captured
@@ -278,6 +339,10 @@ sol! {
          * @dev Only a DEPOSITOR_WHITELIST_ROLE holder can call this function.
          */
         function setDepositorWhitelistStatus(address account, bool status) external;
+
+        function version() external view returns (uint64);
+
+
 
         /**
          * @notice Enable/disable deposit limit.

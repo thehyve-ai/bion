@@ -2,14 +2,12 @@ use std::fs::File;
 use std::path::{Path, PathBuf};
 
 use eth2_keystore::Keystore;
-use hyve_primitives::dirs::ensure_dir_exists;
-use hyve_primitives::fs::write_file_via_temporary;
-use lighthouse_bls::generics::GenericPublicKey;
 use lighthouse_bls::PublicKey;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
-use crate::{PasswordStorage, SigningDefinition};
+use crate::helpers::ensure_dir_exists;
+use crate::{write_file_via_temporary, PasswordStorage, SigningDefinition};
 
 /// The file name for the serialized `ValidatorDefinitions` struct.
 pub const CONFIG_FILENAME: &str = "operator_definitions.yml";
@@ -39,11 +37,7 @@ impl OperatorDefinition {
         let keystore =
             Keystore::from_json_file(&keystore_path).map_err(Error::UnableToOpenKeystore)?;
         let public_key = PublicKey::deserialize(
-            keystore
-                .public_key()
-                .ok_or(Error::InvalidKeystorePubkey)?
-                .serialize()
-                .as_slice(),
+            keystore.public_key().ok_or(Error::InvalidKeystorePubkey)?.serialize().as_slice(),
         )
         .unwrap();
         let (keystore_password_path, keystore_password) = match keystore_password_storage {
@@ -122,6 +116,10 @@ impl OperatorDefinitions {
         self.0.as_slice()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn len(&self) -> usize {
         self.0.len()
     }
@@ -132,8 +130,7 @@ impl OperatorDefinitions {
 
     pub fn remove(&mut self, public_key: &str) -> bool {
         let len = self.0.len();
-        self.0
-            .retain(|def| def.public_key.as_hex_string() != public_key);
+        self.0.retain(|def| def.public_key.as_hex_string() != public_key);
         len != self.0.len()
     }
 }

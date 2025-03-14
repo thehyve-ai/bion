@@ -1,0 +1,214 @@
+name: release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+
+
+env:
+  CARGO_TERM_COLOR: always
+  PROFILE: release
+
+jobs:
+  prepare:
+    name: Prepare release
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      tag_name: ${{ steps.release_info.outputs.tag_name }}
+      release_name: ${{ steps.release_info.outputs.release_name }}
+      changelog: ${{ steps.build_changelog.outputs.changelog }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compute release name and tag
+        id: release_info
+        run: |
+           if [[ "$GITHUB_REF_NAME" == v* ]]; then
+            echo "tag_name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+            echo "release_name=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          else
+            echo "tag_name=manual-${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+            echo "release_name=Manual Release ($(date '+%Y-%m-%d'))" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: "./.github/changelog.json"
+          toTag: ${{ steps.release_info.outputs.tag_name }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    permissions:
+      id-token: write
+      contents: write
+      attestations: write
+    name: ${{ matrix.target }} (${{ matrix.runner }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 240
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+         
+          - runner: Linux-20.04
+            target: x86_64-unknown-linux-gnu
+            svm_target_platform: linux-amd64
+            platform: linux
+            arch: amd64
+          - runner: Linux-20.04
+            target: x86_64-unknown-linux-musl
+            svm_target_platform: linux-amd64
+            platform: linux
+            arch: amd64
+          - runner: Linux-20.04
+            target: aarch64-unknown-linux-gnu
+            svm_target_platform: linux-aarch64
+            platform: linux
+            arch: arm64
+          - runner: Linux-20.04
+            target: aarch64-unknown-linux-musl
+            svm_target_platform: linux-aarch64
+            platform: linux
+            arch: arm64
+          # This is pinned to `macos-13-large` to support old SDK versions.
+          # If the runner is deprecated it should be pinned to the oldest available version of the runner.
+          - runner: macos-13-large
+            target: x86_64-apple-darwin
+            svm_target_platform: macosx-amd64
+            platform: darwin
+            arch: amd64
+          - runner: macos-latest-large
+            target: aarch64-apple-darwin
+            svm_target_platform: macosx-aarch64
+            platform: darwin
+            arch: arm64
+          - runner: Windows
+            target: x86_64-pc-windows-msvc
+            svm_target_platform: windows-amd64
+            platform: win32
+            arch: amd64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+          cache-on-failure: true
+
+      - name: Apple M1 setup
+        if: matrix.target == 'aarch64-apple-darwin'
+        run: |
+          echo "SDKROOT=$(xcrun -sdk macosx --show-sdk-path)" >> $GITHUB_ENV
+          echo "MACOSX_DEPLOYMENT_TARGET=$(xcrun -sdk macosx --show-sdk-platform-version)" >> $GITHUB_ENV
+
+      - name: Linux ARM setup
+        if: matrix.target == 'aarch64-unknown-linux-gnu'
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
+
+      - name: Build binaries
+        env:
+          TAG_NAME: ${{ needs.prepare.outputs.tag_name }}
+          SVM_TARGET_PLATFORM: ${{ matrix.svm_target_platform }}
+          PLATFORM_NAME: ${{ matrix.platform }}
+          TARGET: ${{ matrix.target }}
+          OUT_DIR: target/${{ matrix.target }}/${{ env.PROFILE }}
+        shell: bash
+        run: |
+          set -eo pipefail
+         
+          [[ "$TARGET" == *windows* ]] && ext=".exe" || ext=""
+
+          cargo build --target $TARGET --release --bin bion
+
+          bin=$OUT_DIR/bion$ext
+          echo ""
+          file "$bin" || true
+          du -h "$bin" || true
+          $bin --version || true
+          echo "bion_bin_path=${bin}" >> $GITHUB_ENV
+
+      - name: Archive binaries
+        id: artifacts
+        env:
+          PLATFORM_NAME: ${{ matrix.platform }}
+          OUT_DIR: target/${{ matrix.target }}/${{ env.PROFILE }}
+          VERSION_NAME: ${{ needs.prepare.outputs.tag_name }}
+          ARCH: ${{ matrix.arch }}
+        shell: bash
+        run: |
+          if [ "$PLATFORM_NAME" == "linux" ]; then
+            tar -czvf "bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C $OUT_DIR bion
+            echo "file_name=bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" >> $GITHUB_OUTPUT
+          elif [ "$PLATFORM_NAME" == "darwin" ]; then
+            # We need to use gtar here otherwise the archive is corrupt.
+            # See: https://github.com/actions/virtual-environments/issues/2619
+            gtar -czvf "bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" -C $OUT_DIR bion
+            echo "file_name=bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.tar.gz" >> $GITHUB_OUTPUT
+          else
+            cd $OUT_DIR
+            7z a -tzip "bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.zip" bion.exe
+            mv "bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.zip" ../../../
+            echo "file_name=bion_${VERSION_NAME}_${PLATFORM_NAME}_${ARCH}.zip" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Build man page
+        id: man
+        if: matrix.target == 'x86_64-unknown-linux-gnu'
+        env:
+          OUT_DIR: target/${{ matrix.target }}/${{ env.PROFILE }}
+          VERSION_NAME: ${{ needs.prepare.outputs.tag_name }}
+        shell: bash
+        run: |
+          sudo apt-get -y install help2man
+          help2man -N $OUT_DIR/bion > bion.1
+          gzip bion.1
+          tar -czvf "bion_man_${VERSION_NAME}.tar.gz" bion.1.gz
+          echo "bion_man=bion_man_${VERSION_NAME}.tar.gz" >> $GITHUB_OUTPUT
+
+      # Creates the release for this specific version
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ needs.prepare.outputs.release_name }}
+          tag_name: ${{ needs.prepare.outputs.tag_name }}
+          body: ${{ needs.prepare.outputs.changelog }}
+          files: |
+            ${{ steps.artifacts.outputs.file_name }}
+            ${{ steps.man.outputs.bion_man }}
+
+      - name: Binaries attestation
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            ${{ env.bion_bin_path }}
+
+  # If any of the jobs fail, this will create a high-priority issue to signal so.
+  issue:
+    name: Open an issue
+    runs-on: ubuntu-latest
+    needs: [prepare, release]
+    if: failure()
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JasonEtco/create-an-issue@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WORKFLOW_URL: |
+            ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        with:
+          update_existing: true
+          filename: .github/RELEASE_FAILURE_ISSUE_TEMPLATE.md

@@ -1,7 +1,9 @@
 use clap::{value_parser, Parser, ValueEnum};
-use hyve_primitives::dirs::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
-use std::net::{SocketAddr, SocketAddrV4};
+use serde::{Deserialize, Serialize};
+
 use std::path::PathBuf;
+
+use consts::{DEFAULT_NETWORK_DIR, DEFAULT_OPERATOR_DIR, DEFAULT_ROOT_DIR};
 
 pub mod consts;
 
@@ -9,28 +11,29 @@ pub mod consts;
 pub enum Networks {
     #[value(alias("sepolia"))]
     Sepolia,
+    #[value(alias("mainnet"))]
+    Mainnet,
 }
 
 impl Networks {
     pub fn as_str(&self) -> &str {
         match self {
+            Networks::Mainnet => "mainnet",
             Networks::Sepolia => "sepolia",
+        }
+    }
+
+    pub fn get_by_chain_id(chain_id: u64) -> eyre::Result<String> {
+        match chain_id {
+            1 => Ok(Networks::Mainnet.as_str().to_string()),
+            11155111 => Ok(Networks::Sepolia.as_str().to_string()),
+            _ => Err(eyre::eyre!("Chain ID not supported")),
         }
     }
 }
 
 #[derive(Debug, Parser, Clone)]
 pub struct DirsCliArgs {
-    #[arg(
-        long,
-        required = false,
-        value_enum,
-        value_name = "NETWORK",
-        help = "Name of the Ethereum chain HyveDA will sync and follow.",
-        default_value = "sepolia"
-    )]
-    pub network: Networks,
-
     #[arg(
         long,
         required = false,
@@ -46,14 +49,21 @@ pub struct DirsCliArgs {
 }
 
 impl DirsCliArgs {
-    pub fn data_dir(&self) -> PathBuf {
-        self.data_dir.get_data_dir().join(self.network.as_str())
+    pub fn data_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
+        let network = if let Some(chain_id) = chain_id {
+            Networks::get_by_chain_id(chain_id)?
+        } else {
+            Networks::Mainnet.as_str().to_string()
+        };
+        let data_dir = self.data_dir.get_data_dir().join(network);
+        Ok(data_dir)
     }
 
-    pub fn operators_dir(&self) -> PathBuf {
-        self.operators_dir
-            .clone()
-            .unwrap_or_else(|| self.data_dir().join(DEFAULT_OPERATOR_DIR))
+    pub fn operators_dir(&self, chain_id: Option<u64>) -> eyre::Result<PathBuf> {
+        let data_dir = self.data_dir(chain_id)?;
+        let operators_dir =
+            self.operators_dir.clone().unwrap_or_else(|| data_dir.join(DEFAULT_OPERATOR_DIR));
+        Ok(operators_dir)
     }
 }
 
@@ -89,11 +99,7 @@ pub struct NetworkCliArgs {
     )]
     network_dir: Option<String>,
 
-    #[arg(
-        long,
-        default_value = "9002",
-        help = "The port to listen on for the libp2p beacon node"
-    )]
+    #[arg(long, default_value = "9002", help = "The port to listen on for the libp2p beacon node")]
     pub quic_port: u16,
 
     #[arg(
@@ -198,25 +204,13 @@ pub struct MetricsCliArgs {
 
 #[derive(Clone, Debug, Parser)]
 pub struct EncodingValidationCliArgs {
-    #[arg(
-        long,
-        default_value = "10",
-        help = "The number of encoding validations per thread."
-    )]
+    #[arg(long, default_value = "10", help = "The number of encoding validations per thread.")]
     pub capacity_per_thread: usize,
 
-    #[arg(
-        long,
-        default_value = "8",
-        help = "The number of threads for the encoding validator."
-    )]
+    #[arg(long, default_value = "8", help = "The number of threads for the encoding validator.")]
     pub num_threads: usize,
 
-    #[arg(
-        long,
-        default_value = "60",
-        help = "The timeout for encoding transactions."
-    )]
+    #[arg(long, default_value = "60", help = "The timeout for encoding transactions.")]
     pub transaction_timeout: u64,
 }
 
@@ -225,11 +219,7 @@ pub struct SlotClockCliArgs {
     #[arg(long, default_value = "0", help = "The genesis slot of the chain.")]
     pub genesis_slot: u64,
 
-    #[arg(
-        long,
-        default_value = "1606824023",
-        help = "The genesis time of the chain."
-    )]
+    #[arg(long, default_value = "1606824023", help = "The genesis time of the chain.")]
     pub genesis_timestamp: u64,
 
     #[arg(long, default_value = "12", help = "The number of seconds per slot.")]
@@ -247,13 +237,17 @@ fn parse_key_value(env: &str) -> Result<(String, String), String> {
 
 #[derive(Debug, Parser)]
 pub struct KeystoreCliArgs {
-    #[arg(
-        long,
-        required = true,
-        help = "The password that will be used to unlock the keystore."
-    )]
+    #[arg(long, required = true, help = "The password that will be used to unlock the keystore.")]
     keystore_password: String,
 
     #[arg(long, required = true, help = "The path to the keystore file.")]
     keystore_path: PathBuf,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub enum SigningMethod {
+    Keystore,
+    Ledger,
+    Trezor,
+    MultiSig,
 }

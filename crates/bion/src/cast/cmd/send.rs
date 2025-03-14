@@ -1,5 +1,9 @@
-use crate::cast::tx::{self, CastTxBuilder};
+use crate::cast::{
+    tx::{self, CastTxBuilder},
+    utils::{calldata_encode, etherscan_tx_url},
+};
 use alloy_network::{AnyNetwork, EthereumWallet};
+use alloy_primitives::{hex::FromHex, Bytes, B256, U256};
 use alloy_provider::{Provider, ProviderBuilder};
 use alloy_rpc_types::TransactionRequest;
 use alloy_serde::WithOtherFields;
@@ -7,6 +11,7 @@ use alloy_signer::Signer;
 use alloy_transport::Transport;
 use cast::Cast;
 use clap::Parser;
+use colored::Colorize;
 use eyre::Result;
 use foundry_cli::{
     opts::{EthereumOpts, TransactionOpts},
@@ -14,10 +19,11 @@ use foundry_cli::{
     utils::LoadConfig,
 };
 use foundry_common::ens::NameOrAddress;
+use safe_multisig::transaction_data::SafeMetaTransaction;
 use std::{path::PathBuf, str::FromStr};
 
 /// CLI arguments for `cast send`.
-#[derive(Debug, Parser)]
+#[derive(Debug, Clone, Parser)]
 pub struct SendTxArgs {
     /// The destination of the transaction.
     ///
@@ -67,7 +73,28 @@ pub struct SendTxArgs {
     pub path: Option<PathBuf>,
 }
 
-#[derive(Debug, Parser)]
+impl TryInto<SafeMetaTransaction> for SendTxArgs {
+    type Error = eyre::Error;
+
+    fn try_into(self) -> std::result::Result<SafeMetaTransaction, Self::Error> {
+        let input = calldata_encode(self.sig.clone().unwrap(), &self.args)?;
+        Ok(SafeMetaTransaction {
+            to: match self.to {
+                Some(NameOrAddress::Address(address)) => address,
+                Some(NameOrAddress::Name(_)) => {
+                    return Err(eyre::eyre!("ENS is not supported"));
+                }
+                None => {
+                    return Err(eyre::eyre!("No address provided"));
+                }
+            },
+            input: Bytes::from_hex(input)?,
+            value: self.tx.value.unwrap_or(U256::from(0)),
+        })
+    }
+}
+
+#[derive(Debug, Clone, Parser)]
 pub enum SendTxSubcommands {
     /// Use to deploy raw contract bytecode.
     #[command(name = "--create")]
@@ -85,7 +112,7 @@ pub enum SendTxSubcommands {
 
 impl SendTxArgs {
     #[allow(unknown_lints, dependency_on_unit_never_type_fallback)]
-    pub async fn run(self) -> eyre::Result<()> {
+    pub async fn run(self) -> eyre::Result<B256> {
         let Self {
             eth,
             to,
@@ -100,11 +127,7 @@ impl SendTxArgs {
             timeout,
         } = self;
 
-        let blob_data = if let Some(path) = path {
-            Some(std::fs::read(path)?)
-        } else {
-            None
-        };
+        let blob_data = if let Some(path) = path { Some(std::fs::read(path)?) } else { None };
 
         let code = if let Some(SendTxSubcommands::Create {
             code,
@@ -188,20 +211,43 @@ async fn cast_send<P: Provider<T, AnyNetwork>, T: Transport + Clone>(
     cast_async: bool,
     confs: u64,
     timeout: u64,
-) -> Result<()> {
+) -> Result<B256> {
     let cast = Cast::new(provider);
     let pending_tx = cast.send(tx).await?;
 
+    let chain_id = cast.chain_id().await?;
     let tx_hash = pending_tx.inner().tx_hash();
 
+    // Log the transaction hash
     if cast_async {
-        sh_println!("{tx_hash:#x}")?;
+        println!(
+            "{}",
+            format!(
+                "Transaction sent. Etherscan link {}",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}"))
+            )
+            .bright_cyan()
+        );
     } else {
-        let receipt = cast
-            .receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false)
-            .await?;
-        sh_println!("{receipt}")?;
+        println!(
+            "{}",
+            format!(
+                "Transaction sent. Etherscan link {}. Waiting for {} confirmations...",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}")),
+                confs
+            )
+            .bright_cyan()
+        );
+        let _ = cast.receipt(format!("{tx_hash:#x}"), None, confs, Some(timeout), false).await?;
+        println!(
+            "{}",
+            format!(
+                "Transaction confirmed. Etherscan link {}",
+                etherscan_tx_url(chain_id, format!("{tx_hash:#x}"))
+            )
+            .bright_cyan()
+        );
     }
 
-    Ok(())
+    Ok(*tx_hash)
 }

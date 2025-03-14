@@ -1,101 +1,77 @@
-use alloy_network::AnyNetwork;
-use alloy_primitives::{Address, Bytes};
-use alloy_provider::Provider;
-use alloy_rpc_types::TransactionRequest;
-use alloy_serde::WithOtherFields;
-use alloy_sol_types::{sol, SolCall};
-use alloy_transport::Transport;
-use bls::BLSCommands;
-use cast::Cast;
-use clap::Subcommand;
-use delete::DeleteCommand;
-use get::GetCommand;
-use import::ImportCommand;
-use list::ListCommand;
+use clap::{Parser, Subcommand};
+use hyve_cli_runner::CliContext;
+use opt_in_network::OptInNetworkCommand;
+use opt_in_vault::OptInVaultCommand;
+use opt_out_network::OptOutNetworkCommand;
+use opt_out_vault::OptOutVaultCommand;
 use register::RegisterCommand;
+use status::StatusCommand;
+use vault_parameters::VaultParametersCommand;
 
-use std::{collections::HashMap, str::FromStr};
-
-use crate::common::consts::TESTNET_ADDRESSES;
-
-mod delete;
-mod get;
-mod import;
-mod list;
+mod opt_in_network;
+mod opt_in_vault;
+mod opt_out_network;
+mod opt_out_vault;
 mod register;
+mod status;
+mod vault_parameters;
 
-pub mod bls;
+#[derive(Debug, Parser)]
+#[clap(about = "Commands related to registering and managing Operators.")]
+pub struct OperatorCommand {
+    #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
+    alias: String,
 
-sol!(
-    function isEntity(address entity_) public returns (bool);
-    function isOptedIn(address who, address where) public returns (bool);
-);
-
-const OP_REGISTRY_ENTITY: &str = "op_registry";
-const IMPORTED_ADDRESSES_FILE: &str = "imported-addresses.json";
-const IMPORTED_ADDRESSES_DIR: &str = "state";
+    #[command(subcommand)]
+    pub command: OperatorSubcommands,
+}
 
 #[derive(Debug, Subcommand)]
-#[clap(about = "Manage your operator account and keys.")]
-pub enum OperatorCommands {
-    #[command(name = "bls", subcommand)]
-    BLS(BLSCommands),
+pub enum OperatorSubcommands {
+    #[command(name = "opt-in-network")]
+    OptInNetwork(OptInNetworkCommand),
 
-    #[command(name = "delete")]
-    Delete(DeleteCommand),
+    #[command(name = "opt-in_vault")]
+    OptInVault(OptInVaultCommand),
 
-    #[command(name = "get")]
-    Get(GetCommand),
+    #[command(name = "opt-out-network")]
+    OptOutNetwork(OptOutNetworkCommand),
 
-    #[command(name = "import")]
-    Import(ImportCommand),
-
-    #[command(name = "list")]
-    List(ListCommand),
+    #[command(name = "opt-out-vault")]
+    OptOutVault(OptOutVaultCommand),
 
     #[command(name = "register")]
     Register(RegisterCommand),
+
+    #[command(name = "status")]
+    Status(StatusCommand),
+
+    #[command(name = "vault-parameters")]
+    VaultParameters(VaultParametersCommand),
 }
 
-pub type ImportedAddresses = HashMap<Address, Option<String>>;
-
-async fn is_operator<P, T>(address: Address, eth_client: &Cast<P, T>) -> eyre::Result<bool>
-where
-    T: Transport + Clone,
-    P: Provider<T, AnyNetwork>,
-{
-    let is_entity = isEntityCall { entity_: address };
-    let bytes: Bytes = is_entity.abi_encode().into();
-
-    let tx = TransactionRequest::default()
-        .to(Address::from_str(TESTNET_ADDRESSES[OP_REGISTRY_ENTITY])?)
-        .input(bytes.into());
-    let tx = WithOtherFields::new(tx);
-
-    let res = eth_client.call(&tx, None, None).await?;
-    let data = isEntityCall::abi_decode_returns(res.as_ref(), false)?;
-
-    Ok(data._0)
-}
-
-async fn is_opted_in<P, T>(
-    who: Address,
-    r#where: Address,
-    to: Address,
-    eth_client: &Cast<P, T>,
-) -> eyre::Result<bool>
-where
-    T: Transport + Clone,
-    P: Provider<T, AnyNetwork>,
-{
-    let is_opted_in = isOptedInCall { who, r#where };
-    let bytes: Bytes = is_opted_in.abi_encode().into();
-
-    let tx = TransactionRequest::default().to(to).input(bytes.into());
-    let tx = WithOtherFields::new(tx);
-
-    let res = eth_client.call(&tx, None, None).await?;
-    let data = isOptedInCall::abi_decode_returns(res.as_ref(), false)?;
-
-    Ok(data._0)
+impl OperatorCommand {
+    pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
+        match self.command {
+            OperatorSubcommands::OptInNetwork(opt_in_network) => {
+                opt_in_network.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptInVault(opt_in_vault) => {
+                opt_in_vault.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptOutNetwork(opt_out_network) => {
+                opt_out_network.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::OptOutVault(opt_out_vault) => {
+                opt_out_vault.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::Register(register) => {
+                register.with_alias(self.alias).execute(ctx).await
+            }
+            OperatorSubcommands::Status(status) => status.with_alias(self.alias).execute(ctx).await,
+            OperatorSubcommands::VaultParameters(vault_parameters) => {
+                vault_parameters.with_alias(self.alias).execute(ctx).await
+            }
+        }
+    }
 }

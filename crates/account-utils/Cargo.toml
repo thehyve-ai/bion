@@ -9,17 +9,17 @@ repository.workspace = true
 license.workspace = true
 
 [dependencies]
-eth2_keystore = { workspace = true }
-
-lighthouse-bls = { workspace = true }
-rand = { workspace = true }
-regex.workspace = true
-serde = { workspace = true }
-serde_yaml = { workspace = true }
 tiny-bip39 = "2.0.0"
-zeroize = { workspace = true }
 
-hyve-primitives = { path = "../primitives" }
+# misc
+eth2_keystore.workspace = true
+lighthouse-bls.workspace = true
+rand.workspace = true
+regex.workspace = true
+serde.workspace = true
+serde_yaml.workspace = true
+thiserror.workspace = true
+zeroize.workspace = true
 
 # tokio
 tokio.workspace = true

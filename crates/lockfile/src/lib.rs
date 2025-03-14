@@ -40,11 +40,7 @@ impl Lockfile {
             _ => LockfileError::IoError(path.clone(), e),
         })?;
 
-        Ok(Self {
-            file,
-            path,
-            file_existed,
-        })
+        Ok(Self { file, path, file_existed })
     }
 
     /// Opens the file at `path` if it exists, or creates a new file if it doesn't.
@@ -52,11 +48,7 @@ impl Lockfile {
         if file_existed {
             File::open(path)
         } else {
-            File::options()
-                .read(true)
-                .write(true)
-                .create_new(true)
-                .open(path)
+            File::options().read(true).write(true).create_new(true).open(path)
         }
     }
 
@@ -142,9 +134,7 @@ mod test {
         let lockfile_path = temp_dir.path().join("lockfile");
 
         let lockfile = File::create(&lockfile_path).unwrap();
-        lockfile
-            .set_permissions(Permissions::from_mode(0o000))
-            .unwrap();
+        lockfile.set_permissions(Permissions::from_mode(0o000)).unwrap();
 
         assert!(matches!(
             Lockfile::new(lockfile_path).unwrap_err(),

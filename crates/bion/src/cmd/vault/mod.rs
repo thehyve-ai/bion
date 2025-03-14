@@ -1,73 +1,103 @@
-use alloy_network::AnyNetwork;
-use alloy_primitives::{Address, Bytes, U256};
-use alloy_provider::Provider;
-use alloy_rpc_types::TransactionRequest;
-use alloy_serde::WithOtherFields;
-use alloy_sol_types::{sol, SolCall};
-use alloy_transport::Transport;
-use cast::Cast;
-use clap::Subcommand;
-use get::GetCommand;
-use list::ListCommand;
-use opt_in::OptInCommand;
-use opt_out::OptOutCommand;
+use clap::{Parser, Subcommand};
+use hyve_cli_runner::CliContext;
+use network_parameters::NetworkParametersCommand;
+use set_delegator::SetDelegatorCommand;
+use set_deposit_limit::SetDepositLimitCommand;
+use set_deposit_whitelist::SetDepositWhitelistCommand;
+use set_depositor_whitelist_status::SetDepositorWhitelistStatusCommand;
+use set_is_deposit_limit::SetIsDepositLimitCommand;
+use set_network_limit::SetNetworkLimitCommand;
+use set_operator_network_limit::SetOperatorNetworkLimitCommand;
+use set_operator_network_shares::SetOperatorNetworkSharesCommand;
+use set_slasher::SetSlasherCommand;
 
-mod get;
-mod list;
-mod opt_in;
-mod opt_out;
+mod network_parameters;
+mod set_delegator;
+mod set_deposit_limit;
+mod set_deposit_whitelist;
+mod set_depositor_whitelist_status;
+mod set_is_deposit_limit;
+mod set_network_limit;
+mod set_operator_network_limit;
+mod set_operator_network_shares;
+mod set_slasher;
 
-sol!(
-    function activeStake() returns (uint256);
-    function totalStake() returns (uint256);
-);
+#[derive(Debug, Parser)]
+#[clap(about = "Commands related to creating and managing Vaults.")]
+pub struct VaultCommand {
+    #[arg(value_name = "ALIAS", help = "The saved operator alias.")]
+    alias: String,
+
+    #[command(subcommand)]
+    pub command: VaultSubcommands,
+}
 
 #[derive(Debug, Subcommand)]
-#[clap(about = "Commands for vault general use.")]
-pub enum VaultCommands {
-    #[command(name = "get")]
-    Get(GetCommand),
+pub enum VaultSubcommands {
+    #[command(name = "network-parameters")]
+    NetworkParameters(NetworkParametersCommand),
 
-    #[command(name = "list")]
-    List(ListCommand),
+    #[command(name = "set-delegator")]
+    SetDelegator(SetDelegatorCommand),
 
-    #[command(name = "opt-in")]
-    OptIn(OptInCommand),
+    #[command(name = "set-deposit-limit")]
+    SetDepositLimit(SetDepositLimitCommand),
 
-    #[command(name = "opt-out")]
-    OptOut(OptOutCommand),
+    #[command(name = "set-deposit-whitelist")]
+    SetDepositWhitelist(SetDepositWhitelistCommand),
+
+    #[command(name = "set-depositor-whitelist-status")]
+    SetDepositorWhitelistStatus(SetDepositorWhitelistStatusCommand),
+
+    #[command(name = "set-is-deposit-limit")]
+    SetIsDepositLimit(SetIsDepositLimitCommand),
+
+    #[command(name = "set-network-limit")]
+    SetNetworkLimit(SetNetworkLimitCommand),
+
+    #[command(name = "set-operator-network-limit")]
+    SetOperatorNetworkLimit(SetOperatorNetworkLimitCommand),
+
+    #[command(name = "set-operator-network-shares")]
+    SetOperatorNetworkShares(SetOperatorNetworkSharesCommand),
+
+    #[command(name = "set-slasher")]
+    SetSlasher(SetSlasherCommand),
 }
 
-pub async fn get_active_stake<P, T>(to: Address, eth_client: &Cast<P, T>) -> eyre::Result<U256>
-where
-    T: Transport + Clone,
-    P: Provider<T, AnyNetwork>,
-{
-    let active_stake_call = activeStakeCall {};
-    let bytes: Bytes = active_stake_call.abi_encode().into();
-
-    let tx = TransactionRequest::default().to(to).input(bytes.into());
-    let tx = WithOtherFields::new(tx);
-
-    let res = eth_client.call(&tx, None, None).await?;
-    let data = activeStakeCall::abi_decode_returns(res.as_ref(), false)?;
-
-    Ok(data._0)
-}
-
-pub async fn get_total_stake<P, T>(to: Address, eth_client: &Cast<P, T>) -> eyre::Result<U256>
-where
-    T: Transport + Clone,
-    P: Provider<T, AnyNetwork>,
-{
-    let total_stake_call = totalStakeCall {};
-    let bytes: Bytes = total_stake_call.abi_encode().into();
-
-    let tx = TransactionRequest::default().to(to).input(bytes.into());
-    let tx = WithOtherFields::new(tx);
-
-    let res = eth_client.call(&tx, None, None).await?;
-    let data = totalStakeCall::abi_decode_returns(res.as_ref(), false)?;
-
-    Ok(data._0)
+impl VaultCommand {
+    pub async fn execute(self, ctx: CliContext) -> eyre::Result<()> {
+        match self.command {
+            VaultSubcommands::NetworkParameters(network_parameters) => {
+                network_parameters.execute(ctx).await
+            }
+            VaultSubcommands::SetDelegator(set_delegator) => {
+                set_delegator.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetDepositLimit(set_deposit_limit) => {
+                set_deposit_limit.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetDepositWhitelist(set_deposit_whitelist) => {
+                set_deposit_whitelist.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetDepositorWhitelistStatus(set_depositor_whitelist_status) => {
+                set_depositor_whitelist_status.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetIsDepositLimit(set_is_deposit_limit) => {
+                set_is_deposit_limit.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetNetworkLimit(set_network_limit) => {
+                set_network_limit.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetOperatorNetworkLimit(set_operator_network_limit) => {
+                set_operator_network_limit.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetOperatorNetworkShares(set_operator_network_shares) => {
+                set_operator_network_shares.with_alias(self.alias).execute(ctx).await
+            }
+            VaultSubcommands::SetSlasher(set_slasher) => {
+                set_slasher.with_alias(self.alias).execute(ctx).await
+            }
+        }
+    }
 }

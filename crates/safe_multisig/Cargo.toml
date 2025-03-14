@@ -1,0 +1,40 @@
+[package]
+name = "safe_multisig"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+readme.workspace = true
+homepage.workspace = true
+repository.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+multicall.workspace = true
+
+# ethereum
+alloy-contract.workspace = true
+alloy-eips = { workspace = true, features = ["serde"] }
+alloy-network.workspace = true
+alloy-primitives.workspace = true
+alloy-rlp.workspace = true
+alloy-rpc-types.workspace = true
+alloy-serde.workspace = true
+alloy-signer = { workspace = true, features = ["eip712"] }
+alloy-signer-local = { workspace = true, features = ["mnemonic", "keystore"] }
+alloy-sol-types.workspace = true
+
+cast = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "cast" }
+foundry-common = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-common" }
+foundry-config = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-config" }
+foundry-wallets = { git = "https://github.com/thehyve-ai/foundry.git", branch = "master", package = "foundry-wallets" }
+
+# misc
+colored.workspace = true
+dialoguer.workspace = true
+eyre.workspace = true
+reqwest.workspace = true
+semver.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+thiserror.workspace = true
