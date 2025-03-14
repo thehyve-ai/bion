@@ -49,8 +49,22 @@ For help on how to use this CLI for your network or vault, please refer to the [
 
 Install `bion`:
 
+if you are on MacOS, you can use the following command:
+
 ```bash
-curl -L https://bion.hyve.xyz | bash
+LINK=$(curl -s https://api.github.com/repos/thehyve-ai/bion/releases/latest | awk "/download.url.*$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m)/ {print \$2}" | sed 's/"//g')
+curl -L  $LINK  | tar zxf -
+sudo mv bion /usr/local/bin/
+```
+
+if you are on Linux, you can use the following command:
+
+```bash
+# Use correct binary for your platform
+LINK=$(curl -s https://api.github.com/repos/thehyve-ai/bion/releases/latest | awk "/download.url.*linux_$(uname -m)/ {print \$2}" | sed 's/"//g')
+curl -L  $LINK  | tar zxf -
+
+sudo mv bion /usr/local/bin/
 ```
 
 Done! Now you can use `bion` to interact with your networks and vaults.

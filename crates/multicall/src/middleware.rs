@@ -476,7 +476,7 @@ where
         let calls = self
             .calls
             .clone()
-            .chunks(100)
+            .chunks(1000000)
             .map(|calls| {
                 calls
                     .to_vec()
