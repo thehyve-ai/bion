@@ -101,6 +101,8 @@ Once you have set up your aliases, you can use them to interact with networks an
 | Rewards-specific commands                                 |   🔨   |
 | **Network Specific**                                      |        |
 | Support custom onboarding commands for arbitrary networks |   🔨   |
+| **Security**                                              |        |
+| Comprehensive e2e tests                                   |   🔨   |
 
 ## Acknowledgements
 
