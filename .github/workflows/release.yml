@@ -121,6 +121,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y musl-tools
+          sudo apt-get install -y make
           rustup target add ${{ matrix.target }}
 
       - name: Linux ARM MUSL setup
