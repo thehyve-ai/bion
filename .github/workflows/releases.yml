@@ -12,6 +12,9 @@ env:
 
 jobs:
   prepare:
+    permissions:
+      contents: read
+      pull-requests: read
     name: Prepare release
     runs-on: ubuntu-latest
     timeout-minutes: 30
