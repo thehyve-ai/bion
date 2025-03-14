@@ -1,5 +1,3 @@
-// MOVE OT HYVE-VERSION "CRATES/VERSION" NAME = HYVE-VERSION
-
 use git_version::git_version;
 use target_info::Target;
 

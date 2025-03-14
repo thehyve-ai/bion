@@ -118,7 +118,7 @@ impl SetNetworkLimitCommand {
         };
 
         let delegator_type = print_loading_until_async(
-            "Fetching delgator type",
+            "Fetching delegator type",
             get_delegator_type(delegator, &provider),
         )
         .await?;

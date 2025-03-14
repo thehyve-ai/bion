@@ -40,7 +40,7 @@ impl SafeClient {
     ) -> eyre::Result<Option<ExecutableSafeTransaction>> {
         let threshold = get_threshold(safe_address, provider).await?;
         if threshold == U256::from(1) {
-            println!("{}", "The treshold is set to 1".bright_cyan());
+            println!("{}", "The threshold is set to 1".bright_cyan());
             println!(
                 "\n{}",
                 "Do you wish to review and confirm the transaction through the Safe dashboard? (y/n)"
