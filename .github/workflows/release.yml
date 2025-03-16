@@ -111,6 +111,7 @@ jobs:
         run: |
           sudo apt-get update -y
           sudo apt-get install -y gcc-aarch64-linux-gnu
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
           echo "CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER=aarch64-linux-gnu-gcc" >> $GITHUB_ENV
           echo "OPENSSL_SYS_STATIC_LIB=1" >> $GITHUB_ENV
           echo "OPENSSL_SYS_USE_PKG_CONFIG=0" >> $GITHUB_ENV
@@ -119,8 +120,8 @@ jobs:
         if: contains(matrix.target, 'musl')
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y musl-tools
-          sudo apt-get install -y make
+          sudo apt-get install -y musl-tools make
+          echo "PKG_CONFIG_ALLOW_CROSS=1" >> $GITHUB_ENV
           rustup target add ${{ matrix.target }}
 
       - name: Linux ARM MUSL setup
