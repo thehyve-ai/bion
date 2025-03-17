@@ -61,6 +61,7 @@ eyre = "0.6"
 # misc
 clap = "4.5.20"
 colored = "2.0"
+ctor = "0.4.1"
 dialoguer = "0.11.0"
 hex = "0.4.3"
 humantime = "2.1.0"
