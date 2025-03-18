@@ -14,7 +14,7 @@ use crate::{
 
 pub fn exec_transaction<A: TryInto<Address>>(
     safe_tx: &SafeTransactionData,
-    signature: [u8; 65],
+    signature: &[u8],
     safe: A,
 ) -> eyre::Result<ExecutableSafeTransaction>
 where
