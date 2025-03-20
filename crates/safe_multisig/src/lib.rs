@@ -95,7 +95,8 @@ impl SafeClient {
         )
         .await?;
 
-        if matches!(signer, WalletSigner::Ledger(..)) {
+        if matches!(signer, WalletSigner::Ledger(..)) || matches!(signer, WalletSigner::Trezor(..))
+        {
             let signature = signer.sign_message(tx_hash.as_slice()).await?;
             let signature = signature.as_bytes().encode_hex_with_prefix();
             let mut signature_v = u8::from_str_radix(&signature[signature.len() - 2..], 16)?;
@@ -153,7 +154,9 @@ impl SafeClient {
         )
         .await?;
 
-        let signature = if matches!(signer, WalletSigner::Ledger(..)) {
+        let signature = if matches!(signer, WalletSigner::Ledger(..))
+            || matches!(signer, WalletSigner::Trezor(..))
+        {
             let signature = signer.sign_message(tx_hash.as_slice()).await?;
             let signature = signature.as_bytes().encode_hex_with_prefix();
             let mut signature_v = u8::from_str_radix(&signature[signature.len() - 2..], 16)?;

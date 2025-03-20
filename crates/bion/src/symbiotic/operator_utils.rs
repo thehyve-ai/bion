@@ -5,6 +5,23 @@ use crate::utils::print_loading_until_async;
 
 use super::calls::is_operator;
 
+#[derive(Clone, Debug)]
+pub struct OperatorData {
+    pub address: Address,
+    pub symbiotic_metadata: Option<OperatorInfo>,
+}
+
+impl OperatorData {
+    pub fn new(address: Address) -> Self {
+        Self { address, symbiotic_metadata: None }
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct OperatorInfo {
+    pub name: String,
+}
+
 pub async fn validate_operator_symbiotic_status<A: TryInto<Address>>(
     operator: A,
     operator_registry: A,

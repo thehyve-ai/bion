@@ -1,5 +1,6 @@
 use bion::cmd::{
-    add_alias::AddAliasCommand, get_vault::GetVaultCommand, list_aliases::ListAliasesCommand,
+    add_alias::AddAliasCommand, get_network::GetNetworkCommand, get_vault::GetVaultCommand,
+    list_aliases::ListAliasesCommand, list_networks::ListNetworksCommand,
     list_vaults::ListVaultsCommand, network::NetworkCommand, operator::OperatorCommand,
     remove_alias::RemoveAliasCommand, vault::VaultCommand,
 };
@@ -63,6 +64,12 @@ impl Cli {
             Commands::ListVaults(list_vaults) => {
                 runner.run_command_until_exit(|ctx| list_vaults.execute(ctx))
             }
+            Commands::GetNetwork(get_network) => {
+                runner.run_command_until_exit(|ctx| get_network.execute(ctx))
+            }
+            Commands::ListNetworks(list_networks) => {
+                runner.run_command_until_exit(|ctx| list_networks.execute(ctx))
+            }
             Commands::Network(network) => runner.run_command_until_exit(|ctx| network.execute(ctx)),
             Commands::Operator(operator) => {
                 runner.run_command_until_exit(|ctx| operator.execute(ctx))
@@ -77,11 +84,17 @@ pub enum Commands {
     #[command(name = "add-alias")]
     AddAlias(AddAliasCommand),
 
+    #[command(name = "get-network")]
+    GetNetwork(GetNetworkCommand),
+
     #[command(name = "get-vault")]
     GetVault(GetVaultCommand),
 
     #[command(name = "list-aliases")]
     ListAliases(ListAliasesCommand),
+
+    #[command(name = "list-networks")]
+    ListNetworks(ListNetworksCommand),
 
     #[command(name = "list-vaults")]
     ListVaults(ListVaultsCommand),
