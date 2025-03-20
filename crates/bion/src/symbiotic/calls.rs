@@ -111,6 +111,7 @@ where
     Ok(current_epoch)
 }
 
+#[allow(dead_code)]
 pub fn get_network_current_epoch_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     network_middleware: Address,
@@ -128,6 +129,7 @@ where
     multicall.add_call(network_middleware, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_network_epoch_duration<A: TryInto<Address>>(
     network_middleware: A,
     provider: &RetryProvider,
@@ -162,6 +164,7 @@ where
     multicall.add_call(network_middleware, function, &[], allow_failure)
 }
 
+#[allow(dead_code)]
 pub async fn get_network_epoch_start<A: TryInto<Address>>(
     epoch: U48,
     network_middleware: A,
@@ -215,6 +218,7 @@ where
     Ok(slashing_window)
 }
 
+#[allow(dead_code)]
 pub fn get_network_slashing_window_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
     network_middleware: Address,

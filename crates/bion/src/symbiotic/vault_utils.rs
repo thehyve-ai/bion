@@ -1,5 +1,8 @@
+use std::cmp::Ordering;
+
 use alloy_primitives::{aliases::U96, Address, U256};
 use chrono::{DateTime, Utc};
+use clap::ValueEnum;
 use colored::Colorize;
 use foundry_common::provider::RetryProvider;
 use itertools::Itertools;
@@ -36,6 +39,65 @@ use super::{
 const SYMBIOTIC_GITHUB_URL: &str =
     "https://raw.githubusercontent.com/symbioticfi/metadata-mainnet/refs/heads/main/vaults";
 const VAULT_FILE_NAME: &str = "info.json";
+
+#[derive(Debug, Clone, ValueEnum)]
+#[clap(rename_all = "kebab-case")]
+pub enum VaultSortOption {
+    NameAsc,
+    NameDesc,
+    ActiveStakeAsc,
+    ActiveStakeDesc,
+    TvlAsc,
+    TvlDesc,
+}
+
+impl Default for VaultSortOption {
+    fn default() -> Self {
+        Self::ActiveStakeDesc
+    }
+}
+
+pub fn sort_vaults(a: &VaultData, b: &VaultData, sort_by: Option<VaultSortOption>) -> Ordering {
+    let name_a = a.symbiotic_metadata.as_ref().map(|m| m.name.clone());
+    let name_b = b.symbiotic_metadata.as_ref().map(|m| m.name.clone());
+
+    match sort_by.clone().unwrap_or_default() {
+        VaultSortOption::NameAsc => compare_names_asc(&name_a, &name_b),
+        VaultSortOption::NameDesc => compare_names_desc(&name_a, &name_b),
+        VaultSortOption::ActiveStakeAsc => {
+            a.active_stake.cmp(&b.active_stake).then_with(|| compare_names_asc(&name_a, &name_b))
+        }
+        VaultSortOption::ActiveStakeDesc => {
+            b.active_stake.cmp(&a.active_stake).then_with(|| compare_names_asc(&name_a, &name_b))
+        }
+        VaultSortOption::TvlAsc => {
+            a.total_stake.cmp(&b.total_stake).then_with(|| compare_names_asc(&name_a, &name_b))
+        }
+        VaultSortOption::TvlDesc => {
+            b.total_stake.cmp(&a.total_stake).then_with(|| compare_names_asc(&name_a, &name_b))
+        }
+    }
+}
+
+// Comparator for name ascending with None last.
+fn compare_names_asc(a: &Option<String>, b: &Option<String>) -> Ordering {
+    match (a.as_ref(), b.as_ref()) {
+        (Some(a_name), Some(b_name)) => a_name.to_lowercase().cmp(&b_name.to_lowercase()),
+        (None, Some(_)) => Ordering::Greater,
+        (Some(_), None) => Ordering::Less,
+        (None, None) => Ordering::Equal,
+    }
+}
+
+// Comparator for name descending with None last.
+fn compare_names_desc(a: &Option<String>, b: &Option<String>) -> Ordering {
+    match (a.as_ref(), b.as_ref()) {
+        (Some(a_name), Some(b_name)) => b_name.to_lowercase().cmp(&a_name.to_lowercase()),
+        (None, Some(_)) => Ordering::Greater,
+        (Some(_), None) => Ordering::Less,
+        (None, None) => Ordering::Equal,
+    }
+}
 
 #[derive(Debug)]
 pub enum RowPrefix {

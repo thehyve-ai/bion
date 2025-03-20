@@ -32,7 +32,7 @@ where
         safe_tx.gas_price.try_into()?,
         safe_tx.gas_token,
         safe_tx.refund_receiver,
-        Bytes::copy_from_slice(&signature),
+        Bytes::copy_from_slice(signature),
     ));
 
     let calldata = call.abi_encode().encode_hex_with_prefix();

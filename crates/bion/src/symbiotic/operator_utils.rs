@@ -7,19 +7,14 @@ use super::calls::is_operator;
 
 #[derive(Clone, Debug)]
 pub struct OperatorData {
-    pub address: Address,
-    pub symbiotic_metadata: Option<OperatorInfo>,
+    #[allow(dead_code)]
+    address: Address,
 }
 
 impl OperatorData {
     pub fn new(address: Address) -> Self {
-        Self { address, symbiotic_metadata: None }
+        Self { address }
     }
-}
-
-#[derive(Clone, Debug)]
-pub struct OperatorInfo {
-    pub name: String,
 }
 
 pub async fn validate_operator_symbiotic_status<A: TryInto<Address>>(
