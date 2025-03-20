@@ -38,7 +38,7 @@ pub struct SetMaxNetworkLimitCommand {
     subnetwork: U96,
 
     #[arg(value_name = "LIMIT", help = "The limit to set.")]
-    limit: U256,
+    limit: f64,
 
     #[arg(skip)]
     alias: String,
@@ -124,7 +124,13 @@ impl SetMaxNetworkLimitCommand {
             );
         }
 
-        let limit = limit * U256::from(10).pow(U256::from(collateral_decimals));
+        let scaled_limit = (limit * 10.0_f64.powf(collateral_decimals as f64)).round();
+        // Check for potential overflow or invalid values
+        if scaled_limit.is_infinite() || scaled_limit.is_nan() || scaled_limit < 0.0 {
+            eyre::bail!("Invalid limit value after scaling with decimals");
+        }
+
+        let limit = U256::from(scaled_limit as u128);
 
         let to = NameOrAddress::Address(delegator);
 

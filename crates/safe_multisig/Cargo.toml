@@ -16,7 +16,7 @@ multicall.workspace = true
 alloy-contract.workspace = true
 alloy-eips = { workspace = true, features = ["serde"] }
 alloy-network.workspace = true
-alloy-primitives.workspace = true
+alloy-primitives = { workspace = true, features = ["k256"] }
 alloy-rlp.workspace = true
 alloy-rpc-types.workspace = true
 alloy-serde.workspace = true

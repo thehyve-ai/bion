@@ -10,7 +10,8 @@ use std::time::Instant;
 use crate::{
     cmd::utils::get_chain_id,
     symbiotic::vault_utils::{
-        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas, fetch_vault_symbiotic_metadata,
+        fetch_token_datas, fetch_vault_addresses, fetch_vault_datas,
+        fetch_vault_symbiotic_metadata, sort_vaults, VaultSortOption,
     },
     utils::validate_cli_args,
 };
@@ -29,6 +30,9 @@ pub struct ListVaultsCommand {
     #[arg(long, help = "Only show verified vaults.", default_value = "false")]
     verified_only: bool,
 
+    #[arg(long, help = "Sort vaults by active stake, TVL or name.")]
+    sort_by: Option<VaultSortOption>,
+
     #[arg(long, help = "Only show vaults with this collateral token.")]
     collateral: Option<String>,
 
@@ -38,7 +42,7 @@ pub struct ListVaultsCommand {
 
 impl ListVaultsCommand {
     pub async fn execute(self, _ctx: CliContext) -> eyre::Result<()> {
-        let Self { limit, verified_only, eth, collateral } = self;
+        let Self { limit, verified_only, sort_by, eth, collateral } = self;
 
         validate_cli_args(&eth)?;
 
@@ -82,7 +86,7 @@ impl ListVaultsCommand {
         ]);
 
         let mut i = 0;
-        for vault in vaults.into_iter().sorted_by(|a, b| b.active_stake.cmp(&a.active_stake)) {
+        for vault in vaults.into_iter().sorted_by(|a, b| sort_vaults(a, b, sort_by.clone())) {
             let vault_address = vault.address;
             let name = vault.symbiotic_metadata.clone().map(|m| m.name);
             if verified_only && name.is_none() {

@@ -28,6 +28,8 @@ use super::{
         },
         delegator_factory::DelegatorFactory,
         erc20,
+        network_middleware::INetworkMiddleware,
+        network_middleware_service::NetworkMiddlewareService,
         slasher::base_slasher::IBaseSlasher,
         slasher_factory::SlasherFactory,
         INetworkRegistry, IOperatorRegistry,
@@ -54,6 +56,23 @@ where
     Ok(delegator_type.into())
 }
 
+pub fn get_delegator_type_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    delegator: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IBaseDelegator::abi::functions();
+    // can safely unwrap
+    let function = abi.get("TYPE").unwrap().first().unwrap();
+
+    multicall.add_call(delegator, function, &[], allow_failure)
+}
+
 pub async fn get_max_network_limit<A: TryInto<Address>>(
     network: A,
     subnetwork: U96,
@@ -75,6 +94,148 @@ where
     Ok(max_network_limit)
 }
 
+pub async fn get_network_current_epoch<A: TryInto<Address>>(
+    network_middleware: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network_middleware = network_middleware.try_into()?;
+
+    let call = INetworkMiddleware::getCurrentEpochCall::new(());
+
+    let INetworkMiddleware::getCurrentEpochReturn { _0: current_epoch } =
+        call_and_decode(call, network_middleware, provider).await?;
+
+    Ok(current_epoch)
+}
+
+#[allow(dead_code)]
+pub fn get_network_current_epoch_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network_middleware: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkMiddleware::abi::functions();
+    // can safely unwrap
+    let function = abi.get("getCurrentEpoch").unwrap().first().unwrap();
+
+    multicall.add_call(network_middleware, function, &[], allow_failure)
+}
+
+#[allow(dead_code)]
+pub async fn get_network_epoch_duration<A: TryInto<Address>>(
+    network_middleware: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network_middleware = network_middleware.try_into()?;
+
+    let call = INetworkMiddleware::getEpochDurationCall::new(());
+
+    let INetworkMiddleware::getEpochDurationReturn { _0: epoch_duration } =
+        call_and_decode(call, network_middleware, provider).await?;
+
+    Ok(epoch_duration)
+}
+
+pub fn get_network_epoch_duration_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network_middleware: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkMiddleware::abi::functions();
+    // can safely unwrap
+    let function = abi.get("getEpochDuration").unwrap().first().unwrap();
+
+    multicall.add_call(network_middleware, function, &[], allow_failure)
+}
+
+#[allow(dead_code)]
+pub async fn get_network_epoch_start<A: TryInto<Address>>(
+    epoch: U48,
+    network_middleware: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network_middleware = network_middleware.try_into()?;
+
+    let call = INetworkMiddleware::getEpochStartCall::new((epoch,));
+
+    let INetworkMiddleware::getEpochStartReturn { _0: epoch_start } =
+        call_and_decode(call, network_middleware, provider).await?;
+
+    Ok(epoch_start)
+}
+
+pub fn get_network_epoch_start_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    epoch: U256,
+    network_middleware: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkMiddleware::abi::functions();
+    // can safely unwrap
+    let function = abi.get("getEpochStart").unwrap().first().unwrap();
+
+    multicall.add_call(network_middleware, function, &[DynSolValue::Uint(epoch, 48)], allow_failure)
+}
+
+pub async fn get_network_slashing_window<A: TryInto<Address>>(
+    network_middleware: A,
+    provider: &RetryProvider,
+) -> Result<U48>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network_middleware = network_middleware.try_into()?;
+
+    let call = INetworkMiddleware::SLASHING_WINDOWCall::new(());
+
+    let INetworkMiddleware::SLASHING_WINDOWReturn { _0: slashing_window } =
+        call_and_decode(call, network_middleware, provider).await?;
+
+    Ok(slashing_window)
+}
+
+#[allow(dead_code)]
+pub fn get_network_slashing_window_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network_middleware: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkMiddleware::abi::functions();
+    // can safely unwrap
+    let function = abi.get("SLASHING_WINDOW").unwrap().first().unwrap();
+
+    multicall.add_call(network_middleware, function, &[], allow_failure)
+}
+
 pub async fn get_network_limit<A: TryInto<Address>>(
     network: A,
     subnetwork: U96,
@@ -94,6 +255,84 @@ where
         call_and_decode(call, delegator, provider).await?;
 
     Ok(network_limit)
+}
+
+#[allow(dead_code)]
+pub async fn get_network_middleware<A: TryInto<Address>>(
+    network: A,
+    middleware_service: A,
+    provider: &RetryProvider,
+) -> Result<Address>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network = network.try_into()?;
+    let middleware_service = middleware_service.try_into()?;
+
+    let call = NetworkMiddlewareService::middlewareCall::new((network,));
+
+    let NetworkMiddlewareService::middlewareReturn { value: middleware } =
+        call_and_decode(call, middleware_service, provider).await?;
+
+    Ok(middleware)
+}
+
+pub fn get_network_middleware_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network: Address,
+    middleware_service: Address,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = NetworkMiddlewareService::abi::functions();
+    // can safely unwrap
+    let function = abi.get("middleware").unwrap().first().unwrap();
+
+    multicall.add_call(
+        middleware_service,
+        function,
+        &[DynSolValue::Address(network)],
+        allow_failure,
+    )
+}
+
+pub async fn get_network_total_entities<A: TryInto<Address>>(
+    network_registry: A,
+    provider: &RetryProvider,
+) -> Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let network_registry = network_registry.try_into()?;
+
+    let call = INetworkRegistry::totalEntitiesCall::new(());
+
+    let INetworkRegistry::totalEntitiesReturn { _0: total_entities } =
+        call_and_decode(call, network_registry, provider).await?;
+
+    Ok(total_entities)
+}
+
+pub fn get_network_entity_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    network_registry: Address,
+    index: U256,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = INetworkRegistry::abi::functions();
+    // can safely unwrap
+    let function = abi.get("entity").unwrap().first().unwrap();
+
+    multicall.add_call(network_registry, function, &[DynSolValue::from(index)], allow_failure)
 }
 
 pub async fn get_operator_network_limit<A: TryInto<Address>>(
@@ -163,6 +402,41 @@ where
         call_and_decode(call, delegator, provider).await?;
 
     Ok(stake)
+}
+
+pub async fn get_operator_total_entities<A: TryInto<Address>>(
+    operator_registry: A,
+    provider: &RetryProvider,
+) -> eyre::Result<U256>
+where
+    A::Error: std::error::Error + Send + Sync + 'static,
+{
+    let operator_registry = operator_registry.try_into()?;
+
+    let call = IOperatorRegistry::totalEntitiesCall::new(());
+
+    let IOperatorRegistry::totalEntitiesReturn { _0: total_entities } =
+        call_and_decode(call, operator_registry, provider).await?;
+
+    Ok(total_entities)
+}
+
+pub fn get_operator_entity_multicall<T, P, N>(
+    multicall: &mut Multicall<T, P, N>,
+    operator_registry: Address,
+    index: U256,
+    allow_failure: bool,
+) -> usize
+where
+    N: Network,
+    T: Transport + Clone,
+    P: Provider<T, N> + Clone,
+{
+    let abi = IOperatorRegistry::abi::functions();
+    // can safely unwrap
+    let function = abi.get("entity").unwrap().first().unwrap();
+
+    multicall.add_call(operator_registry, function, &[DynSolValue::from(index)], allow_failure)
 }
 
 pub async fn get_slasher_type<A: TryInto<Address>>(
@@ -979,10 +1253,9 @@ where
 }
 
 /// Multicall variant of is_opted_in_network
-#[allow(dead_code)]
 pub fn is_opted_in_network_multicall<T, P, N>(
     multicall: &mut Multicall<T, P, N>,
-    address: Address,
+    operator: Address,
     network: Address,
     opt_in_service: Address,
     allow_failure: bool,
@@ -997,7 +1270,7 @@ where
     multicall.add_call(
         opt_in_service,
         function,
-        &[DynSolValue::from(address), DynSolValue::from(network)],
+        &[DynSolValue::from(operator), DynSolValue::from(network)],
         allow_failure,
     )
 }
