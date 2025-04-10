@@ -92,3 +92,114 @@ pub fn read_user_confirmation() -> eyre::Result<String> {
             },
         })?)
 }
+
+// /// Adjusts the V value in a signature for Safe compatibility
+// ///
+// /// This handles different signing methods and ensures the V value is correct for Safe transactions
+// pub async fn adjust_v_in_signature(
+//     signature: PrimitiveSignature,
+//     tx_hash: B256,
+//     signer_address: Address,
+// ) -> eyre::Result<Vec<u8>> {
+//     const ETHEREUM_V_VALUES: [u8; 4] = [0, 1, 27, 28];
+//     const MIN_VALID_V_VALUE_FOR_SAFE_ECDSA: u8 = 27;
+
+//     let is_prefixed = is_tx_hash_signed_with_prefix(&tx_hash, signature, signer_address).await?;
+
+//     let signature_hex = signature.as_bytes().encode_hex_with_prefix();
+//     let signature_v = u8::from_str_radix(&signature_hex[signature_hex.len() - 2..], 16)?;
+
+//     /*
+//       The Safe's expected V value for ECDSA signature is:
+//       - 27 or 28
+//       - 31 or 32 if the message was signed with a EIP-191 prefix. Should be calculated as ECDSA V value + 4
+//       Some wallets do that, some wallets don't, V > 30 is used by contracts to differentiate between
+//       prefixed and non-prefixed messages. The only way to know if the message was signed with a
+//       prefix is to check if the signer address is the same as the recovered address.
+
+//       More info:
+//       https://docs.safe.global/safe-core-protocol/signatures
+//     */
+//     if signature_v < MIN_VALID_V_VALUE_FOR_SAFE_ECDSA {
+//         signature_v += MIN_VALID_V_VALUE_FOR_SAFE_ECDSA
+//     }
+
+//     let adjust_signature =
+//         format!("{}{}", &signature_hex[..signature_hex.len() - 2], format!("{:02x}", signature_v));
+
+//     let signature_hex = signature.encode_hex_with_prefix();
+//     let signature_v = u8::from_str_radix(&signature_hex[signature_hex.len() - 2..], 16)?;
+//     if !ETHEREUM_V_VALUES.contains(&signature_v) {
+//         return Err(eyre::eyre!("Invalid signature V value"));
+//     }
+
+//     /*
+//       The Safe's expected V value for ECDSA signature is:
+//       - 27 or 28
+//       - 31 or 32 if the message was signed with a EIP-191 prefix. Should be calculated as ECDSA V value + 4
+//       Some wallets do that, some wallets don't, V > 30 is used by contracts to differentiate between
+//       prefixed and non-prefixed messages. The only way to know if the message was signed with a
+//       prefix is to check if the signer address is the same as the recovered address.
+
+//       More info:
+//       https://docs.safe.global/safe-core-protocol/signatures
+//     */
+//     if signature_v < MIN_VALID_V_VALUE_FOR_SAFE_ECDSA {
+//         signature_v += MIN_VALID_V_VALUE_FOR_SAFE_ECDSA
+//     }
+
+//     let mut r = [0u8; 32];
+//     let mut s = [0u8; 32];
+//     r.copy_from_slice(&signature[0..32]);
+//     s.copy_from_slice(&signature[32..64]);
+//     let mut v = signature[64];
+
+//     if !ETHEREUM_V_VALUES.contains(&v) {
+//         return Err(eyre::eyre!("Invalid signature V value"));
+//     }
+
+//     // For ETH_SIGN (sign_message), adjust V value
+//     if v < MIN_VALID_V_VALUE_FOR_SAFE_ECDSA {
+//         v += MIN_VALID_V_VALUE_FOR_SAFE_ECDSA;
+//     }
+
+//     // Check if the message was signed with a prefix
+//     let sig =
+//         Signature { r: FixedBytes::from_slice(&r), s: FixedBytes::from_slice(&s), v: v as u64 };
+
+//     // Reconstruct the signature with the adjusted v value
+//     let mut adjusted_signature = Vec::with_capacity(65);
+//     adjusted_signature.extend_from_slice(&r);
+//     adjusted_signature.extend_from_slice(&s);
+
+//     // Check if the signature was created with a prefix
+//     let recovered_address = recover_signer(tx_hash, &sig)?;
+//     if recovered_address != signer_address {
+//         // If addresses don't match, the message was likely signed with a prefix
+//         // Add 4 to V as per Safe specification
+//         v += 4;
+//     }
+
+//     adjusted_signature.push(v);
+//     Ok(adjusted_signature)
+// }
+
+// /// Checks if a transaction hash was signed with an EIP-191 prefix
+// ///
+// /// Returns true if the signature was created with a prefix, false otherwise
+// pub async fn is_tx_hash_signed_with_prefix(
+//     tx_hash: &B256,
+//     signature: PrimitiveSignature,
+//     owner_address: Address,
+// ) -> eyre::Result<bool> {
+//     match signature.recover_address_from_msg(tx_hash) {
+//         Ok(address) => {
+//             if address != owner_address {
+//                 Ok(true)
+//             } else {
+//                 Ok(false)
+//             }
+//         }
+//         Err(_) => Ok(true),
+//     }
+// }

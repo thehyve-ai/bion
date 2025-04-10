@@ -85,6 +85,7 @@ impl VaultParametersCommand {
         let Some(delegator) = vault.delegator else {
             eyre::bail!("Invalid vault delegator.");
         };
+
         let delegator_type = get_delegator_type(delegator, &provider).await?;
 
         let max_network_limit =

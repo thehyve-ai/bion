@@ -1,4 +1,7 @@
-use alloy_primitives::{hex::ToHexExt, Address, U256};
+use alloy_primitives::{
+    hex::{self, ToHexExt},
+    Address, U256,
+};
 use alloy_signer::Signer;
 use calls::{
     exec_transaction, get_nonce, get_threshold, get_transaction_hash, get_version, is_owner,
@@ -81,7 +84,7 @@ impl SafeClient {
         )
         .await?;
         if !is_owner {
-            eyre::bail!("Signer is not an owner!");
+            eyre::bail!("The signer {} is not an owner of the Safe at {}. Only Safe owners can execute or propose transactions. \nHint: If you're using a hardware wallet, use --mnemonic-index to select the correct account.", sender.to_checksum(None), safe_address.to_checksum(None));
         }
 
         let nonce = get_nonce(safe_address, provider).await?;
@@ -91,9 +94,24 @@ impl SafeClient {
             get_transaction_hash(&safe_tx, safe_address, provider),
         )
         .await?;
-        let signature = signer.sign_hash(&tx_hash).await?;
 
-        exec_transaction(&safe_tx, signature.as_bytes(), safe_address)
+        if matches!(signer, WalletSigner::Ledger(..)) || matches!(signer, WalletSigner::Trezor(..))
+        {
+            let signature = signer.sign_message(tx_hash.as_slice()).await?;
+            let signature = signature.as_bytes().encode_hex_with_prefix();
+            let mut signature_v = u8::from_str_radix(&signature[signature.len() - 2..], 16)?;
+            signature_v += 4;
+
+            let signature =
+                format!("{}{}", &signature[..signature.len() - 2], format!("{:02x}", signature_v));
+            // convert hex signature to bytes
+            let signature = hex::decode(signature)?;
+            exec_transaction(&safe_tx, signature.as_slice(), safe_address)
+        } else {
+            let signature = signer.sign_hash(&tx_hash).await?;
+
+            exec_transaction(&safe_tx, signature.as_bytes().as_slice(), safe_address)
+        }
     }
 
     async fn propose_tx(
@@ -124,7 +142,7 @@ impl SafeClient {
         )
         .await?;
         if !is_owner {
-            eyre::bail!("Signer is not an owner!");
+            eyre::bail!("The signer {} is not an owner of the Safe at {}. Only Safe owners can execute or propose transactions. \nHint: If you're using a hardware wallet, use --mnemonic-index to select the correct account.", sender.to_checksum(None), safe_address.to_checksum(None));
         }
 
         let nonce =
@@ -136,15 +154,30 @@ impl SafeClient {
         )
         .await?;
 
-        let signature =
-            print_loading_until_async("Getting signature", signer.sign_hash(&tx_hash)).await?;
+        let signature = if matches!(signer, WalletSigner::Ledger(..))
+            || matches!(signer, WalletSigner::Trezor(..))
+        {
+            let signature = signer.sign_message(tx_hash.as_slice()).await?;
+            let signature = signature.as_bytes().encode_hex_with_prefix();
+            let mut signature_v = u8::from_str_radix(&signature[signature.len() - 2..], 16)?;
+            signature_v += 4;
+
+            let signature =
+                format!("{}{}", &signature[..signature.len() - 2], format!("{:02x}", signature_v));
+            // convert hex signature to bytes
+            hex::decode(signature)?
+        } else {
+            let signature =
+                print_loading_until_async("Getting signature", signer.sign_hash(&tx_hash)).await?;
+            signature.as_bytes().to_vec()
+        };
 
         // Build the request body.
         let body = ProposeSafeTransactionBody {
             safe_tx,
             contract_transaction_hash: tx_hash,
             sender: sender.to_checksum(None),
-            signature: signature.as_bytes().encode_hex_with_prefix(),
+            signature: signature.as_slice().encode_hex_with_prefix(),
             origin: None,
         };
 
